@@ -20,7 +20,12 @@
     cursor: crosshair;
   }
 
-  &.is-panning .board__canvas {
+  &.is-over-token .board__canvas {
+    cursor: grab;
+  }
+
+  &.is-panning .board__canvas,
+  &.is-dragging-token .board__canvas {
     cursor: grabbing;
   }
 }

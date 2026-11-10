@@ -1,9 +1,15 @@
-<div class="board" [attr.data-tool]="store.activeTool()" [class.is-panning]="panning()">
+<div
+  class="board"
+  [attr.data-tool]="store.activeTool()"
+  [class.is-panning]="panning()"
+  [class.is-over-token]="overMovableToken()"
+  [class.is-dragging-token]="draggingToken()"
+>
   <canvas
     #canvas
     class="board__canvas"
     role="img"
-    aria-label="Tabuleiro com grade de quadrados"
+    aria-label="Tabuleiro com grade de quadrados e tokens"
     (pointerdown)="onPointerDown($event)"
     (pointermove)="onPointerMove($event)"
     (pointerup)="onPointerUp($event)"

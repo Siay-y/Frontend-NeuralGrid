@@ -15,12 +15,16 @@
   </header>
 
   @for (current of [panel()]; track current.id) {
-    <div class="panel__empty" animate.enter="swap">
-      <span class="panel__badge">
-        <svg [lucideIcon]="current.icon" [size]="20" />
-      </span>
-      <p class="panel__lead">Em construção</p>
-      <p class="panel__text">{{ current.description }}</p>
-    </div>
+    @if (current.id === 'tokens') {
+      <app-tokens-panel class="panel__body" animate.enter="swap" />
+    } @else {
+      <div class="panel__empty" animate.enter="swap">
+        <span class="panel__badge">
+          <svg [lucideIcon]="current.icon" [size]="20" />
+        </span>
+        <p class="panel__lead">Em construção</p>
+        <p class="panel__text">{{ current.description }}</p>
+      </div>
+    }
   }
 </aside>

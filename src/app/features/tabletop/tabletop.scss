@@ -41,6 +41,63 @@
   transition: left var(--duration-slow) var(--ease-out);
 }
 
+.tabletop__presence {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 5;
+}
+
+.tabletop__notices {
+  position: absolute;
+  bottom: 72px;
+  left: 50%;
+  z-index: 30;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(420px, calc(100vw - 96px));
+  padding: 6px 6px 6px 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-float);
+  font-size: 13px;
+  pointer-events: auto;
+}
+
+.notice__close {
+  width: 28px;
+  height: 28px;
+}
+
+.notice-enter {
+  animation: notice-in var(--duration-slow) var(--ease-out) both;
+}
+
+.notice-leave {
+  animation: notice-out var(--duration) var(--ease-out) both;
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes notice-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
 .panel-enter {
   animation: panel-in var(--duration-slow) var(--ease-out) both;
 }

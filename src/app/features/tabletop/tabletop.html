@@ -4,6 +4,8 @@
   <main class="tabletop__stage">
     <app-board />
 
+    <app-presence class="tabletop__presence" />
+
     @if (panel(); as current) {
       <app-table-panel
         class="tabletop__panel"
@@ -12,5 +14,28 @@
         animate.leave="panel-leave"
       />
     }
+
+    <div class="tabletop__notices" aria-live="polite">
+      @if (store.notice(); as notice) {
+        @for (item of [notice]; track item.id) {
+          <div
+            class="notice"
+            role="status"
+            animate.enter="notice-enter"
+            animate.leave="notice-leave"
+          >
+            <span>{{ item.message }}</span>
+            <button
+              type="button"
+              class="icon-button notice__close"
+              aria-label="Fechar aviso"
+              (click)="store.dismissNotice()"
+            >
+              <svg lucideX [size]="14" />
+            </button>
+          </div>
+        }
+      }
+    </div>
   </main>
 </div>
