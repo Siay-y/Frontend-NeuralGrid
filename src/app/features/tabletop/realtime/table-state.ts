@@ -1,8 +1,11 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import type { SessionUser } from '../../../core/auth/auth.models';
+import { RollFeed } from '../dice/roll-feed';
 import { TabletopStore } from '../tabletop.store';
 import { TableConnection } from './table-connection';
 import {
+  type ChatMessage,
+  type MessageAudience,
   TableActionError,
   TableClientEvent,
   type TableMember,
@@ -12,6 +15,26 @@ import {
   type TokenDraft,
   type TokenPreview,
 } from './table.protocol';
+
+export const CHAT_MEMORY_LIMIT = 200;
+
+const CLEARED_KEY_PREFIX = 'neuralgrid.chat-cleared.';
+
+function readClearedAt(userId: string): string | null {
+  try {
+    return localStorage.getItem(CLEARED_KEY_PREFIX + userId);
+  } catch {
+    return null;
+  }
+}
+
+function writeClearedAt(userId: string, value: string): void {
+  try {
+    localStorage.setItem(CLEARED_KEY_PREFIX + userId, value);
+  } catch {
+    return;
+  }
+}
 
 function withEntry<K, V>(map: ReadonlyMap<K, V>, key: K, value: V): Map<K, V> {
   const next = new Map(map);
@@ -32,6 +55,7 @@ function withoutEntry<K, V>(map: ReadonlyMap<K, V>, key: K): ReadonlyMap<K, V> {
 export class TableState {
   private readonly connection = inject(TableConnection);
   private readonly store = inject(TabletopStore);
+  private readonly feed = inject(RollFeed);
 
   private readonly tokensById = signal<ReadonlyMap<string, TableToken>>(new Map());
   private readonly previewsById = signal<ReadonlyMap<string, TokenPreview>>(new Map());
@@ -39,6 +63,9 @@ export class TableState {
   private readonly online = signal<ReadonlySet<string>>(new Set());
   private readonly self = signal<SessionUser | null>(null);
   private readonly synced = signal(false);
+  private readonly messageList = signal<readonly ChatMessage[]>([]);
+  private readonly unreadCount = signal(0);
+  private readonly clearedAt = signal<string | null>(null);
 
   readonly tokens = computed(() => [...this.tokensById().values()]);
   readonly previews = this.previewsById.asReadonly();
@@ -48,6 +75,12 @@ export class TableState {
   readonly ready = this.synced.asReadonly();
   readonly status = this.connection.status;
   readonly isMaster = computed(() => this.self()?.role === 'master');
+  readonly messages = computed(() => {
+    const clearedAt = this.clearedAt();
+    const list = this.messageList();
+    return clearedAt ? list.filter((message) => message.createdAt > clearedAt) : list;
+  });
+  readonly unread = this.unreadCount.asReadonly();
 
   start(): void {
     this.connection.connect({
@@ -58,6 +91,8 @@ export class TableState {
       [TableServerEvent.TokenDragged]: (preview: TokenPreview) => this.applyPreview(preview),
       [TableServerEvent.PresenceChanged]: ({ online }: { online: string[] }) =>
         this.applyPresence(online),
+      [TableServerEvent.MessageCreated]: (message: ChatMessage) => this.receive(message),
+      [TableServerEvent.ChatCleared]: ({ by }: { by: string }) => this.applyChatCleared(by),
     });
   }
 
@@ -106,6 +141,61 @@ export class TableState {
     return removed ?? false;
   }
 
+  async sendMessage(text: string, audience: MessageAudience): Promise<boolean> {
+    const sent = await this.attempt(async () => {
+      const message = await this.connection.request<ChatMessage>(TableClientEvent.SendMessage, {
+        text,
+        ...audience,
+      });
+      this.append(message);
+      return true;
+    });
+    return sent ?? false;
+  }
+
+  async rollDice(
+    expression: string,
+    label: string | null,
+    audience: MessageAudience,
+  ): Promise<ChatMessage | null> {
+    return this.attempt(async () => {
+      const message = await this.connection.request<ChatMessage>(TableClientEvent.RollDice, {
+        expression,
+        label,
+        ...audience,
+      });
+      this.append(message);
+      this.feed.throwDice(message);
+      this.feed.show(message);
+      return message;
+    });
+  }
+
+  markChatRead(): void {
+    this.unreadCount.set(0);
+  }
+
+  clearChatForMe(): void {
+    const me = this.self();
+    const last = this.messageList().at(-1);
+    if (!me || !last) {
+      return;
+    }
+    this.clearedAt.set(last.createdAt);
+    writeClearedAt(me.id, last.createdAt);
+    this.unreadCount.set(0);
+  }
+
+  async clearChatForEveryone(): Promise<boolean> {
+    const cleared = await this.attempt(async () => {
+      await this.connection.request(TableClientEvent.ClearChat, {});
+      this.messageList.set([]);
+      this.unreadCount.set(0);
+      return true;
+    });
+    return cleared ?? false;
+  }
+
   dragToken(id: string, col: number, row: number): void {
     this.connection.notify(TableClientEvent.DragToken, { id, col, row });
   }
@@ -140,7 +230,40 @@ export class TableState {
     this.online.set(new Set(snapshot.online));
     this.tokensById.set(new Map(snapshot.tokens.map((token) => [token.id, token])));
     this.previewsById.set(new Map());
+    this.messageList.set(snapshot.messages.slice(-CHAT_MEMORY_LIMIT));
+    this.clearedAt.set(readClearedAt(snapshot.you.id));
     this.synced.set(true);
+  }
+
+  private receive(message: ChatMessage): void {
+    const isNew = this.append(message);
+    if (!isNew || message.authorId === this.self()?.id) {
+      return;
+    }
+    if (message.kind === 'roll') {
+      this.feed.show(message);
+    }
+    const panel = this.store.activePanel();
+    const seen = panel === 'chat' || (panel === 'dice' && message.kind === 'roll');
+    if (!seen) {
+      this.unreadCount.update((count) => count + 1);
+    }
+  }
+
+  private applyChatCleared(by: string): void {
+    this.messageList.set([]);
+    this.unreadCount.set(0);
+    if (by !== this.self()?.id) {
+      this.store.notify('O mestre limpou o chat da mesa.');
+    }
+  }
+
+  private append(message: ChatMessage): boolean {
+    if (this.messageList().some((known) => known.id === message.id)) {
+      return false;
+    }
+    this.messageList.update((list) => [...list, message].slice(-CHAT_MEMORY_LIMIT));
+    return true;
   }
 
   private upsert(token: TableToken): void {

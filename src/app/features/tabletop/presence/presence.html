@@ -1,11 +1,15 @@
 <div class="presence" [attr.data-status]="table.status()">
-  <span class="presence__status" role="status">
-    <span class="presence__pulse" aria-hidden="true"></span>
-    {{ statusLabel() }}
-  </span>
+  @if (table.status() !== 'online') {
+    <span class="presence__status" role="status" animate.enter="status-in">
+      <span class="presence__pulse" aria-hidden="true"></span>
+      {{ statusLabel() }}
+    </span>
+  }
 
   @if (people().length > 0) {
-    <span class="presence__divider" aria-hidden="true"></span>
+    @if (table.status() !== 'online') {
+      <span class="presence__divider" aria-hidden="true"></span>
+    }
     <ul class="presence__people" [attr.aria-label]="onlineCount() + ' pessoas na mesa'">
       @for (person of people(); track person.id) {
         <li class="avatar" [class.is-online]="person.online" [attr.title]="person.title">

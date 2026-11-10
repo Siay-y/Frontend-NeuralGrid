@@ -12,6 +12,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { ReleaseService } from '../../../core/release/release.service';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { BrandMark } from '../../../shared/ui/brand-mark/brand-mark';
+import { TableState } from '../realtime/table-state';
 import { MAP_TOOLS, SHORTCUT_PANELS, TABLE_PANELS } from '../tabletop.models';
 import { TabletopStore } from '../tabletop.store';
 
@@ -35,6 +36,7 @@ export class Sidebar {
   protected readonly store = inject(TabletopStore);
   protected readonly theme = inject(ThemeService);
   protected readonly release = inject(ReleaseService);
+  protected readonly table = inject(TableState);
 
   protected readonly tools = MAP_TOOLS;
   protected readonly shortcuts = SHORTCUT_PANELS;

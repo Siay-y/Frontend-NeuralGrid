@@ -20,6 +20,69 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.3.0',
+    date: '2026-11-10',
+    title: 'Dados e chat',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Painel de Dados: escolha a quantidade e clique no dado, do d4 ao d100.',
+      },
+      {
+        kind: 'new',
+        text: 'Os dados caem na mesa em 3D, quicam e param mostrando o resultado sorteado pelo servidor.',
+      },
+      {
+        kind: 'new',
+        text: 'Toda rolagem aparece para a mesa inteira numa caixinha no canto inferior direito, com os dados girando até parar.',
+      },
+      {
+        kind: 'new',
+        text: 'Falha crítica: um 1 no d6 ou maior deixa o dado vermelho.',
+      },
+      {
+        kind: 'new',
+        text: 'Chat em balões, com avatar, mensagens agrupadas e separador por dia.',
+      },
+      {
+        kind: 'new',
+        text: 'Digite /r 1d20+5 Luta para rolar direto da conversa.',
+      },
+      {
+        kind: 'new',
+        text: 'Rolagem oculta do mestre, rolagem só para o mestre e sussurros entre jogadores.',
+      },
+      {
+        kind: 'new',
+        text: 'Limpar o chat só na sua tela, ou para toda a mesa se você for o mestre.',
+      },
+      {
+        kind: 'new',
+        text: 'O ícone do Chat mostra quantas mensagens chegaram, e um botão leva às novas quando você está lendo o histórico.',
+      },
+      {
+        kind: 'improved',
+        text: 'A barra lateral agora flutua sobre a mesa, como os outros painéis.',
+      },
+      {
+        kind: 'improved',
+        text: 'No tema claro, tudo o que flutua sobre a mesa (barra lateral, painéis, zoom, participantes e rolagens) fica em grafite para destacar do tabuleiro.',
+      },
+      {
+        kind: 'improved',
+        text: 'O chat e o histórico só mostram o resultado quando os dados param de girar.',
+      },
+      {
+        kind: 'improved',
+        text: 'O canto superior direito mostra só quem está na mesa; o estado da conexão aparece apenas se ela cair.',
+      },
+      {
+        kind: 'improved',
+        text: 'Os dados são sorteados no servidor com gerador criptográfico: ninguém consegue forjar um resultado.',
+      },
+    ],
+  },
+  {
     version: '0.2.1',
     date: '2026-11-10',
     title: 'Notas de atualização',

@@ -1,21 +1,25 @@
 <div class="tabletop" [class.is-expanded]="store.sidebarExpanded()">
-  <app-sidebar class="tabletop__sidebar" />
+  <app-sidebar class="tabletop__sidebar chrome-dark" />
 
   <main class="tabletop__stage">
     <app-board />
 
-    <app-presence class="tabletop__presence" />
+    <app-dice-tray class="tabletop__tray" />
+
+    <app-presence class="tabletop__presence chrome-dark" />
 
     @if (panel(); as current) {
       <app-table-panel
-        class="tabletop__panel"
+        class="tabletop__panel chrome-dark"
         [panel]="current"
         animate.enter="panel-enter"
         animate.leave="panel-leave"
       />
     }
 
-    <div class="tabletop__notices" aria-live="polite">
+    <app-roll-previews class="tabletop__rolls chrome-dark" />
+
+    <div class="tabletop__notices chrome-dark" aria-live="polite">
       @if (store.notice(); as notice) {
         @for (item of [notice]; track item.id) {
           <div

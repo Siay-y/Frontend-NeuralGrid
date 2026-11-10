@@ -45,9 +45,10 @@ Não há `BehaviorSubject` compartilhado nem biblioteca de estado.
 | `AuthService` | raiz | `user`, `isAuthenticated`, `signOutReason` |
 | `ThemeService` | raiz | `theme`, `isDark` |
 | `ReleaseService` | raiz | `hasUnseen` |
-| `TabletopStore` | provido pela página `/tabletop` | `activeTool`, `activePanel`, `sidebarExpanded`, `selectedTokenId`, `notice` |
+| `TabletopStore` | provido pela página `/tabletop` | `activeTool`, `activePanel`, `sidebarExpanded`, `selectedTokenId`, `notice`, `chatAudience` |
 | `TableConnection` | provido pela página `/tabletop` | `status` |
-| `TableState` | provido pela página `/tabletop` | `tokens`, `previews`, `members`, `onlineIds`, `me`, `isMaster` |
+| `RollFeed` | provido pela página `/tabletop` | `previews`, `throws` |
+| `TableState` | provido pela página `/tabletop` | `tokens`, `previews`, `members`, `onlineIds`, `me`, `isMaster`, `messages`, `unread` |
 | `Board` | local | `camera`, `hoveredCell`, `panning`, `draggingToken`, `zoomPercent` |
 | `LoginPage` | local | `loading`, `submitted`, `error`, `slowServer`, `passwordVisible` |
 
@@ -151,4 +152,14 @@ Vitest com jsdom, via `ng test`. Os arquivos ficam ao lado do código
 - `LoginPage`: validação, estado de carregamento, erro e redirecionamento.
 - `describeLoginError` e a câmera do tabuleiro.
 - Notas de versão: ordem, formato e a versão igual à do `package.json`.
+- Regras de dados: notação, d100 dividido em dezena e unidade, 20 e 1 natural e
+  o comando `/r` do chat.
+- Geometria dos dados: faces planas e para fora em cada formato, e cada
+  resultado virado para cima na posição final.
+- `RollFeed`: limite de cartões, repetição ignorada e tempo de cada cartão.
+- `buildLogEntries`: agrupamento dos balões, separador de dia e iniciais.
+- `TableState` no chat: limpar só para si (e lembrar ao recarregar), limpeza
+  pelo mestre e contagem de não lidas com o painel de Dados aberto.
+- `TableState` no chat: mensagem que chega pelo ack e pelo broadcast aparece uma
+  vez só, e o contador de não lidas ignora as próprias mensagens.
 - `ReleaseService`: aviso de versão nova e memória da última versão vista.

@@ -9,7 +9,8 @@ projeto, volte ao [README](../README.md).
 
 - **Monocromático.** Preto, branco e uma escala de cinza. Nenhuma cor de
   destaque, nenhum gradiente decorativo. Estados como erro e foco são
-  comunicados por contraste, borda e ícone, nunca por vermelho ou azul.
+  comunicados por contraste, borda e ícone, nunca por vermelho ou azul. A
+  única exceção é a falha crítica nos dados, que pinta o dado de vermelho.
 - **Bordas finas, sombras discretas.** Superfícies se separam por uma borda de
   1px. A única sombra (`--shadow-float`) serve para elementos que flutuam sobre o
   tabuleiro.
@@ -36,9 +37,20 @@ valores de cor soltos.
 | `--color-inverse` | `#FFFFFF` | `#000000` |
 | `--grid-line` | branco a 5,5% | preto a 6% |
 | `--grid-line-strong` | branco a 11% | preto a 12% |
+| `--color-critical` | `#E5484D` | `#DC2626` |
 
 O botão principal usa o par `--color-inverse` e `--color-inverse-text`: branco
 sobre preto no tema escuro, preto sobre branco no claro.
+
+No tema claro, tudo o que flutua sobre o tabuleiro (barra lateral, painéis,
+zoom, célula, participantes, cartões de rolagem e avisos) fica em grafite. Esses
+elementos levam a classe `chrome-dark`, que parte do mixin `dark-palette` de
+`_tokens.scss` e clareia a escala: superfície `#232327` em vez de `#0B0B0C`,
+texto `#F4F4F5` em vez de branco puro. Sobre a grade clara, um controle branco se
+perdia, e o preto puro ficava duro demais. O grafite destaca sem gritar.
+
+Os dados da caixinha leem as cores do próprio cartão, então ficam claros sobre o
+grafite. Os que caem no tabuleiro seguem o tema da página.
 
 | Movimento | Valor |
 | --- | --- |

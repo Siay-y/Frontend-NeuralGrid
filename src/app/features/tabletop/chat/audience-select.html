@@ -1,0 +1,17 @@
+<label class="audience" [class.is-private]="isPrivate()">
+  <span class="sr-only">Quem vê</span>
+  <svg lucideEyeOff class="audience__icon" [size]="13" aria-hidden="true" />
+  <select
+    class="audience__control"
+    [attr.id]="controlId()"
+    [value]="store.chatAudience()"
+    (change)="choose($event)"
+  >
+    @for (option of options(); track option.value) {
+      <option [value]="option.value" [selected]="option.value === store.chatAudience()">
+        {{ option.label }}
+      </option>
+    }
+  </select>
+  <svg lucideChevronDown class="audience__chevron" [size]="13" aria-hidden="true" />
+</label>

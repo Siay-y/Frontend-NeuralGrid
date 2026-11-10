@@ -54,7 +54,7 @@
 }
 
 .hud--status {
-  left: 16px;
+  left: var(--board-inset-left, 16px);
   gap: 10px;
   padding: 0 12px;
   pointer-events: none;

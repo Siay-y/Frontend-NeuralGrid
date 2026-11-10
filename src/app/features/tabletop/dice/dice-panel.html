@@ -1,0 +1,54 @@
+<div class="dice">
+  <div class="builder">
+    <app-audience-select />
+
+    <div class="quantity">
+      <span id="dice-quantity-label" class="quantity__label">Quantidade</span>
+      <div class="stepper" role="group" aria-labelledby="dice-quantity-label">
+        <button
+          type="button"
+          class="stepper__button"
+          aria-label="Um dado a menos"
+          [disabled]="quantity() === 1"
+          (click)="changeQuantity(-1)"
+        >
+          <svg lucideMinus [size]="14" />
+        </button>
+        <output class="stepper__value" aria-live="polite">{{ quantity() }}</output>
+        <button
+          type="button"
+          class="stepper__button"
+          aria-label="Um dado a mais"
+          [disabled]="quantity() === maxQuantity"
+          (click)="changeQuantity(1)"
+        >
+          <svg lucidePlus [size]="14" />
+        </button>
+      </div>
+    </div>
+
+    <div class="dice-grid" role="group" aria-label="Escolha o dado para rolar">
+      @for (sides of dice; track sides) {
+        <button
+          type="button"
+          class="die-button"
+          [disabled]="rolling()"
+          [attr.aria-label]="'Rolar ' + quantity() + 'd' + sides"
+          (click)="roll(sides)"
+        >
+          <svg class="die-button__shape" viewBox="0 0 40 40" aria-hidden="true">
+            <path [attr.d]="shapes[sides]" />
+          </svg>
+          <span class="die-button__label">
+            @if (quantity() > 1) {
+              <span class="die-button__count">{{ quantity() }}</span>
+            }
+            d{{ sides }}
+          </span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <app-message-log [rollsOnly]="true" emptyText="Nenhuma rolagem ainda. Escolha um dado acima." />
+</div>

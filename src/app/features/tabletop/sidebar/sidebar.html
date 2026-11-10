@@ -49,11 +49,26 @@
           class="item"
           [class.is-active]="store.activePanel() === panel.id"
           [attr.aria-pressed]="store.activePanel() === panel.id"
-          [attr.aria-label]="panel.label"
+          [attr.aria-label]="
+            panel.id === 'chat' && table.unread() > 0
+              ? panel.label + ', ' + table.unread() + ' novas'
+              : panel.label
+          "
           [attr.data-tooltip]="panel.label"
           (click)="store.togglePanel(panel.id)"
         >
-          <span class="item__icon"><svg [lucideIcon]="panel.icon" /></span>
+          <span class="item__icon">
+            <svg [lucideIcon]="panel.icon" />
+            @if (panel.id === 'chat' && table.unread() > 0) {
+              <span
+                class="item__badge"
+                aria-hidden="true"
+                animate.enter="badge-in"
+                animate.leave="dot-out"
+                >{{ table.unread() > 9 ? '9+' : table.unread() }}</span
+              >
+            }
+          </span>
           <span class="item__label">{{ panel.label }}</span>
         </button>
       }

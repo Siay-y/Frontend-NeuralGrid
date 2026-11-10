@@ -1,9 +1,11 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { RollFeed } from '../dice/roll-feed';
 import { TabletopStore } from '../tabletop.store';
 import { TableConnection, type ServerEventHandlers } from './table-connection';
 import { TableState } from './table-state';
 import {
+  type ChatMessage,
   TableActionError,
   TableServerEvent,
   type TableSnapshot,
@@ -44,6 +46,18 @@ const snapshot = (role: 'master' | 'player', id = 'ana'): TableSnapshot => ({
     { id: 'ana', displayName: 'Ana', role: 'player' },
   ],
   online: ['mestre', 'ana'],
+  messages: [],
+});
+
+const message = (id: string, authorId: string): ChatMessage => ({
+  id,
+  authorId,
+  kind: 'text',
+  text: `mensagem ${id}`,
+  roll: null,
+  visibility: 'public',
+  recipientId: null,
+  createdAt: '2026-11-10T20:00:00.000Z',
 });
 
 describe('TableState', () => {
@@ -52,9 +66,15 @@ describe('TableState', () => {
   let store: TabletopStore;
 
   beforeEach(() => {
+    localStorage.clear();
     connection = new FakeConnection();
     TestBed.configureTestingModule({
-      providers: [TabletopStore, TableState, { provide: TableConnection, useValue: connection }],
+      providers: [
+        TabletopStore,
+        RollFeed,
+        TableState,
+        { provide: TableConnection, useValue: connection },
+      ],
     });
     state = TestBed.inject(TableState);
     store = TestBed.inject(TabletopStore);
@@ -123,5 +143,103 @@ describe('TableState', () => {
 
     expect(state.tokens()).toHaveLength(0);
     expect(store.selectedTokenId()).toBeNull();
+  });
+
+  describe('chat', () => {
+    it('keeps a message once when both the ack and the broadcast arrive', async () => {
+      const sent = message('m1', 'ana');
+      connection.request.mockImplementation(async () => {
+        connection.emit(TableServerEvent.MessageCreated, sent);
+        return sent;
+      });
+
+      expect(await state.sendMessage('oi', { visibility: 'public', recipientId: null })).toBe(true);
+      expect(state.messages().map((m) => m.id)).toEqual(['m1']);
+    });
+
+    it('counts unread messages from others only while the chat is closed', () => {
+      connection.emit(TableServerEvent.MessageCreated, message('m1', 'mestre'));
+      connection.emit(TableServerEvent.MessageCreated, message('m2', 'ana'));
+      expect(state.unread()).toBe(1);
+
+      store.openPanel('chat');
+      connection.emit(TableServerEvent.MessageCreated, message('m3', 'mestre'));
+      expect(state.unread()).toBe(1);
+
+      state.markChatRead();
+      expect(state.unread()).toBe(0);
+    });
+
+    it('previews every roll and throws the dice only for my own', async () => {
+      const feed = TestBed.inject(RollFeed);
+      const theirs: ChatMessage = { ...message('r1', 'mestre'), kind: 'roll', text: null };
+      const mine: ChatMessage = { ...message('r2', 'ana'), kind: 'roll', text: null };
+      connection.request.mockResolvedValue(mine);
+
+      connection.emit(TableServerEvent.MessageCreated, theirs);
+      await state.rollDice('1d20', null, { visibility: 'public', recipientId: null });
+
+      expect(feed.previews().map((preview) => preview.id)).toEqual(['r1', 'r2']);
+      expect(feed.takeThrow()?.id).toBe('r2');
+      expect(feed.takeThrow()).toBeUndefined();
+    });
+
+    it('reports a refused roll and returns null', async () => {
+      connection.request.mockRejectedValue(
+        new TableActionError('INVALID_DICE', 'Os dados precisam ter entre 2 e 100 faces'),
+      );
+
+      const result = await state.rollDice('1d1000', null, {
+        visibility: 'public',
+        recipientId: null,
+      });
+
+      expect(result).toBeNull();
+      expect(store.notice()?.message).toBe('Os dados precisam ter entre 2 e 100 faces');
+    });
+
+    it('hides everything up to now only for me, and remembers it', () => {
+      connection.emit(TableServerEvent.MessageCreated, message('m1', 'mestre'));
+      connection.emit(TableServerEvent.MessageCreated, {
+        ...message('m2', 'mestre'),
+        createdAt: '2026-11-10T20:01:00.000Z',
+      });
+
+      state.clearChatForMe();
+      expect(state.messages()).toEqual([]);
+      expect(state.unread()).toBe(0);
+
+      connection.emit(TableServerEvent.MessageCreated, {
+        ...message('m3', 'mestre'),
+        createdAt: '2026-11-10T20:02:00.000Z',
+      });
+      expect(state.messages().map((m) => m.id)).toEqual(['m3']);
+
+      connection.emit(TableServerEvent.Snapshot, {
+        ...snapshot('player'),
+        messages: [message('m1', 'mestre')],
+      });
+      expect(state.messages()).toEqual([]);
+    });
+
+    it('empties the chat when the master clears it for everyone', () => {
+      connection.emit(TableServerEvent.MessageCreated, message('m1', 'mestre'));
+      connection.emit(TableServerEvent.ChatCleared, { by: 'mestre' });
+
+      expect(state.messages()).toEqual([]);
+      expect(store.notice()?.message).toBe('O mestre limpou o chat da mesa.');
+    });
+
+    it('treats rolls as seen while the dice panel is open, but not text', () => {
+      store.openPanel('dice');
+      connection.emit(TableServerEvent.MessageCreated, {
+        ...message('r1', 'mestre'),
+        kind: 'roll',
+        text: null,
+      });
+      connection.emit(TableServerEvent.MessageCreated, message('m1', 'mestre'));
+
+      expect(state.unread()).toBe(1);
+    });
   });
 });
