@@ -20,6 +20,21 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.3.1',
+    date: '2026-11-10',
+    title: 'Barra lateral em telas baixas',
+    changes: [
+      {
+        kind: 'fixed',
+        text: 'Os ícones da barra lateral não se sobrepõem mais em telas baixas: ela fica mais compacta e rola quando não cabe.',
+      },
+      {
+        kind: 'fixed',
+        text: 'No celular, a dica com o nome do botão não fica mais presa por cima do painel depois do toque.',
+      },
+    ],
+  },
+  {
     version: '0.3.0',
     date: '2026-11-10',
     title: 'Dados e chat',
