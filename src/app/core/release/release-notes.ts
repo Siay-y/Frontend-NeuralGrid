@@ -20,6 +20,29 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.3.2',
+    date: '2026-11-10',
+    title: 'Ícones e tokens ocultos',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Ícones nos tokens: dragão, lobisomem, cavaleiro, bárbaro, lobo, cultista e mais 60, com busca por nome.',
+      },
+      {
+        kind: 'new',
+        text: 'O mestre pode esconder um token dos jogadores e revelar quando ele entrar em cena, com um clique no olho da lista.',
+      },
+      {
+        kind: 'improved',
+        text: 'Dados bem mais leves: 10 d20 ou 10 d100 de uma vez rolam sem travar a mesa.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Rolagens grandes, como 10 d100, agora aparecem rolando em vez de só mostrar o resultado.',
+      },
+    ],
+  },
+  {
     version: '0.3.1',
     date: '2026-11-10',
     title: 'Barra lateral em telas baixas',

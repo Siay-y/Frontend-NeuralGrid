@@ -5,6 +5,7 @@ import {
   hasCriticalFailure,
   naturalResult,
   parseChatInput,
+  previewColumns,
 } from './dice-rules';
 
 function roll(sides: number, values: number[], keptIndexes = values.map((_, i) => i)): RollResult {
@@ -72,16 +73,29 @@ describe('animatedDice', () => {
     expect(dice.map((die) => die.dropped)).toEqual([true, false]);
   });
 
+  it('animates a full ten d100 roll as twenty dice', () => {
+    const values = Array.from({ length: 10 }, (_, index) => index * 10 + 5);
+    expect(animatedDice(roll(100, values))).toHaveLength(20);
+  });
+
   it('skips the animation for dice it cannot draw or for too many dice', () => {
     expect(animatedDice(roll(7, [3]))).toBeNull();
     expect(
       animatedDice(
         roll(
           6,
-          Array.from({ length: 13 }, () => 1),
+          Array.from({ length: 31 }, () => 1),
         ),
       ),
     ).toBeNull();
+  });
+});
+
+describe('previewColumns', () => {
+  it('widens the grid as the roll grows, keeping d100 pairs on one row', () => {
+    expect([1, 3, 4, 6, 8, 10, 18, 20, 30].map(previewColumns)).toEqual([
+      1, 3, 4, 4, 4, 6, 6, 8, 8,
+    ]);
   });
 });
 

@@ -283,6 +283,10 @@ Para publicar uma versão:
 
 Distribuído sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE).
 
+Os ícones dos tokens vêm do [game-icons.net](https://game-icons.net), de Lorc,
+Delapouite e colaboradores, sob a licença
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+
 Copyright © 2026 Luiz Henrique Porfírio Santos.
 
 ---

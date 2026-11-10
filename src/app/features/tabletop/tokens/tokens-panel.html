@@ -33,6 +33,16 @@
         </div>
       </fieldset>
 
+      <div class="field">
+        <span class="field__label" id="token-icon-label">Ícone</span>
+        <app-token-icon-picker
+          formControlName="icon"
+          aria-labelledby="token-icon-label"
+          [kind]="draftKind()"
+          [label]="draftLabel()"
+        />
+      </div>
+
       <div class="editor__row">
         <div class="field field--grow">
           <label class="field__label" for="token-owner">Dono</label>
@@ -62,6 +72,19 @@
           </div>
         </fieldset>
       </div>
+
+      <label class="switch" [class.is-on]="form.controls.hidden.value">
+        <input type="checkbox" class="sr-only" formControlName="hidden" />
+        <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+        <span class="switch__text">
+          <span class="switch__title">Esconder dos jogadores</span>
+          <span class="switch__hint">{{
+            form.controls.hidden.value
+              ? 'Só o mestre vê. Revele quando entrar em cena.'
+              : 'Todos na mesa veem este token.'
+          }}</span>
+        </span>
+      </label>
 
       <div class="editor__actions">
         @if (editingId()) {
@@ -96,17 +119,24 @@
             class="row"
             [class.is-selected]="store.selectedTokenId() === token.id"
             [class.is-editing]="editingId() === token.id"
+            [class.is-hidden]="token.hidden"
             animate.enter="row-enter"
           >
             <button type="button" class="row__main" (click)="locate(token)">
-              <span class="glyph" [attr.data-kind]="token.kind" aria-hidden="true">
-                {{ initials(token.label) }}
-              </span>
+              <app-token-glyph
+                [kind]="token.kind"
+                [label]="token.label"
+                [icon]="token.icon"
+                [hidden]="token.hidden"
+              />
               <span class="row__text">
                 <span class="row__label">
-                  {{ token.label }}
+                  <span class="row__name">{{ token.label }}</span>
                   @if (isMine(token)) {
                     <span class="tag">seu</span>
+                  }
+                  @if (token.hidden) {
+                    <span class="tag tag--hidden">oculto</span>
                   }
                 </span>
                 <span class="row__meta">
@@ -126,6 +156,24 @@
                 <svg lucideLocateFixed [size]="15" />
               </button>
               @if (table.isMaster()) {
+                <button
+                  type="button"
+                  class="icon-button row__action"
+                  [class.is-off]="token.hidden"
+                  [attr.aria-label]="
+                    token.hidden
+                      ? 'Mostrar ' + token.label + ' aos jogadores'
+                      : 'Esconder ' + token.label + ' dos jogadores'
+                  "
+                  [attr.title]="token.hidden ? 'Mostrar aos jogadores' : 'Esconder dos jogadores'"
+                  (click)="toggleHidden(token)"
+                >
+                  @if (token.hidden) {
+                    <svg lucideEyeOff [size]="15" />
+                  } @else {
+                    <svg lucideEye [size]="15" />
+                  }
+                </button>
                 <button
                   type="button"
                   class="icon-button row__action"

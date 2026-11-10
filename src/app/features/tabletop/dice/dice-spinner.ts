@@ -9,16 +9,15 @@ import {
 } from 'three';
 import { dieModel, restingHeight, restingOrientation } from './dice-geometry';
 import {
-  buildDie,
   clamp01,
   type DiceColors,
-  disposeObject,
+  DiceKit,
   random,
   randomTumble,
   type Tumble,
   tumbleAt,
 } from './dice-mesh';
-import { type AnimatedDie, PREVIEW_DICE_PER_ROW } from './dice-rules';
+import { type AnimatedDie, previewColumns } from './dice-rules';
 
 interface Spin {
   die: AnimatedDie;
@@ -42,8 +41,10 @@ export class DiceSpinner {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly camera = new PerspectiveCamera(30, 1, 0.1, 100);
+  private readonly kit = new DiceKit();
   private spins: Spin[] = [];
   private frame = 0;
+  private run = 0;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -55,19 +56,21 @@ export class DiceSpinner {
     this.scene.add(sky, sun);
   }
 
-  spin(dice: AnimatedDie[], colors: DiceColors): Promise<void> {
+  async spin(dice: AnimatedDie[], colors: DiceColors): Promise<void> {
     cancelAnimationFrame(this.frame);
     this.clear();
     this.resize();
+    const run = ++this.run;
 
-    const columns = Math.min(PREVIEW_DICE_PER_ROW, dice.length);
+    const columns = previewColumns(dice.length);
+    const stagger = Math.min(0.05, 0.6 / dice.length);
     const rows = Math.ceil(dice.length / columns);
     this.fitCamera(columns, rows);
 
     this.spins = dice.map((die, index) => {
       const model = dieModel(die.shape);
       const target = restingOrientation(model, die.resultIndex, random(-0.25, 0.25));
-      const object = buildDie({ ...die, critical: false }, colors, DIE_RADIUS);
+      const object = this.kit.build({ ...die, critical: false }, colors, DIE_RADIUS);
       const column = index % columns;
       const row = Math.floor(index / columns);
       const rest = restingHeight(model, target) * DIE_RADIUS;
@@ -84,10 +87,17 @@ export class DiceSpinner {
         object,
         rest,
         hop: random(0.5, 0.9),
-        delay: index * 0.05,
+        delay: index * stagger,
         tumble: randomTumble(target),
       };
     });
+
+    await this.kit
+      .warmUp(dice, colors, this.renderer, this.scene, this.camera)
+      .catch(() => undefined);
+    if (run !== this.run) {
+      return;
+    }
 
     return new Promise((resolve) => {
       const started = performance.now();
@@ -120,18 +130,19 @@ export class DiceSpinner {
       return;
     }
     spin.revealed = true;
-    const painted = buildDie(spin.die, spin.colors, DIE_RADIUS);
+    const painted = this.kit.build(spin.die, spin.colors, DIE_RADIUS);
     painted.position.copy(spin.object.position);
     painted.quaternion.copy(spin.object.quaternion);
     this.scene.remove(spin.object);
-    disposeObject(spin.object);
     this.scene.add(painted);
     spin.object = painted;
   }
 
   dispose(): void {
+    this.run++;
     cancelAnimationFrame(this.frame);
     this.clear();
+    this.kit.dispose();
     this.renderer.dispose();
     this.renderer.forceContextLoss();
   }
@@ -150,7 +161,6 @@ export class DiceSpinner {
   private clear(): void {
     for (const spin of this.spins) {
       this.scene.remove(spin.object);
-      disposeObject(spin.object);
     }
     this.spins = [];
   }

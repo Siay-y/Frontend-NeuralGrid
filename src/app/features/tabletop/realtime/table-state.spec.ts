@@ -31,6 +31,8 @@ const dante: TableToken = {
   id: 'dante',
   label: 'Dante',
   kind: 'agent',
+  icon: null,
+  hidden: false,
   ownerId: 'ana',
   col: 0,
   row: 0,

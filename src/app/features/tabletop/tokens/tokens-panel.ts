@@ -6,6 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormControl,
   FormGroup,
@@ -15,13 +16,15 @@ import {
 } from '@angular/forms';
 import {
   LucideChevronDown,
+  LucideEye,
+  LucideEyeOff,
   LucideLocateFixed,
   LucideLoaderCircle,
   LucidePlus,
   LucideSquarePen,
   LucideTrash,
 } from '@lucide/angular';
-import { findFreeCell, tokenInitials } from '../board/token-geometry';
+import { findFreeCell } from '../board/token-geometry';
 import { TableState } from '../realtime/table-state';
 import {
   TOKEN_KIND_LABEL,
@@ -32,10 +35,14 @@ import {
   type TokenKind,
 } from '../realtime/table.protocol';
 import { TabletopStore } from '../tabletop.store';
+import { TokenGlyph } from './token-glyph';
+import { TokenIconPicker } from './token-icon-picker';
 
 interface TokenForm {
   label: FormControl<string>;
   kind: FormControl<TokenKind>;
+  icon: FormControl<string | null>;
+  hidden: FormControl<boolean>;
   ownerId: FormControl<string | null>;
   size: FormControl<number>;
 }
@@ -47,7 +54,11 @@ const KINDS = Object.keys(TOKEN_KIND_LABEL) as TokenKind[];
   selector: 'app-tokens-panel',
   imports: [
     ReactiveFormsModule,
+    TokenGlyph,
+    TokenIconPicker,
     LucideChevronDown,
+    LucideEye,
+    LucideEyeOff,
     LucideLocateFixed,
     LucideLoaderCircle,
     LucidePlus,
@@ -68,11 +79,12 @@ export class TokensPanel {
   protected readonly kindLabel = TOKEN_KIND_LABEL;
   protected readonly sizes = TOKEN_SIZES;
   protected readonly maxLabel = TOKEN_LABEL_MAX_LENGTH;
-  protected readonly initials = tokenInitials;
 
   protected readonly form: FormGroup<TokenForm> = this.fb.group({
     label: ['', [Validators.required, Validators.maxLength(TOKEN_LABEL_MAX_LENGTH)]],
     kind: this.fb.control<TokenKind>('agent'),
+    icon: this.fb.control<string | null>(null),
+    hidden: this.fb.control(false),
     ownerId: this.fb.control<string | null>(null),
     size: this.fb.control(1),
   });
@@ -81,12 +93,17 @@ export class TokensPanel {
   protected readonly saving = signal(false);
   protected readonly submitted = signal(false);
   protected readonly confirmingDeleteId = signal<string | null>(null);
+  protected readonly draftLabel = signal('');
+  protected readonly draftKind = signal<TokenKind>('agent');
 
   protected readonly tokens = computed(() =>
     [...this.table.tokens()].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR')),
   );
 
   constructor() {
+    const { label, kind } = this.form.controls;
+    label.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => this.draftLabel.set(value));
+    kind.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => this.draftKind.set(value));
     inject(DestroyRef).onDestroy(() => clearTimeout(this.confirmTimer));
   }
 
@@ -118,6 +135,8 @@ export class TokensPanel {
     this.form.setValue({
       label: token.label,
       kind: token.kind,
+      icon: token.icon,
+      hidden: token.hidden,
       ownerId: token.ownerId,
       size: token.size,
     });
@@ -127,6 +146,13 @@ export class TokensPanel {
   protected cancelEdit(): void {
     this.editingId.set(null);
     this.resetForm();
+  }
+
+  protected toggleHidden(token: TableToken): void {
+    void this.table.updateToken(token.id, { hidden: !token.hidden });
+    if (this.editingId() === token.id) {
+      this.form.controls.hidden.setValue(!token.hidden);
+    }
   }
 
   protected requestDelete(token: TableToken): void {
@@ -177,6 +203,6 @@ export class TokensPanel {
 
   private resetForm(kind: TokenKind = 'agent'): void {
     this.submitted.set(false);
-    this.form.reset({ label: '', kind, ownerId: null, size: 1 });
+    this.form.reset({ label: '', kind, icon: null, hidden: false, ownerId: null, size: 1 });
   }
 }

@@ -5,6 +5,8 @@ const token = (overrides: Partial<TableToken>): TableToken => ({
   id: 't',
   label: 'Token',
   kind: 'agent',
+  icon: null,
+  hidden: false,
   ownerId: null,
   col: 0,
   row: 0,

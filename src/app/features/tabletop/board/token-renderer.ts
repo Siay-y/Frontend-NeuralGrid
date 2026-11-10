@@ -1,4 +1,5 @@
 import type { TableToken } from '../realtime/table.protocol';
+import { tokenIcon, TOKEN_ICON_VIEWBOX } from '../tokens/token-icons';
 import { TOKEN_BODY_RATIO, tokenInitials } from './token-geometry';
 
 export interface TokenPalette {
@@ -26,6 +27,40 @@ export interface RenderView {
   cell: number;
   dpr: number;
   zoom: number;
+}
+
+const HIDDEN_ALPHA = 0.5;
+const ICON_SCALE = 1.2;
+const iconPaths = new Map<string, Path2D[]>();
+
+function pathsFor(id: string): Path2D[] | null {
+  const cached = iconPaths.get(id);
+  if (cached) {
+    return cached;
+  }
+  const icon = tokenIcon(id);
+  if (!icon) {
+    return null;
+  }
+  const paths = icon.paths.map((data) => new Path2D(data));
+  iconPaths.set(id, paths);
+  return paths;
+}
+
+function drawIcon(
+  ctx: CanvasRenderingContext2D,
+  paths: Path2D[],
+  cx: number,
+  cy: number,
+  size: number,
+): void {
+  ctx.save();
+  ctx.translate(cx - size / 2, cy - size / 2);
+  ctx.scale(size / TOKEN_ICON_VIEWBOX, size / TOKEN_ICON_VIEWBOX);
+  for (const path of paths) {
+    ctx.fill(path);
+  }
+  ctx.restore();
 }
 
 export function readTokenPalette(styles: CSSStyleDeclaration): TokenPalette {
@@ -81,7 +116,7 @@ export function drawTokens(
     const radius = half * TOKEN_BODY_RATIO;
 
     ctx.save();
-    ctx.globalAlpha = item.remote ? 0.65 : 1;
+    ctx.globalAlpha = (item.remote ? 0.65 : 1) * (token.hidden ? HIDDEN_ALPHA : 1);
 
     if (item.selected) {
       ctx.beginPath();
@@ -104,7 +139,11 @@ export function drawTokens(
       ctx.setLineDash([]);
     }
 
-    if (radius >= 9 * dpr) {
+    const paths = token.icon ? pathsFor(token.icon) : null;
+    if (paths && radius >= 6 * dpr) {
+      ctx.fillStyle = token.kind === 'agent' ? palette.agentText : palette.text;
+      drawIcon(ctx, paths, cx, cy, radius * ICON_SCALE);
+    } else if (radius >= 9 * dpr) {
       ctx.fillStyle = token.kind === 'agent' ? palette.agentText : palette.text;
       ctx.font = `600 ${Math.round(radius * 0.6)}px 'Geist Mono Variable', ui-monospace, monospace`;
       ctx.textAlign = 'center';

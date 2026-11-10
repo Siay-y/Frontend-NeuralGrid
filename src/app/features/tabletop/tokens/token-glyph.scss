@@ -1,0 +1,36 @@
+:host {
+  display: grid;
+  place-items: center;
+  width: var(--glyph-size, 28px);
+  height: var(--glyph-size, 28px);
+  flex-shrink: 0;
+  border: 1.5px solid var(--color-text-muted);
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: calc(var(--glyph-size, 28px) * 0.36);
+  font-weight: 600;
+  transition: opacity var(--duration) var(--ease-out);
+}
+
+:host([data-kind='agent']) {
+  border-color: var(--color-inverse);
+  background: var(--color-inverse);
+  color: var(--color-inverse-text);
+}
+
+:host([data-kind='threat']) {
+  border-style: dashed;
+  border-color: var(--color-text);
+}
+
+:host(.is-hidden) {
+  opacity: 0.5;
+}
+
+.glyph__icon {
+  width: 68%;
+  height: 68%;
+  fill: currentColor;
+}

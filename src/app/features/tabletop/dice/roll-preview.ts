@@ -17,16 +17,12 @@ import { RollCard } from '../chat/roll-card';
 import { TableState } from '../realtime/table-state';
 import type { ChatMessage } from '../realtime/table.protocol';
 import { loadDiceFont, prefersReducedMotion, readDiceColors } from './dice-env';
-import {
-  animatedDice,
-  hasCriticalFailure,
-  naturalResult,
-  PREVIEW_DICE_PER_ROW,
-} from './dice-rules';
+import { animatedDice, hasCriticalFailure, naturalResult, previewColumns } from './dice-rules';
 import type { DiceSpinner } from './dice-spinner';
 import { RollFeed } from './roll-feed';
 
 const ROW_HEIGHT_PX = 96;
+const BASE_COLUMNS = 4;
 
 @Component({
   selector: 'app-roll-preview',
@@ -50,9 +46,12 @@ export class RollPreviewCard {
     const roll = this.roll();
     return roll && !prefersReducedMotion() ? animatedDice(roll) : null;
   });
-  protected readonly stageHeight = computed(
-    () => Math.ceil((this.dice()?.length ?? 0) / PREVIEW_DICE_PER_ROW) * ROW_HEIGHT_PX,
-  );
+  protected readonly stageHeight = computed(() => {
+    const count = this.dice()?.length ?? 0;
+    const columns = previewColumns(count);
+    const rowHeight = (ROW_HEIGHT_PX * BASE_COLUMNS) / Math.max(BASE_COLUMNS, columns);
+    return Math.ceil(count / columns) * Math.round(rowHeight);
+  });
   protected readonly revealed = signal(false);
   protected readonly flag = computed<'critical' | 'max' | null>(() => {
     const roll = this.roll();
