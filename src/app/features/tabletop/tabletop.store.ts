@@ -27,6 +27,7 @@ export class TabletopStore {
   private readonly focus = signal<FocusRequest | null>(null);
   private readonly center = signal<GridCell>({ col: 0, row: 0 });
   private readonly currentNotice = signal<Notice | null>(null);
+  private readonly audience = signal('public');
   private noticeTimer: ReturnType<typeof setTimeout> | undefined;
 
   readonly activeTool = this.tool.asReadonly();
@@ -36,6 +37,7 @@ export class TabletopStore {
   readonly focusRequest = this.focus.asReadonly();
   readonly viewCenter = this.center.asReadonly();
   readonly notice = this.currentNotice.asReadonly();
+  readonly chatAudience = this.audience.asReadonly();
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.noticeTimer));
@@ -80,6 +82,10 @@ export class TabletopStore {
     if (current.col !== cell.col || current.row !== cell.row) {
       this.center.set(cell);
     }
+  }
+
+  setChatAudience(value: string): void {
+    this.audience.set(value);
   }
 
   notify(message: string): void {

@@ -1,0 +1,235 @@
+:host {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.log {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 0;
+  margin: 0;
+  padding: 12px 14px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.log__empty {
+  margin: auto 0;
+  padding: 24px 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.day {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--color-border);
+  }
+}
+
+.row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 100%;
+
+  &.is-first {
+    margin-top: 10px;
+  }
+}
+
+.row.is-mine {
+  justify-content: flex-end;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 18px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text);
+
+  &.is-master {
+    border-color: var(--color-inverse);
+    background: var(--color-inverse);
+    color: var(--color-inverse-text);
+  }
+
+  &.is-spacer {
+    visibility: hidden;
+    height: 0;
+    margin-top: 0;
+  }
+}
+
+.stack {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  max-width: 82%;
+}
+
+.row.is-mine .stack {
+  justify-items: end;
+}
+
+.meta {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 4px;
+}
+
+.meta__author {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.meta__privacy {
+  flex-shrink: 0;
+  padding: 0 5px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  line-height: 15px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.meta__time {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-subtle);
+}
+
+.bubble {
+  display: block;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface-raised);
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.row.is-first:not(.is-mine) .bubble {
+  border-top-left-radius: 4px;
+}
+
+.row.is-mine .bubble:not(.bubble--roll) {
+  border-color: var(--color-inverse);
+  background: var(--color-inverse);
+  color: var(--color-inverse-text);
+}
+
+.row.is-mine.is-first .bubble {
+  border-top-right-radius: 4px;
+}
+
+.row.is-private .bubble:not(.bubble--roll),
+.row.is-mine.is-private .bubble:not(.bubble--roll) {
+  border-style: dashed;
+  border-color: var(--color-text-muted);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.bubble--roll {
+  width: 220px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.jump {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--color-inverse);
+  border-radius: 999px;
+  background: var(--color-inverse);
+  box-shadow: var(--shadow-float);
+  color: var(--color-inverse-text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+
+.row-enter {
+  animation: row-in var(--duration-slow) var(--ease-out) both;
+}
+
+.jump-enter {
+  animation: jump-in var(--duration) var(--ease-out) both;
+}
+
+.jump-leave {
+  animation: jump-out var(--duration-fast) var(--ease-out) both;
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+@keyframes jump-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+}
+
+@keyframes jump-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+}

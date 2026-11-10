@@ -1,0 +1,62 @@
+<div class="chat">
+  <div class="toolbar">
+    <span class="toolbar__count">
+      {{ table.messages().length }}
+      {{ table.messages().length === 1 ? 'mensagem' : 'mensagens' }}
+    </span>
+    <button
+      type="button"
+      class="toolbar__button"
+      title="Esconde o histórico só na sua tela"
+      [disabled]="table.messages().length === 0"
+      (click)="clearForMe()"
+    >
+      <svg lucideEraser [size]="13" />
+      Limpar
+    </button>
+    @if (table.isMaster()) {
+      <button
+        type="button"
+        class="toolbar__button"
+        [class.is-confirming]="confirmingClear()"
+        title="Apaga o histórico para toda a mesa"
+        (click)="clearForEveryone()"
+      >
+        <svg lucideTrash2 [size]="13" />
+        {{ confirmingClear() ? 'Confirmar' : 'Para todos' }}
+      </button>
+    }
+  </div>
+
+  <app-message-log emptyText="Nenhuma mensagem ainda. Diga oi para a mesa ou role um dado." />
+
+  <form class="composer" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <app-audience-select />
+
+    <div class="composer__row">
+      <label class="sr-only" for="chat-text">Mensagem</label>
+      <textarea
+        id="chat-text"
+        class="composer__input"
+        formControlName="text"
+        rows="1"
+        placeholder="Mensagem ou /r 1d20+5"
+        autocomplete="off"
+        [attr.maxlength]="maxLength"
+        (keydown.enter)="onEnter($event)"
+      ></textarea>
+      <button type="submit" class="composer__send" aria-label="Enviar" [disabled]="form.invalid">
+        @if (pending() > 0) {
+          <svg lucideLoaderCircle class="spin" [size]="15" />
+        } @else {
+          <svg lucideSendHorizontal [size]="15" />
+        }
+      </button>
+    </div>
+
+    <p class="composer__hint">
+      <kbd class="kbd">Enter</kbd> envia · <kbd class="kbd">Shift</kbd> +
+      <kbd class="kbd">Enter</kbd> quebra a linha
+    </p>
+  </form>
+</div>

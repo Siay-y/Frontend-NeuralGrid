@@ -1,0 +1,71 @@
+<ol class="log" #scroller (scroll)="onScroll()" aria-live="polite" aria-relevant="additions">
+  @for (entry of entries(); track entry.message.id) {
+    @if (entry.day; as day) {
+      <li class="day" role="separator">
+        <span>{{ day }}</span>
+      </li>
+    }
+    <li
+      class="row"
+      [class.is-mine]="entry.mine"
+      [class.is-first]="entry.first"
+      [class.is-private]="entry.privacy !== null"
+      animate.enter="row-enter"
+    >
+      @if (!entry.mine) {
+        <span
+          class="avatar"
+          [class.is-master]="entry.master"
+          [class.is-spacer]="!entry.first"
+          [attr.title]="entry.author"
+          aria-hidden="true"
+        >
+          @if (entry.first) {
+            {{ entry.initials }}
+          }
+        </span>
+      }
+
+      <div class="stack">
+        @if (entry.first) {
+          <div class="meta">
+            @if (!entry.mine) {
+              <span class="meta__author">{{ entry.author }}</span>
+            }
+            @if (entry.privacy; as privacy) {
+              <span class="meta__privacy">{{ privacy }}</span>
+            }
+            <time class="meta__time" [attr.datetime]="entry.message.createdAt">{{
+              entry.time
+            }}</time>
+          </div>
+        }
+
+        @if (entry.message.roll; as roll) {
+          <app-roll-card
+            class="bubble bubble--roll"
+            [roll]="roll"
+            [pending]="feed.hidden().has(entry.message.id)"
+          />
+        } @else {
+          <p class="bubble" [attr.title]="entry.time">{{ entry.message.text }}</p>
+        }
+      </div>
+    </li>
+  } @empty {
+    <li class="log__empty">{{ emptyText() }}</li>
+  }
+</ol>
+
+@if (newBelow() > 0) {
+  <button
+    type="button"
+    class="jump"
+    animate.enter="jump-enter"
+    animate.leave="jump-leave"
+    (click)="jumpToLatest()"
+  >
+    <svg lucideArrowDown [size]="13" />
+    {{ newBelow() === 1 ? '1 mensagem nova' : newBelow() + ' mensagens novas' }}
+  </button>
+}

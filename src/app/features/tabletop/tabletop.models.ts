@@ -56,13 +56,13 @@ export const TABLE_PANELS: Readonly<Record<PanelId, TablePanel>> = {
   dice: {
     id: 'dice',
     label: 'Dados',
-    description: 'Rolagens validadas pelo servidor, com histórico visível para toda a mesa.',
+    description: 'Testes de atributo, dano e rolagens livres, sorteados pelo servidor.',
     icon: LucideDices,
   },
   chat: {
     id: 'chat',
     label: 'Chat',
-    description: 'Conversa da mesa, com mensagens do mestre e dos jogadores.',
+    description: 'Conversa da mesa, com sussurros e rolagens no mesmo histórico.',
     icon: LucideMessageSquare,
   },
   updates: {

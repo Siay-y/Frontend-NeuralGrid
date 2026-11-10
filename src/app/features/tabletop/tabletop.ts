@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { LucideX } from '@lucide/angular';
 import { Board } from './board/board';
+import { DiceTray } from './dice/dice-tray';
+import { RollFeed } from './dice/roll-feed';
+import { RollPreviews } from './dice/roll-previews';
 import { TablePanelView } from './panel/panel';
 import { Presence } from './presence/presence';
 import { TableConnection } from './realtime/table-connection';
@@ -18,11 +21,11 @@ function isEditableTarget(target: EventTarget | null): boolean {
 
 @Component({
   selector: 'app-tabletop',
-  imports: [Board, Sidebar, TablePanelView, Presence, LucideX],
+  imports: [Board, DiceTray, RollPreviews, Sidebar, TablePanelView, Presence, LucideX],
   templateUrl: './tabletop.html',
   styleUrl: './tabletop.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [TabletopStore, TableConnection, TableState],
+  providers: [TabletopStore, TableConnection, RollFeed, TableState],
   host: { '(document:keydown)': 'onKeydown($event)' },
 })
 export class TabletopPage {

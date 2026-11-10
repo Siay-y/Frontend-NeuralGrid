@@ -21,9 +21,10 @@ Cliente web do NeuralGrid, um Virtual Tabletop privado para uma mesa de quatro
 pessoas, inspirado no Roll20 mas desenhado para ser rápido, enxuto e silencioso.
 Angular 22 sem zone.js, publicado como SPA estática no Firebase Hosting.
 
-Já tem login seguro e a mesa ao vivo: tabuleiro em canvas com grade de
-quadrados e tokens de Agentes, NPCs e Ameaças sincronizados por WebSocket entre
-o mestre e os jogadores. Fichas, dados e chat chegam nas próximas etapas.
+Já tem login seguro, a mesa ao vivo e os dados: tabuleiro em canvas com tokens
+de Agentes, NPCs e Ameaças sincronizados por WebSocket, dados 3D que caem na
+mesa e um chat com sussurros e rolagem oculta. As fichas chegam na próxima
+etapa.
 
 A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid).
 
@@ -31,9 +32,9 @@ A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid)
 
 ## Visão geral
 
-- **Monocromático de verdade.** Preto, branco e cinza, sem cor de destaque, sem
-  gradiente decorativo. Até o autofill do navegador foi domado para não pintar
-  os campos de amarelo.
+- **Monocromático de verdade.** Preto, branco e cinza, sem gradiente decorativo.
+  A única exceção é o vermelho da falha crítica. Até o autofill do navegador foi
+  domado para não pintar os campos de amarelo.
 - **Tema escuro e claro por tokens.** Uma troca de `data-theme` no `<html>`
   redefine todas as variáveis CSS. Um script de 260 bytes aplica o tema salvo
   antes da primeira pintura, sem piscar.
@@ -47,8 +48,18 @@ A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid)
   o movimento célula a célula. Ao soltar, o token encaixa na grade na hora e o
   servidor confirma; se recusar, ele volta para onde estava e a tela explica o
   motivo.
-- **Presença.** Quem está na mesa aparece no canto do tabuleiro, junto com o
-  estado da conexão e a reconexão automática.
+- **Presença.** Quem está na mesa aparece no canto do tabuleiro. O estado da
+  conexão só aparece quando ela cai, junto com a reconexão automática.
+- **Dados 3D.** Escolha a quantidade e clique no dado, do d4 ao d100. Os dados
+  caem na mesa com gravidade, quicam e param com a face sorteada pelo servidor
+  virada para cima. Ao mesmo tempo, toda a mesa vê uma caixinha no canto inferior
+  direito com os mesmos dados girando até parar no resultado.
+- **Chat da mesa.** Balões com avatar, mensagens agrupadas e separador por dia.
+  Rolagens entram no mesmo histórico, `/r 1d20+5 Luta` rola sem sair da
+  conversa, e há rolagem oculta do mestre e sussurros. Cada um limpa o chat na
+  própria tela; o mestre limpa para todos.
+- **Falha crítica em vermelho.** Um 1 no d6 ou maior pinta o dado de vermelho
+  quando ele para. É a única cor do projeto.
 - **Notas de versão.** A aba Atualizações mostra o que mudou em cada versão, e
   um ponto no ícone avisa quem ainda não viu a mais recente.
 - **Token que não vaza.** O interceptor só anexa o `Authorization` a URLs da
@@ -72,6 +83,7 @@ A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid)
 | Tipografia | Geist e Geist Mono, auto-hospedadas |
 | Tabuleiro | Canvas 2D com câmera própria (pan, zoom, DPR) |
 | Tempo real | `socket.io-client` com ack, reconexão e estado em signals |
+| Dados | Sorteio na API; animação em three.js, carregada só na primeira rolagem |
 | Testes | Vitest com jsdom |
 | Hospedagem | Firebase Hosting |
 
@@ -96,6 +108,8 @@ src/
     │   ├── auth/login/             página de login e tradução de erros
     │   └── tabletop/
     │       ├── board/              canvas, câmera, tokens e HUD de zoom
+    │       ├── chat/               chat, histórico, cartão de rolagem e quem vê
+    │       ├── dice/               painel de dados, cena 3D e cartões de rolagem
     │       ├── realtime/           protocolo, conexão Socket.io e estado da mesa
     │       ├── tokens/             painel de tokens: criação, edição e lista
     │       ├── presence/           quem está online e estado da conexão
@@ -186,6 +200,8 @@ uma das contas criadas pelo seed da API.
 | `E` | Borracha |
 | `Esc` | Tirar a seleção do token, ou fechar o painel |
 | `Del` | Remover o token selecionado (só o mestre) |
+| `Enter` no chat | Enviar; `Shift` + `Enter` quebra a linha |
+| `/r 2d6+3 Nome` no chat | Rolar dados direto da conversa |
 | Arrastar um token | Mover, com a ferramenta Selecionar |
 | Roda do mouse | Zoom em torno do cursor |
 | Botão do meio | Mover mapa com qualquer ferramenta |
@@ -234,7 +250,7 @@ O detalhe de cada cabeçalho e o porquê da escolha do `sessionStorage` estão e
 ## Documentação
 
 - [Arquitetura](docs/arquitetura.md): pastas, signals, sessão, tabuleiro e convenções de código.
-- [Tempo real](docs/tempo-real.md): conexão, tokens, movimento otimista, prévias e presença.
+- [Tempo real](docs/tempo-real.md): conexão, tokens, movimento otimista, prévias, presença, chat e dados.
 - [Design](docs/design.md): tokens, temas, tipografia, movimento e acessibilidade.
 - [Segurança](docs/seguranca.md): armazenamento do token, interceptor, CSP e cabeçalhos.
 

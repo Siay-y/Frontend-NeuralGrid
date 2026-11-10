@@ -9,6 +9,9 @@ export const TableClientEvent = {
   MoveToken: 'token:move',
   DragToken: 'token:drag',
   DeleteToken: 'token:delete',
+  SendMessage: 'chat:send',
+  RollDice: 'dice:roll',
+  ClearChat: 'chat:clear',
 } as const;
 
 export const TableServerEvent = {
@@ -18,6 +21,8 @@ export const TableServerEvent = {
   TokenDeleted: 'token:deleted',
   TokenDragged: 'token:dragged',
   PresenceChanged: 'presence:changed',
+  MessageCreated: 'chat:message',
+  ChatCleared: 'chat:cleared',
   SessionExpired: 'session:expired',
 } as const;
 
@@ -54,6 +59,7 @@ export interface TableSnapshot {
   tokens: TableToken[];
   members: TableMember[];
   online: string[];
+  messages: ChatMessage[];
 }
 
 export interface TokenPreview {
@@ -69,6 +75,57 @@ export interface TokenDraft {
   ownerId: string | null;
   size: number;
 }
+
+export type MessageVisibility = 'public' | 'gm' | 'whisper';
+
+export interface MessageAudience {
+  visibility: MessageVisibility;
+  recipientId: string | null;
+}
+
+export interface RolledDie {
+  value: number;
+  kept: boolean;
+}
+
+export interface DiceTermResult {
+  kind: 'dice';
+  sign: 1 | -1;
+  count: number;
+  sides: number;
+  keep: { mode: 'highest' | 'lowest'; count: number } | null;
+  rolls: RolledDie[];
+  subtotal: number;
+}
+
+export interface FlatTermResult {
+  kind: 'flat';
+  sign: 1 | -1;
+  value: number;
+  subtotal: number;
+}
+
+export type RollTerm = DiceTermResult | FlatTermResult;
+
+export interface RollResult {
+  label: string | null;
+  notation: string;
+  terms: RollTerm[];
+  total: number;
+}
+
+export interface ChatMessage extends MessageAudience {
+  id: string;
+  authorId: string | null;
+  kind: 'text' | 'roll';
+  text: string | null;
+  roll: RollResult | null;
+  createdAt: string;
+}
+
+export const MESSAGE_TEXT_MAX_LENGTH = 500;
+export const ROLL_LABEL_MAX_LENGTH = 48;
+export const DICE_EXPRESSION_MAX_LENGTH = 64;
 
 export type AckResult<T> =
   { ok: true; data: T } | { ok: false; error: { code: string; message: string } };

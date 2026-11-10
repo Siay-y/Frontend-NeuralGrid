@@ -1,0 +1,40 @@
+:host {
+  display: block;
+  pointer-events: none;
+}
+
+.previews {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.previews__item {
+  pointer-events: auto;
+}
+
+.preview-enter {
+  animation: preview-in var(--duration-slow) var(--ease-out) both;
+}
+
+.preview-leave {
+  animation: preview-out var(--duration) var(--ease-out) both;
+}
+
+@keyframes preview-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px) scale(0.98);
+  }
+}
+
+@keyframes preview-out {
+  to {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}

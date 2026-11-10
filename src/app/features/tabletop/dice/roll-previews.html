@@ -1,0 +1,7 @@
+<ol class="previews" aria-label="Rolagens recentes" aria-live="polite">
+  @for (message of feed.previews(); track message.id) {
+    <li class="previews__item" animate.enter="preview-enter" animate.leave="preview-leave">
+      <app-roll-preview [message]="message" (dismissed)="feed.dismiss(message.id)" />
+    </li>
+  }
+</ol>

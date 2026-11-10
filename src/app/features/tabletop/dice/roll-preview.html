@@ -1,0 +1,46 @@
+<article
+  class="preview"
+  [class.is-max]="revealed() && flag() === 'max'"
+  [class.is-critical]="revealed() && flag() === 'critical'"
+>
+  <header class="preview__head">
+    <span class="preview__author">{{ author() }}</span>
+    <span class="preview__verb">{{ revealed() ? 'rolou' : 'está rolando' }}</span>
+    @if (privacy(); as privacy) {
+      <span class="preview__privacy">{{ privacy }}</span>
+    }
+    <button
+      type="button"
+      class="icon-button preview__close"
+      aria-label="Fechar rolagem"
+      (click)="dismissed.emit()"
+    >
+      <svg lucideX [size]="13" />
+    </button>
+  </header>
+
+  @if (roll(); as roll) {
+    @if (dice()) {
+      <div class="preview__box" [style.height.px]="stageHeight()">
+        <canvas #stage class="preview__stage" aria-hidden="true"></canvas>
+      </div>
+      <footer class="preview__result" role="status">
+        <code class="preview__notation">{{ roll.label ?? roll.notation }}</code>
+        @if (revealed()) {
+          @if (flag(); as flag) {
+            <span class="preview__flag" [class.is-critical]="flag === 'critical'">{{
+              flag === 'critical' ? 'Falha crítica' : '20 natural'
+            }}</span>
+          }
+          <span class="preview__total" animate.enter="total-pop">{{ roll.total }}</span>
+        } @else {
+          <span class="preview__rolling" aria-label="Rolando">
+            <span></span><span></span><span></span>
+          </span>
+        }
+      </footer>
+    } @else {
+      <app-roll-card [roll]="roll" />
+    }
+  }
+</article>
