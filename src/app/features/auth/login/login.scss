@@ -8,7 +8,7 @@
   display: grid;
   place-items: center;
   min-height: 100dvh;
-  padding: 72px 16px;
+  padding: 72px 16px 112px;
   overflow: hidden;
   isolation: isolate;
 }
@@ -44,11 +44,54 @@
 
 .login__footer {
   position: absolute;
-  bottom: 20px;
+  inset: auto 16px 20px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.login__access,
+.login__credits {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+}
+
+.login__access {
   text-transform: uppercase;
+}
+
+.login__credits {
+  letter-spacing: 0.02em;
+}
+
+.login__version {
+  color: var(--color-text-muted);
+}
+
+.login__author {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--color-text-subtle);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+
+  svg {
+    transition: transform var(--duration) var(--ease-out);
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: var(--color-text);
+
+    svg {
+      transform: translate(1px, -1px);
+    }
+  }
 }
 
 .card {

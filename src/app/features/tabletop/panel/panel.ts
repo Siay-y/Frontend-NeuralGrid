@@ -3,10 +3,11 @@ import { LucideDynamicIcon, LucideX } from '@lucide/angular';
 import type { TablePanel } from '../tabletop.models';
 import { TabletopStore } from '../tabletop.store';
 import { TokensPanel } from '../tokens/tokens-panel';
+import { UpdatesPanel } from '../updates/updates-panel';
 
 @Component({
   selector: 'app-table-panel',
-  imports: [LucideDynamicIcon, LucideX, TokensPanel],
+  imports: [LucideDynamicIcon, LucideX, TokensPanel, UpdatesPanel],
   templateUrl: './panel.html',
   styleUrl: './panel.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

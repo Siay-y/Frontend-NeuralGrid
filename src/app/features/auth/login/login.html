@@ -2,7 +2,7 @@
   <div class="login__grid" aria-hidden="true"></div>
 
   <header class="login__topbar">
-    <span class="login__tag">NG/0.1</span>
+    <span class="login__tag">{{ versionTag }}</span>
     <app-theme-toggle />
   </header>
 
@@ -108,7 +108,18 @@
   </section>
 
   <footer class="login__footer">
-    <svg lucideLock [size]="12" />
-    <span>Acesso restrito · sem cadastro público</span>
+    <p class="login__access">
+      <svg lucideLock [size]="12" />
+      <span>Acesso restrito · sem cadastro público</span>
+    </p>
+    <p class="login__credits">
+      <span class="login__version">v{{ version }}</span>
+      <span aria-hidden="true">·</span>
+      <span>© {{ year }}</span>
+      <a class="login__author" [href]="author.githubUrl" target="_blank" rel="noopener noreferrer">
+        {{ author.name }}
+        <svg lucideArrowUpRight [size]="11" />
+      </a>
+    </p>
   </footer>
 </main>
