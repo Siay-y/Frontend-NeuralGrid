@@ -20,6 +20,17 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.3.5',
+    date: '2026-11-10',
+    title: 'Painéis em telas estreitas',
+    changes: [
+      {
+        kind: 'fixed',
+        text: 'Em celulares estreitos, o painel de Tokens não corta mais os campos nem os botões da lista: tudo se ajusta à largura do painel.',
+      },
+    ],
+  },
+  {
     version: '0.3.4',
     date: '2026-11-10',
     title: 'Sexo, nome oculto e ficha rápida',

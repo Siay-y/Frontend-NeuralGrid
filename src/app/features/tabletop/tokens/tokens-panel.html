@@ -192,7 +192,7 @@
                 </span>
                 <span class="row__meta">
                   <span class="status-dot" [class.is-online]="isOwnerOnline(token)"></span>
-                  {{ tokenMeta(token) }}
+                  <span class="row__meta-text">{{ tokenMeta(token) }}</span>
                 </span>
               </span>
             </button>
@@ -200,7 +200,7 @@
             <div class="row__actions">
               <button
                 type="button"
-                class="icon-button row__action"
+                class="icon-button row__action row__action--locate"
                 [attr.aria-label]="'Localizar ' + token.label"
                 (click)="locate(token)"
               >
