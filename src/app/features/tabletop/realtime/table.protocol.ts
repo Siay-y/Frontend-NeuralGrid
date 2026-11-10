@@ -41,6 +41,8 @@ export interface TableToken {
   id: string;
   label: string;
   kind: TokenKind;
+  icon: string | null;
+  hidden: boolean;
   ownerId: string | null;
   col: number;
   row: number;
@@ -72,6 +74,8 @@ export interface TokenPreview {
 export interface TokenDraft {
   label: string;
   kind: TokenKind;
+  icon: string | null;
+  hidden: boolean;
   ownerId: string | null;
   size: number;
 }

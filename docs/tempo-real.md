@@ -95,6 +95,12 @@ quando chega a posição definitiva, quando a prévia coincide com a posição a
   tamanho. Um token novo nasce na célula livre mais próxima do centro da tela,
   considerando o tamanho dele. Editar reaproveita o mesmo formulário; remover
   pede um segundo clique em até 3 segundos.
+- **Ícone:** o seletor `TokenIconPicker` (um `ControlValueAccessor`) troca as
+  iniciais por um dos ícones de `token-icons.ts`, com busca por nome. No
+  tabuleiro o ícone vira `Path2D`, criado uma vez por ícone.
+- **Oculto:** o switch "Esconder dos jogadores" e o olho de cada linha mudam
+  `hidden`. O mestre vê o token translúcido, com o selo "oculto"; os jogadores
+  nem recebem o token.
 - **Jogadores:** só a lista, com o selo "seu" nos próprios tokens.
 - **Todos:** clicar numa linha seleciona o token e centraliza a câmera nele. O
   ponto ao lado do dono indica se ele está na mesa.
@@ -136,7 +142,14 @@ encenam o que o servidor já sorteou.
 O d100 vira dois d10, dezena e unidade, lado a lado nas duas cenas. three.js
 fica num chunk próprio de ~114 kB, baixado só na primeira rolagem. Com
 `prefers-reduced-motion`, sem WebGL, com dados que a cena não sabe desenhar
-(como d7) ou com mais de 12 dados, o cartão mostra os números direto, sem 3D.
+(como d7) ou com mais de 30 dados (contando o d100 como dois), o cartão mostra
+os números direto, sem 3D.
+
+Para pesar pouco, o `DiceKit` monta cada formato de dado uma vez: uma geometria
+por formato e uma textura (atlas com todas as faces) por combinação de números e
+cores. Dez d20 viram dez objetos que dividem a mesma geometria e o mesmo
+material, em vez de 200 texturas. Antes de começar a animar, a cena envia as
+texturas e compila os shaders com `compileAsync`, sem travar a página.
 
 Enquanto os dados giram, o resultado não aparece em lugar nenhum: o `RollFeed`
 marca a rolagem como escondida, e o chat e o histórico de Dados mostram só o

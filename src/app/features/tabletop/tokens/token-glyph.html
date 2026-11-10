@@ -1,0 +1,9 @@
+@if (paths(); as paths) {
+  <svg class="glyph__icon" [attr.viewBox]="viewBox" focusable="false">
+    @for (path of paths; track $index) {
+      <path [attr.d]="path" />
+    }
+  </svg>
+} @else {
+  {{ initials() }}
+}

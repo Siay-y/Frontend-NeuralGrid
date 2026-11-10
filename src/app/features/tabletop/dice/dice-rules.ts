@@ -4,9 +4,17 @@ export const DICE_SIDES = [4, 6, 8, 10, 12, 20, 100] as const;
 
 export const DICE_QUANTITY_MAX = 10;
 
-export const ANIMATED_DICE_LIMIT = 12;
+export const ANIMATED_DICE_LIMIT = 30;
 
-export const PREVIEW_DICE_PER_ROW = 4;
+export function previewColumns(count: number): number {
+  if (count <= 4) {
+    return Math.max(1, count);
+  }
+  if (count <= 8) {
+    return 4;
+  }
+  return count <= 18 ? 6 : 8;
+}
 
 export type DieShape = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
 

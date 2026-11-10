@@ -1,0 +1,78 @@
+<button
+  type="button"
+  class="field__input trigger"
+  [attr.aria-expanded]="open()"
+  aria-controls="token-icon-sheet"
+  aria-label="Escolher ícone do token"
+  [disabled]="disabled()"
+  (click)="toggle()"
+>
+  <app-token-glyph class="trigger__glyph" [kind]="kind()" [label]="label()" [icon]="value()" />
+  <span class="trigger__text">{{ current()?.label ?? 'Iniciais do nome' }}</span>
+  <svg lucideChevronDown class="trigger__chevron" [class.is-open]="open()" [size]="14" />
+</button>
+
+@if (open()) {
+  <div id="token-icon-sheet" class="sheet" animate.enter="sheet-enter">
+    <label class="search">
+      <svg lucideSearch [size]="13" />
+      <input
+        type="search"
+        class="search__input"
+        placeholder="Buscar: dragão, lobo, cavaleiro"
+        aria-label="Buscar ícone"
+        autocomplete="off"
+        [value]="query()"
+        (input)="search($event)"
+      />
+    </label>
+
+    <div class="sheet__scroll">
+      @if (query() === '') {
+        <div class="grid">
+          <button
+            type="button"
+            class="cell cell--initials"
+            [class.is-picked]="value() === null"
+            [attr.aria-pressed]="value() === null"
+            title="Iniciais do nome"
+            aria-label="Usar as iniciais do nome"
+            (click)="pick(null)"
+          >
+            Aa
+          </button>
+        </div>
+      }
+      @for (group of groups(); track group.id) {
+        <p class="eyebrow sheet__group">{{ group.label }}</p>
+        <div class="grid">
+          @for (icon of group.icons; track icon.id) {
+            <button
+              type="button"
+              class="cell"
+              [class.is-picked]="value() === icon.id"
+              [attr.aria-pressed]="value() === icon.id"
+              [attr.title]="icon.label"
+              [attr.aria-label]="icon.label"
+              (click)="pick(icon.id)"
+            >
+              <svg class="cell__icon" [attr.viewBox]="viewBox" aria-hidden="true">
+                @for (path of icon.paths; track $index) {
+                  <path [attr.d]="path" />
+                }
+              </svg>
+            </button>
+          }
+        </div>
+      } @empty {
+        <p class="sheet__empty">Nenhum ícone com esse nome.</p>
+      }
+    </div>
+
+    <p class="sheet__credit">
+      Ícones de
+      <a href="https://game-icons.net" target="_blank" rel="noopener noreferrer">game-icons.net</a>,
+      licença CC BY 3.0
+    </p>
+  </div>
+}

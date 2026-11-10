@@ -121,11 +121,11 @@ export class TableState {
     });
   }
 
-  async updateToken(id: string, draft: TokenDraft): Promise<TableToken | null> {
+  async updateToken(id: string, changes: Partial<TokenDraft>): Promise<TableToken | null> {
     return this.attempt(async () => {
       const token = await this.connection.request<TableToken>(TableClientEvent.UpdateToken, {
         id,
-        ...draft,
+        ...changes,
       });
       this.upsert(token);
       return token;

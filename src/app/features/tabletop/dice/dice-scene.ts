@@ -13,10 +13,9 @@ import {
 } from 'three';
 import { dieModel, restingHeight, restingOrientation } from './dice-geometry';
 import {
-  buildDie,
   clamp01,
   type DiceColors,
-  disposeObject,
+  DiceKit,
   easeOutCubic,
   random,
   randomTumble,
@@ -86,9 +85,11 @@ export class DiceScene {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly camera = new PerspectiveCamera(30, 1, 0.1, 100);
+  private readonly kit = new DiceKit();
   private throws: Throw[] = [];
   private frame = 0;
   private finish: (() => void) | null = null;
+  private run = 0;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -114,9 +115,10 @@ export class DiceScene {
     this.scene.add(sky, sun, floor);
   }
 
-  play(dice: AnimatedDie[], colors: DiceColors, blockedLeftPx: number): Promise<void> {
+  async play(dice: AnimatedDie[], colors: DiceColors, blockedLeftPx: number): Promise<void> {
     this.stop();
     this.resize();
+    const run = this.run;
 
     const spots = landingSpots(
       dice.length,
@@ -124,7 +126,7 @@ export class DiceScene {
     );
     this.frameLayout(spots, blockedLeftPx);
     this.throws = dice.map((die, index) => {
-      const object = buildDie({ ...die, critical: false }, colors, DIE_RADIUS);
+      const object = this.kit.build({ ...die, critical: false }, colors, DIE_RADIUS);
       const model = dieModel(die.shape);
       const target = restingOrientation(model, die.resultIndex, random(-0.35, 0.35));
       const end = spots[index];
@@ -143,6 +145,13 @@ export class DiceScene {
       this.scene.add(object);
       return throwItem;
     });
+
+    await this.kit
+      .warmUp(dice, colors, this.renderer, this.scene, this.camera)
+      .catch(() => undefined);
+    if (run !== this.run) {
+      return;
+    }
 
     return new Promise((resolve) => {
       const started = performance.now();
@@ -176,14 +185,20 @@ export class DiceScene {
   }
 
   stop(): void {
+    this.run++;
     cancelAnimationFrame(this.frame);
     const finish = this.finish;
     this.finish = null;
-    finish?.();
+    if (finish) {
+      finish();
+    } else {
+      this.clear();
+    }
   }
 
   dispose(): void {
     this.stop();
+    this.kit.dispose();
     this.renderer.dispose();
     this.renderer.forceContextLoss();
   }
@@ -204,11 +219,10 @@ export class DiceScene {
       return;
     }
     item.revealed = true;
-    const painted = buildDie(item.die, item.colors, DIE_RADIUS);
+    const painted = this.kit.build(item.die, item.colors, DIE_RADIUS);
     painted.position.copy(item.object.position);
     painted.quaternion.copy(item.object.quaternion);
     this.scene.remove(item.object);
-    disposeObject(item.object);
     this.scene.add(painted);
     item.object = painted;
   }
@@ -236,7 +250,6 @@ export class DiceScene {
   private clear(): void {
     for (const item of this.throws) {
       this.scene.remove(item.object);
-      disposeObject(item.object);
     }
     this.throws = [];
     this.canvas.style.opacity = '0';

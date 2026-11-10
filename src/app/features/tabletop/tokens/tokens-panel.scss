@@ -38,14 +38,8 @@
 
 .glyph {
   display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
   flex-shrink: 0;
   border-radius: 50%;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
   background: var(--color-surface-raised);
   border: 1.5px solid var(--color-text-muted);
 
@@ -149,10 +143,19 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  overflow: hidden;
+  min-width: 0;
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
+
+  .tag {
+    flex-shrink: 0;
+  }
+}
+
+.row__name {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
 }
 
@@ -170,9 +173,21 @@
   padding-right: 4px;
 }
 
+.row.is-hidden .row__label {
+  color: var(--color-text-muted);
+}
+
+.tag--hidden {
+  border-style: dashed;
+}
+
 .row__action {
   width: 28px;
   height: 28px;
+
+  &.is-off {
+    color: var(--color-text);
+  }
 
   &.is-confirming {
     color: var(--color-inverse-text);
