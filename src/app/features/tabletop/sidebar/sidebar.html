@@ -81,6 +81,25 @@
     <button
       type="button"
       class="item"
+      [class.is-active]="store.activePanel() === updates.id"
+      [attr.aria-pressed]="store.activePanel() === updates.id"
+      [attr.aria-label]="updatesLabel()"
+      [attr.data-tooltip]="updates.label"
+      (click)="store.togglePanel(updates.id)"
+    >
+      <span class="item__icon">
+        <svg [lucideIcon]="updates.icon" />
+        @if (release.hasUnseen()) {
+          <span class="item__dot" aria-hidden="true" animate.leave="dot-out"></span>
+        }
+      </span>
+      <span class="item__label">{{ updates.label }}</span>
+      <span class="item__meta">v{{ release.version }}</span>
+    </button>
+
+    <button
+      type="button"
+      class="item"
       [class.is-active]="store.activePanel() === settings.id"
       [attr.aria-pressed]="store.activePanel() === settings.id"
       [attr.aria-label]="settings.label"

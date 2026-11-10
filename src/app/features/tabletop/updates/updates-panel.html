@@ -1,0 +1,38 @@
+<div class="updates">
+  <ol class="releases">
+    @for (release of releases; track release.version; let first = $first) {
+      <li class="release" [attr.aria-labelledby]="'release-' + release.version">
+        <header class="release__head">
+          <h3 class="release__version" [id]="'release-' + release.version">
+            v{{ release.version }}
+          </h3>
+          @if (first) {
+            <span class="release__current">Atual</span>
+          }
+          <time class="release__date" [attr.datetime]="release.date">
+            {{ formatDate(release.date) }}
+          </time>
+        </header>
+        <p class="release__title">{{ release.title }}</p>
+        <ul class="changes">
+          @for (change of release.changes; track $index) {
+            <li class="change">
+              <span class="kind" [class]="'kind--' + change.kind">{{
+                kindLabel[change.kind]
+              }}</span>
+              <span class="change__text">{{ change.text }}</span>
+            </li>
+          }
+        </ul>
+      </li>
+    }
+  </ol>
+
+  <footer class="credits">
+    <span>Criado por</span>
+    <a class="credits__link" [href]="author.githubUrl" target="_blank" rel="noopener noreferrer">
+      {{ author.name }}
+      <svg lucideArrowUpRight [size]="12" />
+    </a>
+  </footer>
+</div>

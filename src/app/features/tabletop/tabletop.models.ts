@@ -2,6 +2,7 @@ import {
   LucideDices,
   LucideEraser,
   LucideHand,
+  LucideHistory,
   LucideMessageSquare,
   LucideMousePointer2,
   LucidePencil,
@@ -14,7 +15,7 @@ import {
 
 export type MapToolId = 'select' | 'pan' | 'measure' | 'draw' | 'erase';
 
-export type PanelId = 'tokens' | 'sheets' | 'dice' | 'chat' | 'settings';
+export type PanelId = 'tokens' | 'sheets' | 'dice' | 'chat' | 'updates' | 'settings';
 
 export interface MapTool {
   id: MapToolId;
@@ -63,6 +64,12 @@ export const TABLE_PANELS: Readonly<Record<PanelId, TablePanel>> = {
     label: 'Chat',
     description: 'Conversa da mesa, com mensagens do mestre e dos jogadores.',
     icon: LucideMessageSquare,
+  },
+  updates: {
+    id: 'updates',
+    label: 'Atualizações',
+    description: 'O que mudou em cada versão do NeuralGrid.',
+    icon: LucideHistory,
   },
   settings: {
     id: 'settings',

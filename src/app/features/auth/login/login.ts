@@ -19,6 +19,7 @@ import {
 import { Router } from '@angular/router';
 import {
   LucideArrowRight,
+  LucideArrowUpRight,
   LucideCircleAlert,
   LucideEye,
   LucideEyeOff,
@@ -29,6 +30,8 @@ import {
 } from '@lucide/angular';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
+import { AUTHOR } from '../../../core/release/credits';
+import { APP_VERSION } from '../../../core/release/release-notes';
 import { BrandMark } from '../../../shared/ui/brand-mark/brand-mark';
 import { ThemeToggle } from '../../../shared/ui/theme-toggle/theme-toggle';
 import { describeLoginError } from './login-error';
@@ -49,6 +52,7 @@ const SLOW_SERVER_THRESHOLD_MS = 4_000;
     BrandMark,
     ThemeToggle,
     LucideArrowRight,
+    LucideArrowUpRight,
     LucideCircleAlert,
     LucideEye,
     LucideEyeOff,
@@ -72,6 +76,11 @@ export class LoginPage {
     username: ['', [Validators.required, Validators.maxLength(32)]],
     password: ['', [Validators.required, Validators.maxLength(128)]],
   });
+
+  protected readonly version = APP_VERSION;
+  protected readonly versionTag = `NG/${APP_VERSION.split('.').slice(0, 2).join('.')}`;
+  protected readonly author = AUTHOR;
+  protected readonly year = new Date().getFullYear();
 
   protected readonly loading = signal(false);
   protected readonly submitted = signal(false);

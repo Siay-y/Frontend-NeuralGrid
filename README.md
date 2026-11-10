@@ -49,6 +49,8 @@ A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid)
   motivo.
 - **Presença.** Quem está na mesa aparece no canto do tabuleiro, junto com o
   estado da conexão e a reconexão automática.
+- **Notas de versão.** A aba Atualizações mostra o que mudou em cada versão, e
+  um ponto no ícone avisa quem ainda não viu a mais recente.
 - **Token que não vaza.** O interceptor só anexa o `Authorization` a URLs da
   própria API, e a CSP servida pelo Firebase restringe para onde o app pode
   conectar.
@@ -87,6 +89,7 @@ src/
 └── app/
     ├── core/
     │   ├── auth/                   AuthService, guards, interceptor, persistência
+    │   ├── release/                notas de versão, versão atual e créditos
     │   └── theme/                  ThemeService
     ├── shared/ui/                  BrandMark, ThemeToggle
     ├── features/
@@ -96,6 +99,7 @@ src/
     │       ├── realtime/           protocolo, conexão Socket.io e estado da mesa
     │       ├── tokens/             painel de tokens: criação, edição e lista
     │       ├── presence/           quem está online e estado da conexão
+    │       ├── updates/            aba Atualizações com as notas de versão
     │       ├── sidebar/            ferramentas, atalhos e conta
     │       ├── panel/              painel lateral que hospeda cada seção
     │       ├── tabletop.store.ts   estado de interface da mesa em signals
@@ -233,6 +237,29 @@ O detalhe de cada cabeçalho e o porquê da escolha do `sessionStorage` estão e
 - [Tempo real](docs/tempo-real.md): conexão, tokens, movimento otimista, prévias e presença.
 - [Design](docs/design.md): tokens, temas, tipografia, movimento e acessibilidade.
 - [Segurança](docs/seguranca.md): armazenamento do token, interceptor, CSP e cabeçalhos.
+
+---
+
+## Versionamento
+
+O projeto segue [SemVer](https://semver.org/lang/pt-BR/) enquanto está em `0.x`:
+
+| Parte | Quando sobe | Exemplo |
+| --- | --- | --- |
+| Menor | uma etapa nova do roadmap | `0.2.0`, mesa ao vivo |
+| Patch | melhorias e correções dentro da etapa | `0.2.1`, notas de versão |
+
+A versão mora em dois lugares que andam juntos: o `version` do
+[`package.json`](package.json) e a primeira entrada de
+[`release-notes.ts`](src/app/core/release/release-notes.ts), que alimenta a aba
+Atualizações e o rodapé do login. Um teste falha se os dois divergirem.
+
+Para publicar uma versão:
+
+1. Adicione a entrada nova no topo de `RELEASES`, com data e as mudanças
+   classificadas como `new`, `improved` ou `fixed`.
+2. Rode `npm version <versão> --no-git-tag-version`.
+3. Rode `npm test` e `npm run deploy`.
 
 ---
 

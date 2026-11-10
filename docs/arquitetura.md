@@ -44,6 +44,7 @@ Não há `BehaviorSubject` compartilhado nem biblioteca de estado.
 | --- | --- | --- |
 | `AuthService` | raiz | `user`, `isAuthenticated`, `signOutReason` |
 | `ThemeService` | raiz | `theme`, `isDark` |
+| `ReleaseService` | raiz | `hasUnseen` |
 | `TabletopStore` | provido pela página `/tabletop` | `activeTool`, `activePanel`, `sidebarExpanded`, `selectedTokenId`, `notice` |
 | `TableConnection` | provido pela página `/tabletop` | `status` |
 | `TableState` | provido pela página `/tabletop` | `tokens`, `previews`, `members`, `onlineIds`, `me`, `isMaster` |
@@ -52,6 +53,11 @@ Não há `BehaviorSubject` compartilhado nem biblioteca de estado.
 
 Os serviços guardam o `signal` gravável como privado e expõem só a versão
 `asReadonly()` ou `computed()`. Quem consome lê; só o dono escreve.
+
+`ReleaseService` compara a versão atual com a última que o navegador viu,
+guardada em `localStorage` (`neuralgrid.seen-version`). Abrir a aba Atualizações
+marca a versão como vista. Se o armazenamento estiver bloqueado, o aviso some
+na sessão e volta na próxima visita.
 
 `TabletopStore`, `TableConnection` e `TableState` são providos no componente da
 página, não na raiz. Nascem ao entrar na mesa e morrem ao sair: o socket fecha e
@@ -144,3 +150,5 @@ Vitest com jsdom, via `ng test`. Os arquivos ficam ao lado do código
 - `authGuard` e `guestGuard`: redirecionamentos.
 - `LoginPage`: validação, estado de carregamento, erro e redirecionamento.
 - `describeLoginError` e a câmera do tabuleiro.
+- Notas de versão: ordem, formato e a versão igual à do `package.json`.
+- `ReleaseService`: aviso de versão nova e memória da última versão vista.

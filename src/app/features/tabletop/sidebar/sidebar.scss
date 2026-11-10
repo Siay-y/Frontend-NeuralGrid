@@ -131,6 +131,7 @@
 }
 
 .item__icon {
+  position: relative;
   display: grid;
   place-items: center;
   width: 36px;
@@ -160,10 +161,43 @@
   transition: opacity var(--duration) var(--ease-out);
 }
 
+.item__meta {
+  margin-right: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-subtle);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration) var(--ease-out);
+}
+
+.item__dot {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text);
+  box-shadow: 0 0 0 2px var(--color-surface);
+}
+
+.dot-out {
+  animation: dot-out var(--duration) var(--ease-out) both;
+}
+
+@keyframes dot-out {
+  to {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
 .sidebar.is-expanded {
   .item__label,
   .group__label,
-  .item__kbd {
+  .item__kbd,
+  .item__meta {
     opacity: 1;
     transform: none;
     transition-delay: 80ms;
