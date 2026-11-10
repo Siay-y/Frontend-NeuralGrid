@@ -44,15 +44,19 @@ Não há `BehaviorSubject` compartilhado nem biblioteca de estado.
 | --- | --- | --- |
 | `AuthService` | raiz | `user`, `isAuthenticated`, `signOutReason` |
 | `ThemeService` | raiz | `theme`, `isDark` |
-| `TabletopStore` | provido pela página `/tabletop` | `activeTool`, `activePanel`, `sidebarExpanded` |
-| `Board` | local | `camera`, `hoveredCell`, `panning`, `zoomPercent` |
+| `TabletopStore` | provido pela página `/tabletop` | `activeTool`, `activePanel`, `sidebarExpanded`, `selectedTokenId`, `notice` |
+| `TableConnection` | provido pela página `/tabletop` | `status` |
+| `TableState` | provido pela página `/tabletop` | `tokens`, `previews`, `members`, `onlineIds`, `me`, `isMaster` |
+| `Board` | local | `camera`, `hoveredCell`, `panning`, `draggingToken`, `zoomPercent` |
 | `LoginPage` | local | `loading`, `submitted`, `error`, `slowServer`, `passwordVisible` |
 
 Os serviços guardam o `signal` gravável como privado e expõem só a versão
 `asReadonly()` ou `computed()`. Quem consome lê; só o dono escreve.
 
-O `TabletopStore` é provido no componente da página, não na raiz. Ele nasce ao
-entrar na mesa e morre ao sair, sem estado velho sobrevivendo a um logout.
+`TabletopStore`, `TableConnection` e `TableState` são providos no componente da
+página, não na raiz. Nascem ao entrar na mesa e morrem ao sair: o socket fecha e
+nenhum estado velho sobrevive a um logout. O funcionamento do tempo real está em
+[tempo-real.md](tempo-real.md).
 
 ---
 

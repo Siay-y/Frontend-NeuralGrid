@@ -1,0 +1,121 @@
+:host {
+  display: block;
+}
+
+.presence {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 6px 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-float);
+  animation: presence-in var(--duration-slow) var(--ease-out) 200ms both;
+}
+
+.presence__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.presence__pulse {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--color-text-subtle);
+  border-radius: 50%;
+}
+
+.presence[data-status='online'] .presence__pulse {
+  border-color: var(--color-text);
+  background: var(--color-text);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 50%;
+    background: var(--color-text);
+    animation: pulse 2.4s var(--ease-out) infinite;
+  }
+}
+
+.presence[data-status='reconnecting'] .presence__pulse,
+.presence[data-status='connecting'] .presence__pulse {
+  border-color: var(--color-text-muted);
+  border-top-color: transparent;
+  animation: spin 0.9s linear infinite;
+}
+
+.presence__divider {
+  width: 1px;
+  height: 18px;
+  background: var(--color-border);
+}
+
+.presence__people {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-left: -6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-subtle);
+  box-shadow: 0 0 0 2px var(--color-surface);
+  transition:
+    color var(--duration) var(--ease-out),
+    border-color var(--duration) var(--ease-out),
+    opacity var(--duration) var(--ease-out);
+
+  &:first-child {
+    margin-left: 0;
+  }
+
+  &:not(.is-online) {
+    opacity: 0.45;
+    border-style: dashed;
+  }
+
+  &.is-online {
+    color: var(--color-text);
+    border-color: var(--color-text-muted);
+  }
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@keyframes presence-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}

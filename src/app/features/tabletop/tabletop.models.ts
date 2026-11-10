@@ -8,12 +8,13 @@ import {
   LucideRuler,
   LucideScrollText,
   LucideSettings,
+  LucideUsers,
   type LucideIconInput,
 } from '@lucide/angular';
 
 export type MapToolId = 'select' | 'pan' | 'measure' | 'draw' | 'erase';
 
-export type PanelId = 'sheets' | 'dice' | 'chat' | 'settings';
+export type PanelId = 'tokens' | 'sheets' | 'dice' | 'chat' | 'settings';
 
 export interface MapTool {
   id: MapToolId;
@@ -38,6 +39,12 @@ export const MAP_TOOLS: readonly MapTool[] = [
 ];
 
 export const TABLE_PANELS: Readonly<Record<PanelId, TablePanel>> = {
+  tokens: {
+    id: 'tokens',
+    label: 'Tokens',
+    description: 'Agentes, NPCs e ameaças posicionados no tabuleiro.',
+    icon: LucideUsers,
+  },
   sheets: {
     id: 'sheets',
     label: 'Fichas',
@@ -66,6 +73,7 @@ export const TABLE_PANELS: Readonly<Record<PanelId, TablePanel>> = {
 };
 
 export const SHORTCUT_PANELS: readonly TablePanel[] = [
+  TABLE_PANELS.tokens,
   TABLE_PANELS.sheets,
   TABLE_PANELS.dice,
   TABLE_PANELS.chat,

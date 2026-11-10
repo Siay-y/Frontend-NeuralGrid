@@ -2,10 +2,11 @@ import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core
 import { LucideDynamicIcon, LucideX } from '@lucide/angular';
 import type { TablePanel } from '../tabletop.models';
 import { TabletopStore } from '../tabletop.store';
+import { TokensPanel } from '../tokens/tokens-panel';
 
 @Component({
   selector: 'app-table-panel',
-  imports: [LucideDynamicIcon, LucideX],
+  imports: [LucideDynamicIcon, LucideX, TokensPanel],
   templateUrl: './panel.html',
   styleUrl: './panel.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -8,15 +8,17 @@ import {
   ElementRef,
   inject,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { LucideLocateFixed, LucideMinus, LucidePlus } from '@lucide/angular';
 import { ThemeService } from '../../../core/theme/theme.service';
-import { TabletopStore } from '../tabletop.store';
+import { TableState } from '../realtime/table-state';
+import { type FocusRequest, TabletopStore } from '../tabletop.store';
 import {
-  Camera,
+  type Camera,
   CELL_SIZE,
-  Cell,
+  type Cell,
   cellAt,
   centeredCamera,
   easeOutExpo,
@@ -26,12 +28,34 @@ import {
   ZOOM_STEP,
   zoomAround,
 } from './board-camera';
+import { hitTest, type PlacedToken, snapToCell } from './token-geometry';
+import { type Point, TokenMotion } from './token-motion';
+import {
+  drawDropTarget,
+  drawTokens,
+  readTokenPalette,
+  type RenderedToken,
+  type RenderView,
+} from './token-renderer';
 
-interface DragState {
+interface PanDrag {
   pointerId: number;
   startX: number;
   startY: number;
   origin: Camera;
+}
+
+interface TokenDrag {
+  pointerId: number;
+  id: string;
+  offsetX: number;
+  offsetY: number;
+  x: number;
+  y: number;
+  originCol: number;
+  originRow: number;
+  lastCol: number;
+  lastRow: number;
 }
 
 interface Viewport {
@@ -55,11 +79,14 @@ export class Board {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly theme = inject(ThemeService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly table = inject(TableState);
   protected readonly store = inject(TabletopStore);
 
   protected readonly camera = signal<Camera>({ x: 0, y: 0, zoom: 1 });
   protected readonly hoveredCell = signal<Cell | null>(null);
   protected readonly panning = signal(false);
+  protected readonly draggingToken = signal(false);
+  protected readonly overMovableToken = signal(false);
   protected readonly zoomPercent = computed(() => Math.round(this.camera().zoom * 100));
   protected readonly cellLabel = computed(() => {
     const cell = this.hoveredCell();
@@ -68,8 +95,12 @@ export class Board {
 
   private viewport: Viewport = { width: 0, height: 0, dpr: 1 };
   private context: CanvasRenderingContext2D | null = null;
-  private drag: DragState | null = null;
+  private panDrag: PanDrag | null = null;
+  private tokenDrag: TokenDrag | null = null;
+  private readonly motion = new TokenMotion();
+  private placed: PlacedToken[] = [];
   private frame = 0;
+  private lastFrameAt = 0;
   private tween = 0;
   private initialized = false;
 
@@ -78,7 +109,22 @@ export class Board {
       this.camera();
       this.hoveredCell();
       this.store.activeTool();
+      this.store.selectedTokenId();
+      this.table.tokens();
+      this.table.previews();
       this.scheduleDraw();
+    });
+
+    effect(() => {
+      this.camera();
+      untracked(() => this.syncViewCenter());
+    });
+
+    effect(() => {
+      const request = this.store.focusRequest();
+      if (request) {
+        untracked(() => this.focus(request));
+      }
     });
 
     afterNextRender(() => {
@@ -86,7 +132,7 @@ export class Board {
       this.context = canvas.getContext('2d');
       const observer = new ResizeObserver(([entry]) => this.resize(entry.contentRect));
       observer.observe(canvas);
-      const stopListening = this.theme.onApplied(() => this.draw());
+      const stopListening = this.theme.onApplied(() => this.draw(0));
 
       this.destroyRef.onDestroy(() => {
         observer.disconnect();
@@ -99,24 +145,18 @@ export class Board {
 
   protected onPointerDown(event: PointerEvent): void {
     const wantsPan = this.store.activeTool() === 'pan' || event.button === 1;
-    if (!wantsPan) {
+    if (wantsPan) {
+      this.startPan(event);
       return;
     }
-    event.preventDefault();
-    cancelAnimationFrame(this.tween);
-    this.canvasRef().nativeElement.setPointerCapture(event.pointerId);
-    this.drag = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      origin: this.camera(),
-    };
-    this.panning.set(true);
+    if (this.store.activeTool() === 'select' && event.button === 0) {
+      this.pickToken(event);
+    }
   }
 
   protected onPointerMove(event: PointerEvent): void {
-    if (this.drag?.pointerId === event.pointerId) {
-      const { origin, startX, startY } = this.drag;
+    if (this.panDrag?.pointerId === event.pointerId) {
+      const { origin, startX, startY } = this.panDrag;
       this.camera.set({
         ...origin,
         x: origin.x + event.clientX - startX,
@@ -125,24 +165,37 @@ export class Board {
       return;
     }
 
-    const { x, y } = this.toLocal(event);
-    const cell = cellAt(this.camera(), x, y);
+    const world = this.toWorld(event);
+    if (this.tokenDrag?.pointerId === event.pointerId) {
+      this.dragTokenTo(world);
+      return;
+    }
+
+    const cell = { col: Math.floor(world.x), row: Math.floor(world.y) };
     if (!sameCell(cell, this.hoveredCell())) {
       this.hoveredCell.set(cell);
     }
+    const hovered = hitTest(this.placed, world.x, world.y);
+    this.overMovableToken.set(
+      this.store.activeTool() === 'select' && !!hovered && this.table.canMove(hovered.token),
+    );
   }
 
   protected onPointerUp(event: PointerEvent): void {
-    if (this.drag?.pointerId !== event.pointerId) {
+    if (this.panDrag?.pointerId === event.pointerId) {
+      this.panDrag = null;
+      this.panning.set(false);
       return;
     }
-    this.drag = null;
-    this.panning.set(false);
+    if (this.tokenDrag?.pointerId === event.pointerId) {
+      this.dropToken(event.type !== 'pointercancel');
+    }
   }
 
   protected onPointerLeave(): void {
-    if (!this.drag) {
+    if (!this.panDrag && !this.tokenDrag) {
       this.hoveredCell.set(null);
+      this.overMovableToken.set(false);
     }
   }
 
@@ -167,6 +220,88 @@ export class Board {
     this.animateTo(centeredCamera(this.viewport.width, this.viewport.height));
   }
 
+  private startPan(event: PointerEvent): void {
+    event.preventDefault();
+    cancelAnimationFrame(this.tween);
+    this.canvasRef().nativeElement.setPointerCapture(event.pointerId);
+    this.panDrag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      origin: this.camera(),
+    };
+    this.panning.set(true);
+  }
+
+  private pickToken(event: PointerEvent): void {
+    const world = this.toWorld(event);
+    const hit = hitTest(this.placed, world.x, world.y);
+    this.store.selectToken(hit?.token.id ?? null);
+    if (!hit || !this.table.canMove(hit.token)) {
+      return;
+    }
+
+    event.preventDefault();
+    this.canvasRef().nativeElement.setPointerCapture(event.pointerId);
+    this.tokenDrag = {
+      pointerId: event.pointerId,
+      id: hit.token.id,
+      offsetX: world.x - hit.x,
+      offsetY: world.y - hit.y,
+      x: hit.x,
+      y: hit.y,
+      originCol: hit.token.col,
+      originRow: hit.token.row,
+      lastCol: hit.token.col,
+      lastRow: hit.token.row,
+    };
+    this.draggingToken.set(true);
+  }
+
+  private dragTokenTo(world: Point): void {
+    const drag = this.tokenDrag;
+    if (!drag) {
+      return;
+    }
+    drag.x = world.x - drag.offsetX;
+    drag.y = world.y - drag.offsetY;
+
+    const { col, row } = snapToCell(drag.x, drag.y);
+    if (col !== drag.lastCol || row !== drag.lastRow) {
+      drag.lastCol = col;
+      drag.lastRow = row;
+      this.table.dragToken(drag.id, col, row);
+    }
+    this.scheduleDraw();
+  }
+
+  private dropToken(commit: boolean): void {
+    const drag = this.tokenDrag;
+    if (!drag) {
+      return;
+    }
+    this.tokenDrag = null;
+    this.draggingToken.set(false);
+
+    const target = snapToCell(drag.x, drag.y);
+    const moved = target.col !== drag.originCol || target.row !== drag.originRow;
+    if (commit && moved) {
+      void this.table.moveToken(drag.id, target.col, target.row);
+    } else if (drag.lastCol !== drag.originCol || drag.lastRow !== drag.originRow) {
+      this.table.dragToken(drag.id, drag.originCol, drag.originRow);
+    }
+    this.scheduleDraw();
+  }
+
+  private focus(request: FocusRequest): void {
+    const { width, height } = this.viewport;
+    const { zoom } = this.camera();
+    const size = CELL_SIZE * zoom;
+    const centerX = (request.col + request.size / 2) * size;
+    const centerY = (request.row + request.size / 2) * size;
+    this.animateTo({ zoom, x: width / 2 - centerX, y: height / 2 - centerY });
+  }
+
   private zoomFromCenter(factor: number): void {
     const camera = this.camera();
     const { width, height } = this.viewport;
@@ -188,9 +323,23 @@ export class Board {
     this.tween = requestAnimationFrame(step);
   }
 
-  private toLocal(event: MouseEvent): { x: number; y: number } {
+  private syncViewCenter(): void {
+    const { width, height } = this.viewport;
+    if (width > 0) {
+      this.store.setViewCenter(cellAt(this.camera(), width / 2, height / 2));
+    }
+  }
+
+  private toLocal(event: MouseEvent): Point {
     const rect = this.canvasRef().nativeElement.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  }
+
+  private toWorld(event: MouseEvent): Point {
+    const { x, y } = this.toLocal(event);
+    const camera = this.camera();
+    const size = CELL_SIZE * camera.zoom;
+    return { x: (x - camera.x) / size, y: (y - camera.y) / size };
   }
 
   private resize(rect: DOMRectReadOnly): void {
@@ -204,18 +353,55 @@ export class Board {
       this.initialized = true;
       this.camera.set(centeredCamera(rect.width, rect.height));
     }
-    this.draw();
+    this.syncViewCenter();
+    this.draw(0);
   }
 
   private scheduleDraw(): void {
-    cancelAnimationFrame(this.frame);
-    this.frame = requestAnimationFrame(() => this.draw());
+    if (this.frame) {
+      return;
+    }
+    this.lastFrameAt = this.lastFrameAt || performance.now();
+    this.frame = requestAnimationFrame((now) => {
+      this.frame = 0;
+      const elapsed = now - this.lastFrameAt;
+      this.lastFrameAt = now;
+      if (this.draw(elapsed)) {
+        this.scheduleDraw();
+      } else {
+        this.lastFrameAt = 0;
+      }
+    });
   }
 
-  private draw(): void {
+  private tokenTargets(): Map<string, Point> {
+    const previews = this.table.previews();
+    const targets = new Map<string, Point>();
+    for (const token of this.table.tokens()) {
+      const drag = this.tokenDrag?.id === token.id ? this.tokenDrag : null;
+      const preview = previews.get(token.id);
+      targets.set(
+        token.id,
+        drag
+          ? { x: drag.x, y: drag.y }
+          : preview
+            ? { x: preview.col, y: preview.row }
+            : { x: token.col, y: token.row },
+      );
+    }
+    return targets;
+  }
+
+  private draw(elapsedMs: number): boolean {
     const ctx = this.context;
     if (!ctx) {
-      return;
+      return false;
+    }
+
+    const targets = this.tokenTargets();
+    const animating = this.motion.step(targets, elapsedMs);
+    if (this.tokenDrag) {
+      this.motion.jump(this.tokenDrag.id, { x: this.tokenDrag.x, y: this.tokenDrag.y });
     }
 
     const canvas = ctx.canvas;
@@ -231,11 +417,53 @@ export class Board {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const hovered = this.hoveredCell();
-    if (hovered && this.store.activeTool() !== 'pan') {
+    if (hovered && this.store.activeTool() !== 'pan' && !this.tokenDrag) {
       ctx.fillStyle = color('--grid-cell-hover');
       ctx.fillRect(originX + hovered.col * cell, originY + hovered.row * cell, cell, cell);
     }
 
+    this.drawGrid(ctx, originX, originY, cell, dpr, color);
+
+    const view: RenderView = { originX, originY, cell, dpr, zoom };
+    const palette = readTokenPalette(styles);
+    const previews = this.table.previews();
+    const selectedId = this.store.selectedTokenId();
+
+    if (this.tokenDrag) {
+      const token = this.table.token(this.tokenDrag.id);
+      const target = snapToCell(this.tokenDrag.x, this.tokenDrag.y);
+      drawDropTarget(ctx, view, palette, target.col, target.row, token?.size ?? 1);
+    }
+
+    this.placed = [];
+    const rendered: RenderedToken[] = [];
+    for (const token of this.table.tokens()) {
+      const position = this.motion.position(token.id) ?? { x: token.col, y: token.row };
+      this.placed.push({ token, x: position.x, y: position.y });
+      rendered.push({
+        token,
+        x: position.x,
+        y: position.y,
+        selected: token.id === selectedId,
+        remote: previews.has(token.id),
+      });
+    }
+    const draggedId = this.tokenDrag?.id;
+    rendered.sort((a, b) => Number(a.token.id === draggedId) - Number(b.token.id === draggedId));
+    drawTokens(ctx, rendered, view, palette);
+
+    return animating;
+  }
+
+  private drawGrid(
+    ctx: CanvasRenderingContext2D,
+    originX: number,
+    originY: number,
+    cell: number,
+    dpr: number,
+    color: (token: string) => string,
+  ): void {
+    const canvas = ctx.canvas;
     const firstCol = Math.floor(-originX / cell);
     const lastCol = Math.ceil((canvas.width - originX) / cell);
     const firstRow = Math.floor(-originY / cell);

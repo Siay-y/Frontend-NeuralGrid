@@ -21,9 +21,9 @@ Cliente web do NeuralGrid, um Virtual Tabletop privado para uma mesa de quatro
 pessoas, inspirado no Roll20 mas desenhado para ser rápido, enxuto e silencioso.
 Angular 22 sem zone.js, publicado como SPA estática no Firebase Hosting.
 
-Esta etapa entrega o login seguro e o esqueleto da mesa: tabuleiro em canvas
-com grade de quadrados, barra lateral de ferramentas e painéis de fichas, dados
-e chat prontos para receber o tempo real da próxima etapa.
+Já tem login seguro e a mesa ao vivo: tabuleiro em canvas com grade de
+quadrados e tokens de Agentes, NPCs e Ameaças sincronizados por WebSocket entre
+o mestre e os jogadores. Fichas, dados e chat chegam nas próximas etapas.
 
 A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid).
 
@@ -43,6 +43,12 @@ A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid)
 - **Sessão reativa.** O estado de autenticação é um `signal`; guard,
   interceptor, login e barra lateral leem a mesma fonte. A sessão expira sozinha
   no horário do token e o login avisa o motivo.
+- **Mesa ao vivo.** Enquanto um jogador arrasta o próprio token, os outros veem
+  o movimento célula a célula. Ao soltar, o token encaixa na grade na hora e o
+  servidor confirma; se recusar, ele volta para onde estava e a tela explica o
+  motivo.
+- **Presença.** Quem está na mesa aparece no canto do tabuleiro, junto com o
+  estado da conexão e a reconexão automática.
 - **Token que não vaza.** O interceptor só anexa o `Authorization` a URLs da
   própria API, e a CSP servida pelo Firebase restringe para onde o app pode
   conectar.
@@ -63,6 +69,7 @@ A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid)
 | Ícones | `@lucide/angular`, traço de 1.75px |
 | Tipografia | Geist e Geist Mono, auto-hospedadas |
 | Tabuleiro | Canvas 2D com câmera própria (pan, zoom, DPR) |
+| Tempo real | `socket.io-client` com ack, reconexão e estado em signals |
 | Testes | Vitest com jsdom |
 | Hospedagem | Firebase Hosting |
 
@@ -85,10 +92,13 @@ src/
     ├── features/
     │   ├── auth/login/             página de login e tradução de erros
     │   └── tabletop/
-    │       ├── board/              canvas, câmera e HUD de zoom
+    │       ├── board/              canvas, câmera, tokens e HUD de zoom
+    │       ├── realtime/           protocolo, conexão Socket.io e estado da mesa
+    │       ├── tokens/             painel de tokens: criação, edição e lista
+    │       ├── presence/           quem está online e estado da conexão
     │       ├── sidebar/            ferramentas, atalhos e conta
-    │       ├── panel/              painel lateral de fichas, dados, chat e ajustes
-    │       ├── tabletop.store.ts   estado local da mesa em signals
+    │       ├── panel/              painel lateral que hospeda cada seção
+    │       ├── tabletop.store.ts   estado de interface da mesa em signals
     │       └── tabletop.ts         página que compõe tudo
     ├── app.config.ts               HttpClient, roteador e Lucide
     └── app.routes.ts               /login, /tabletop e redirecionamentos
@@ -120,14 +130,15 @@ O detalhe de cada parte está em [docs/arquitetura.md](docs/arquitetura.md).
 O Angular não lê `process.env` em tempo de execução, então a configuração mora
 em arquivos substituídos no build:
 
-| Arquivo | Usado em | `apiUrl` |
-| --- | --- | --- |
-| `src/environments/environment.development.ts` | `npm start`, `ng build --configuration development` | `http://localhost:3000/api` |
-| `src/environments/environment.ts` | `npm run build` (produção) | `https://neuralgrid-api.onrender.com/api` |
+| Arquivo | Usado em | `apiUrl` | `socketUrl` |
+| --- | --- | --- | --- |
+| `src/environments/environment.development.ts` | `npm start` | `http://localhost:3000/api` | `http://localhost:3000` |
+| `src/environments/environment.ts` | `npm run build` (produção) | `https://neuralgrid-api.onrender.com/api` | `https://neuralgrid-api.onrender.com` |
 
-Ao publicar a API com outro nome, atualize o `apiUrl` de produção e o
-`connect-src` da CSP em [`firebase.json`](firebase.json). Os dois precisam
-apontar para o mesmo host, senão o navegador bloqueia o login.
+Ao publicar a API com outro nome, atualize `apiUrl`, `socketUrl` e o
+`connect-src` da CSP em [`firebase.json`](firebase.json), que lista o host em
+`https://` e em `wss://`. Os três precisam apontar para o mesmo servidor, senão
+o navegador bloqueia o login ou a mesa ao vivo.
 
 ---
 
@@ -169,7 +180,9 @@ uma das contas criadas pelo seed da API.
 | `R` | Régua |
 | `D` | Desenhar |
 | `E` | Borracha |
-| `Esc` | Fechar painel |
+| `Esc` | Tirar a seleção do token, ou fechar o painel |
+| `Del` | Remover o token selecionado (só o mestre) |
+| Arrastar um token | Mover, com a ferramenta Selecionar |
 | Roda do mouse | Zoom em torno do cursor |
 | Botão do meio | Mover mapa com qualquer ferramenta |
 
@@ -217,6 +230,7 @@ O detalhe de cada cabeçalho e o porquê da escolha do `sessionStorage` estão e
 ## Documentação
 
 - [Arquitetura](docs/arquitetura.md): pastas, signals, sessão, tabuleiro e convenções de código.
+- [Tempo real](docs/tempo-real.md): conexão, tokens, movimento otimista, prévias e presença.
 - [Design](docs/design.md): tokens, temas, tipografia, movimento e acessibilidade.
 - [Segurança](docs/seguranca.md): armazenamento do token, interceptor, CSP e cabeçalhos.
 

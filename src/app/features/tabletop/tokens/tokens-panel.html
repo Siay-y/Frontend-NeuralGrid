@@ -1,0 +1,165 @@
+<div class="tokens">
+  @if (table.isMaster()) {
+    <form class="editor" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <p class="eyebrow editor__title">{{ editingId() ? 'Editar token' : 'Novo token' }}</p>
+
+      <div class="field" [class.is-invalid]="showLabelError()">
+        <label class="field__label" for="token-label">Nome</label>
+        <input
+          id="token-label"
+          class="field__input"
+          type="text"
+          formControlName="label"
+          autocomplete="off"
+          [attr.maxlength]="maxLabel"
+          [attr.aria-invalid]="showLabelError()"
+          aria-describedby="token-label-error"
+        />
+        @if (showLabelError()) {
+          <p id="token-label-error" class="field__error">Dê um nome ao token.</p>
+        }
+      </div>
+
+      <fieldset class="field">
+        <legend class="field__label">Tipo</legend>
+        <div class="segmented" role="radiogroup">
+          @for (kind of kinds; track kind) {
+            <label class="segmented__option" [class.is-checked]="form.controls.kind.value === kind">
+              <input type="radio" formControlName="kind" [value]="kind" class="sr-only" />
+              <span class="glyph glyph--sm" [attr.data-kind]="kind" aria-hidden="true"></span>
+              {{ kindLabel[kind] }}
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      <div class="editor__row">
+        <div class="field field--grow">
+          <label class="field__label" for="token-owner">Dono</label>
+          <div class="select">
+            <select id="token-owner" class="field__input select__control" formControlName="ownerId">
+              <option [ngValue]="null">Sem dono</option>
+              @for (member of table.members(); track member.id) {
+                <option [ngValue]="member.id">{{ member.displayName }}</option>
+              }
+            </select>
+            <svg lucideChevronDown class="select__icon" [size]="14" />
+          </div>
+        </div>
+
+        <fieldset class="field">
+          <legend class="field__label">Tamanho</legend>
+          <div class="segmented segmented--compact" role="radiogroup">
+            @for (size of sizes; track size) {
+              <label
+                class="segmented__option"
+                [class.is-checked]="form.controls.size.value === size"
+              >
+                <input type="radio" formControlName="size" [value]="size" class="sr-only" />
+                {{ size }}
+              </label>
+            }
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="editor__actions">
+        @if (editingId()) {
+          <button type="button" class="button button--ghost" (click)="cancelEdit()">
+            Cancelar
+          </button>
+        }
+        <button type="submit" class="button button--primary" [disabled]="saving()">
+          @if (saving()) {
+            <svg lucideLoaderCircle class="spin" [size]="14" />
+          } @else if (!editingId()) {
+            <svg lucidePlus [size]="14" />
+          }
+          {{ editingId() ? 'Salvar alterações' : 'Adicionar ao tabuleiro' }}
+        </button>
+      </div>
+    </form>
+  }
+
+  <section class="list" aria-labelledby="tokens-list-title">
+    <header class="list__header">
+      <h3 id="tokens-list-title" class="eyebrow">Na mesa</h3>
+      <span class="list__count">{{ tokens().length }}</span>
+    </header>
+
+    @if (!table.ready()) {
+      <p class="list__empty">Sincronizando com a mesa.</p>
+    } @else {
+      <ul class="list__items">
+        @for (token of tokens(); track token.id) {
+          <li
+            class="row"
+            [class.is-selected]="store.selectedTokenId() === token.id"
+            [class.is-editing]="editingId() === token.id"
+            animate.enter="row-enter"
+          >
+            <button type="button" class="row__main" (click)="locate(token)">
+              <span class="glyph" [attr.data-kind]="token.kind" aria-hidden="true">
+                {{ initials(token.label) }}
+              </span>
+              <span class="row__text">
+                <span class="row__label">
+                  {{ token.label }}
+                  @if (isMine(token)) {
+                    <span class="tag">seu</span>
+                  }
+                </span>
+                <span class="row__meta">
+                  <span class="status-dot" [class.is-online]="isOwnerOnline(token)"></span>
+                  {{ kindLabel[token.kind] }} · {{ ownerName(token) }}
+                </span>
+              </span>
+            </button>
+
+            <div class="row__actions">
+              <button
+                type="button"
+                class="icon-button row__action"
+                [attr.aria-label]="'Localizar ' + token.label"
+                (click)="locate(token)"
+              >
+                <svg lucideLocateFixed [size]="15" />
+              </button>
+              @if (table.isMaster()) {
+                <button
+                  type="button"
+                  class="icon-button row__action"
+                  [attr.aria-label]="'Editar ' + token.label"
+                  (click)="startEdit(token)"
+                >
+                  <svg lucideSquarePen [size]="15" />
+                </button>
+                <button
+                  type="button"
+                  class="icon-button row__action"
+                  [class.is-confirming]="confirmingDeleteId() === token.id"
+                  [attr.aria-label]="
+                    confirmingDeleteId() === token.id
+                      ? 'Confirmar remoção de ' + token.label
+                      : 'Remover ' + token.label
+                  "
+                  (click)="requestDelete(token)"
+                >
+                  <svg lucideTrash [size]="15" />
+                </button>
+              }
+            </div>
+          </li>
+        } @empty {
+          <li class="list__empty">
+            {{
+              table.isMaster()
+                ? 'Nenhum token ainda. Crie o primeiro acima e ele aparece no centro da tela.'
+                : 'Nenhum token na mesa. O mestre vai posicionar os agentes em breve.'
+            }}
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</div>
