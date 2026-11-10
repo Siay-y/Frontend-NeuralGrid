@@ -20,6 +20,33 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.3.4',
+    date: '2026-11-10',
+    title: 'Sexo, nome oculto e ficha rápida',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Sexo do token na criação: Feminino, Masculino ou Outro. Clique de novo para desmarcar.',
+      },
+      {
+        kind: 'new',
+        text: 'Esconder o nome: os jogadores veem ??? no lugar do nome até o mestre desligar.',
+      },
+      {
+        kind: 'new',
+        text: 'Passe o mouse sobre um token para ver nome, tipo, ícone, sexo, tamanho e dono.',
+      },
+      {
+        kind: 'improved',
+        text: 'Atualizações em sanfona: a versão atual vem aberta e as anteriores fechadas, um clique abre cada uma.',
+      },
+      {
+        kind: 'improved',
+        text: 'Dá para recolher o formulário de Novo token e os campos de Rolar dados, deixando mais espaço para a lista e o histórico.',
+      },
+    ],
+  },
+  {
     version: '0.3.3',
     date: '2026-11-10',
     title: 'Crítico, bônus e d100 de verdade',
@@ -39,6 +66,10 @@ export const RELEASES: readonly Release[] = [
       {
         kind: 'improved',
         text: 'Falha crítica também no d4: tirar 1 em qualquer dado deixa ele vermelho.',
+      },
+      {
+        kind: 'improved',
+        text: 'Os campos de Quantidade e Bônus do painel de Dados agora têm o mesmo tamanho.',
       },
     ],
   },

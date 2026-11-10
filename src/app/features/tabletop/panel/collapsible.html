@@ -1,0 +1,16 @@
+<button
+  type="button"
+  class="toggle"
+  [attr.aria-expanded]="open()"
+  [attr.aria-controls]="bodyId"
+  (click)="toggled.emit()"
+>
+  <span class="eyebrow toggle__title">{{ title() }}</span>
+  <svg lucideChevronDown class="toggle__chevron" [size]="14" />
+</button>
+
+<div class="body" [id]="bodyId" [inert]="!open()">
+  <div class="body__inner">
+    <ng-content />
+  </div>
+</div>

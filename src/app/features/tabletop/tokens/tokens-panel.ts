@@ -29,11 +29,14 @@ import { TableState } from '../realtime/table-state';
 import {
   TOKEN_KIND_LABEL,
   TOKEN_LABEL_MAX_LENGTH,
+  TOKEN_SEX_LABEL,
   TOKEN_SIZES,
   type TableToken,
   type TokenDraft,
   type TokenKind,
+  type TokenSex,
 } from '../realtime/table.protocol';
+import { Collapsible } from '../panel/collapsible';
 import { TabletopStore } from '../tabletop.store';
 import { TokenGlyph } from './token-glyph';
 import { TokenIconPicker } from './token-icon-picker';
@@ -42,18 +45,22 @@ interface TokenForm {
   label: FormControl<string>;
   kind: FormControl<TokenKind>;
   icon: FormControl<string | null>;
+  sex: FormControl<TokenSex | null>;
   hidden: FormControl<boolean>;
+  nameHidden: FormControl<boolean>;
   ownerId: FormControl<string | null>;
   size: FormControl<number>;
 }
 
 const DELETE_CONFIRM_MS = 3_000;
 const KINDS = Object.keys(TOKEN_KIND_LABEL) as TokenKind[];
+const SEXES = Object.keys(TOKEN_SEX_LABEL) as TokenSex[];
 
 @Component({
   selector: 'app-tokens-panel',
   imports: [
     ReactiveFormsModule,
+    Collapsible,
     TokenGlyph,
     TokenIconPicker,
     LucideChevronDown,
@@ -76,7 +83,10 @@ export class TokensPanel {
   private confirmTimer: ReturnType<typeof setTimeout> | undefined;
 
   protected readonly kinds = KINDS;
+  protected readonly editorSection = 'token-editor';
   protected readonly kindLabel = TOKEN_KIND_LABEL;
+  protected readonly sexes = SEXES;
+  protected readonly sexLabel = TOKEN_SEX_LABEL;
   protected readonly sizes = TOKEN_SIZES;
   protected readonly maxLabel = TOKEN_LABEL_MAX_LENGTH;
 
@@ -84,7 +94,9 @@ export class TokensPanel {
     label: ['', [Validators.required, Validators.maxLength(TOKEN_LABEL_MAX_LENGTH)]],
     kind: this.fb.control<TokenKind>('agent'),
     icon: this.fb.control<string | null>(null),
+    sex: this.fb.control<TokenSex | null>(null),
     hidden: this.fb.control(false),
+    nameHidden: this.fb.control(false),
     ownerId: this.fb.control<string | null>(null),
     size: this.fb.control(1),
   });
@@ -130,13 +142,16 @@ export class TokensPanel {
   }
 
   protected startEdit(token: TableToken): void {
+    this.store.openSection(this.editorSection);
     this.editingId.set(token.id);
     this.submitted.set(false);
     this.form.setValue({
       label: token.label,
       kind: token.kind,
       icon: token.icon,
+      sex: token.sex,
       hidden: token.hidden,
+      nameHidden: token.nameHidden,
       ownerId: token.ownerId,
       size: token.size,
     });
@@ -146,6 +161,21 @@ export class TokensPanel {
   protected cancelEdit(): void {
     this.editingId.set(null);
     this.resetForm();
+  }
+
+  protected pickSex(sex: TokenSex): void {
+    const control = this.form.controls.sex;
+    control.setValue(control.value === sex ? null : sex);
+    control.markAsDirty();
+  }
+
+  protected tokenMeta(token: TableToken): string {
+    const parts = [this.kindLabel[token.kind]];
+    if (token.sex) {
+      parts.push(this.sexLabel[token.sex]);
+    }
+    parts.push(this.ownerName(token));
+    return parts.join(' · ');
   }
 
   protected toggleHidden(token: TableToken): void {
@@ -203,6 +233,15 @@ export class TokensPanel {
 
   private resetForm(kind: TokenKind = 'agent'): void {
     this.submitted.set(false);
-    this.form.reset({ label: '', kind, icon: null, hidden: false, ownerId: null, size: 1 });
+    this.form.reset({
+      label: '',
+      kind,
+      icon: null,
+      sex: null,
+      hidden: false,
+      nameHidden: false,
+      ownerId: null,
+      size: 1,
+    });
   }
 }

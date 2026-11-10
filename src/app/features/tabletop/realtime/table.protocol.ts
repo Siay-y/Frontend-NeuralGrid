@@ -34,6 +34,14 @@ export const TOKEN_KIND_LABEL: Record<TokenKind, string> = {
   threat: 'Ameaça',
 };
 
+export type TokenSex = 'female' | 'male' | 'other';
+
+export const TOKEN_SEX_LABEL: Record<TokenSex, string> = {
+  female: 'Feminino',
+  male: 'Masculino',
+  other: 'Outro',
+};
+
 export const TOKEN_LABEL_MAX_LENGTH = 32;
 export const TOKEN_SIZES = [1, 2, 3, 4] as const;
 
@@ -42,7 +50,9 @@ export interface TableToken {
   label: string;
   kind: TokenKind;
   icon: string | null;
+  sex: TokenSex | null;
   hidden: boolean;
+  nameHidden: boolean;
   ownerId: string | null;
   col: number;
   row: number;
@@ -75,7 +85,9 @@ export interface TokenDraft {
   label: string;
   kind: TokenKind;
   icon: string | null;
+  sex: TokenSex | null;
   hidden: boolean;
+  nameHidden: boolean;
   ownerId: string | null;
   size: number;
 }

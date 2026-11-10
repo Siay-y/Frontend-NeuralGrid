@@ -1,29 +1,50 @@
 <div class="updates">
   <ol class="releases">
     @for (release of releases; track release.version; let first = $first) {
-      <li class="release" [attr.aria-labelledby]="'release-' + release.version">
-        <header class="release__head">
-          <h3 class="release__version" [id]="'release-' + release.version">
-            v{{ release.version }}
-          </h3>
-          @if (first) {
-            <span class="release__current">Atual</span>
-          }
-          <time class="release__date" [attr.datetime]="release.date">
-            {{ formatDate(release.date) }}
-          </time>
-        </header>
-        <p class="release__title">{{ release.title }}</p>
-        <ul class="changes">
-          @for (change of release.changes; track $index) {
-            <li class="change">
-              <span class="kind" [class]="'kind--' + change.kind">{{
-                kindLabel[change.kind]
-              }}</span>
-              <span class="change__text">{{ change.text }}</span>
-            </li>
-          }
-        </ul>
+      @let open = isOpen(release.version);
+      <li class="release" [class.is-open]="open">
+        <h3 class="release__heading">
+          <button
+            type="button"
+            class="release__toggle"
+            [id]="'release-' + release.version"
+            [attr.aria-expanded]="open"
+            [attr.aria-controls]="'release-body-' + release.version"
+            (click)="toggle(release.version)"
+          >
+            <span class="release__head">
+              <span class="release__version">v{{ release.version }}</span>
+              @if (first) {
+                <span class="release__current">Atual</span>
+              }
+              <time class="release__date" [attr.datetime]="release.date">
+                {{ formatDate(release.date) }}
+              </time>
+              <svg lucideChevronDown class="release__chevron" [size]="14" />
+            </span>
+            <span class="release__title">{{ release.title }}</span>
+          </button>
+        </h3>
+        <div
+          class="release__body"
+          role="region"
+          [id]="'release-body-' + release.version"
+          [attr.aria-labelledby]="'release-' + release.version"
+          [inert]="!open"
+        >
+          <div class="release__inner">
+            <ul class="changes">
+              @for (change of release.changes; track $index) {
+                <li class="change">
+                  <span class="kind" [class]="'kind--' + change.kind">{{
+                    kindLabel[change.kind]
+                  }}</span>
+                  <span class="change__text">{{ change.text }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
       </li>
     }
   </ol>

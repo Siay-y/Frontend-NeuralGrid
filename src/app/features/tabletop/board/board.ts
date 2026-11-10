@@ -29,6 +29,7 @@ import {
   zoomAround,
 } from './board-camera';
 import { hitTest, type PlacedToken, snapToCell } from './token-geometry';
+import { TokenHoverCard } from './token-hover-card';
 import { type Point, TokenMotion } from './token-motion';
 import {
   drawDropTarget,
@@ -66,10 +67,13 @@ interface Viewport {
 
 const CAMERA_TWEEN_MS = 420;
 const MIN_MINOR_LINE_SPACING = 10;
+const HOVER_CARD_GAP_PX = 10;
+const HOVER_CARD_HALF_WIDTH_PX = 118;
+const HOVER_CARD_ROOM_PX = 190;
 
 @Component({
   selector: 'app-board',
-  imports: [LucideLocateFixed, LucideMinus, LucidePlus],
+  imports: [LucideLocateFixed, LucideMinus, LucidePlus, TokenHoverCard],
   templateUrl: './board.html',
   styleUrl: './board.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -87,6 +91,26 @@ export class Board {
   protected readonly panning = signal(false);
   protected readonly draggingToken = signal(false);
   protected readonly overMovableToken = signal(false);
+  protected readonly hoveredTokenId = signal<string | null>(null);
+  protected readonly hoverCard = computed(() => {
+    const id = this.hoveredTokenId();
+    const token = id ? this.table.token(id) : undefined;
+    if (!token || this.panning() || this.draggingToken()) {
+      return null;
+    }
+    const { x, y, zoom } = this.camera();
+    const span = CELL_SIZE * zoom;
+    const top = y + token.row * span;
+    const below = top < HOVER_CARD_ROOM_PX;
+    const centerX = x + (token.col + token.size / 2) * span;
+    const maxX = Math.max(HOVER_CARD_HALF_WIDTH_PX, this.viewport.width - HOVER_CARD_HALF_WIDTH_PX);
+    return {
+      token,
+      below,
+      left: Math.min(Math.max(centerX, HOVER_CARD_HALF_WIDTH_PX), maxX),
+      top: below ? top + token.size * span + HOVER_CARD_GAP_PX : top - HOVER_CARD_GAP_PX,
+    };
+  });
   protected readonly zoomPercent = computed(() => Math.round(this.camera().zoom * 100));
   protected readonly cellLabel = computed(() => {
     const cell = this.hoveredCell();
@@ -176,6 +200,7 @@ export class Board {
       this.hoveredCell.set(cell);
     }
     const hovered = hitTest(this.placed, world.x, world.y);
+    this.hoveredTokenId.set(event.pointerType === 'mouse' ? (hovered?.token.id ?? null) : null);
     this.overMovableToken.set(
       this.store.activeTool() === 'select' && !!hovered && this.table.canMove(hovered.token),
     );
@@ -197,6 +222,7 @@ export class Board {
       this.hoveredCell.set(null);
       this.overMovableToken.set(false);
     }
+    this.hoveredTokenId.set(null);
   }
 
   protected onWheel(event: WheelEvent): void {

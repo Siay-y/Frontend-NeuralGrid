@@ -1,0 +1,46 @@
+<div class="card">
+  <div class="card__head">
+    <app-token-glyph
+      class="card__glyph"
+      [kind]="token().kind"
+      [label]="token().label"
+      [icon]="token().icon"
+    />
+    <div class="card__title">
+      <p class="card__name">{{ token().label }}</p>
+      <p class="card__kind">{{ kind() }}</p>
+    </div>
+  </div>
+
+  <dl class="facts">
+    <div class="fact">
+      <dt>Sexo</dt>
+      <dd>{{ sex() }}</dd>
+    </div>
+    <div class="fact">
+      <dt>Tamanho</dt>
+      <dd>{{ size() }}</dd>
+    </div>
+    <div class="fact">
+      <dt>Dono</dt>
+      <dd>
+        <span class="status-dot" [class.is-online]="ownerOnline()" aria-hidden="true"></span>
+        {{ owner() }}
+      </dd>
+    </div>
+  </dl>
+
+  @if (mine() || (isMaster() && (token().hidden || token().nameHidden))) {
+    <div class="tags">
+      @if (mine()) {
+        <span class="tag">seu</span>
+      }
+      @if (isMaster() && token().hidden) {
+        <span class="tag tag--dashed">oculto dos jogadores</span>
+      }
+      @if (isMaster() && token().nameHidden) {
+        <span class="tag tag--dashed">nome oculto</span>
+      }
+    </div>
+  }
+</div>

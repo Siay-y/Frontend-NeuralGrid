@@ -89,7 +89,21 @@ quando chega a posição definitiva, quando a prévia coincide com a posição a
 
 ---
 
+### Ficha rápida
+
+Com o mouse parado sobre um token, o `TokenHoverCard` mostra nome, tipo, ícone,
+sexo, tamanho e dono, com a bolinha de presença. O mestre vê também os selos
+"oculto dos jogadores" e "nome oculto"; o jogador vê `???` quando o nome está
+escondido, porque é isso que o servidor manda. O card fica acima do token, ou
+abaixo quando não há espaço em cima, some ao arrastar ou mover a câmera e não
+aparece no toque.
+
 ## Painel de tokens
+
+O formulário fica dentro de um `Collapsible` ("Novo token", aberto por padrão),
+o mesmo que recolhe os campos de "Rolar dados" no painel de Dados. O
+`TabletopStore` lembra o que está fechado enquanto a mesa estiver aberta, e
+clicar em editar um token abre o formulário de novo.
 
 - **Mestre:** formulário tipado (`FormGroup<TokenForm>`) com nome, tipo, dono e
   tamanho. Um token novo nasce na célula livre mais próxima do centro da tela,
@@ -98,6 +112,11 @@ quando chega a posição definitiva, quando a prévia coincide com a posição a
 - **Ícone:** o seletor `TokenIconPicker` (um `ControlValueAccessor`) troca as
   iniciais por um dos ícones de `token-icons.ts`, com busca por nome. No
   tabuleiro o ícone vira `Path2D`, criado uma vez por ícone.
+- **Sexo:** Feminino, Masculino ou Outro, opcional. Clicar de novo na opção
+  marcada desmarca.
+- **Nome oculto:** o switch "Esconder o nome" faz o servidor mandar `???` no
+  lugar do nome para os jogadores. O mestre continua vendo o nome, com o selo
+  `???` na lista.
 - **Oculto:** o switch "Esconder dos jogadores" e o olho de cada linha mudam
   `hidden`. O mestre vê o token translúcido, com o selo "oculto"; os jogadores
   nem recebem o token.

@@ -28,6 +28,7 @@ export class TabletopStore {
   private readonly center = signal<GridCell>({ col: 0, row: 0 });
   private readonly currentNotice = signal<Notice | null>(null);
   private readonly audience = signal('public');
+  private readonly closedSections = signal<ReadonlySet<string>>(new Set());
   private noticeTimer: ReturnType<typeof setTimeout> | undefined;
 
   readonly activeTool = this.tool.asReadonly();
@@ -41,6 +42,26 @@ export class TabletopStore {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.noticeTimer));
+  }
+
+  isSectionOpen(section: string): boolean {
+    return !this.closedSections().has(section);
+  }
+
+  toggleSection(section: string): void {
+    this.closedSections.update((closed) => {
+      const next = new Set(closed);
+      if (!next.delete(section)) {
+        next.add(section);
+      }
+      return next;
+    });
+  }
+
+  openSection(section: string): void {
+    if (!this.isSectionOpen(section)) {
+      this.toggleSection(section);
+    }
   }
 
   selectTool(tool: MapToolId): void {
