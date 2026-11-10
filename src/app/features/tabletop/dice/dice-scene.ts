@@ -66,9 +66,8 @@ function heightAt(t: number, drop: number, firstImpact: number, rest: number): n
   return rest;
 }
 
-function landingSpots(count: number, paired: boolean): Vector3[] {
-  const square = Math.ceil(Math.sqrt(count));
-  const columns = paired && square % 2 === 1 ? square + 1 : square;
+function landingSpots(count: number): Vector3[] {
+  const columns = Math.ceil(Math.sqrt(count));
   const rows = Math.ceil(count / columns);
   return Array.from({ length: count }, (_, index) => {
     const column = index % columns;
@@ -120,20 +119,17 @@ export class DiceScene {
     this.resize();
     const run = this.run;
 
-    const spots = landingSpots(
-      dice.length,
-      dice.some((die) => die.paired),
-    );
+    const spots = landingSpots(dice.length);
     this.frameLayout(spots, blockedLeftPx);
     this.throws = dice.map((die, index) => {
-      const object = this.kit.build({ ...die, critical: false }, colors, DIE_RADIUS);
+      const object = this.kit.build({ ...die, outcome: null }, colors, DIE_RADIUS);
       const model = dieModel(die.shape);
       const target = restingOrientation(model, die.resultIndex, random(-0.35, 0.35));
       const end = spots[index];
       const throwItem: Throw = {
         die,
         colors,
-        revealed: !die.critical,
+        revealed: die.outcome === null,
         object,
         start: new Vector3(end.x + random(-2, 2), 0, end.z - random(7, 10)),
         end,

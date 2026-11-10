@@ -16,78 +16,102 @@ export function previewColumns(count: number): number {
   return count <= 18 ? 6 : 8;
 }
 
-export type DieShape = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
+export type DieShape = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100';
+
+export type DieOutcome = 'failure' | 'success' | null;
 
 export interface AnimatedDie {
   shape: DieShape;
-  labels: string[];
+  labels: readonly string[];
   resultIndex: number;
   dropped: boolean;
-  paired: boolean;
-  critical: boolean;
+  outcome: DieOutcome;
 }
 
-export const CRITICAL_FAILURE_MIN_SIDES = 6;
+export const CRITICAL_MIN_SIDES = 4;
 
-export function isCriticalFailure(sides: number, value: number): boolean {
-  return sides >= CRITICAL_FAILURE_MIN_SIDES && value === 1;
+export const BONUS_LIMIT = 99;
+
+export function dieOutcome(sides: number, value: number): DieOutcome {
+  if (sides < CRITICAL_MIN_SIDES) {
+    return null;
+  }
+  if (value === 1) {
+    return 'failure';
+  }
+  return value === sides ? 'success' : null;
 }
 
-export function hasCriticalFailure(roll: RollResult): boolean {
-  return roll.terms.some(
-    (term) =>
-      term.kind === 'dice' &&
-      term.rolls.some((die) => die.kept && isCriticalFailure(term.sides, die.value)),
+export interface RollHighlights {
+  failure: boolean;
+  success: boolean;
+}
+
+export function rollHighlights(roll: RollResult): RollHighlights {
+  const outcomes = roll.terms.flatMap((term) =>
+    term.kind === 'dice'
+      ? term.rolls.filter((die) => die.kept).map((die) => dieOutcome(term.sides, die.value))
+      : [],
   );
+  return { failure: outcomes.includes('failure'), success: outcomes.includes('success') };
 }
 
-export function diceNotation(quantity: number, sides: number): string {
-  return `${quantity}d${sides}`;
+export function clampBonus(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.min(BONUS_LIMIT, Math.max(-BONUS_LIMIT, Math.trunc(value)));
+}
+
+export function formatBonus(bonus: number): string {
+  return bonus > 0 ? `+${bonus}` : String(bonus);
+}
+
+export function parseBonus(raw: string): number {
+  const match = /^\s*([+-]?)\s*(\d+)\s*$/.exec(raw);
+  if (!match) {
+    return 0;
+  }
+  const value = Number(match[2]);
+  return clampBonus(match[1] === '-' ? -value : value);
+}
+
+export function diceNotation(quantity: number, sides: number, bonus = 0): string {
+  const base = `${quantity}d${sides}`;
+  return bonus === 0 ? base : `${base}${formatBonus(bonus)}`;
 }
 
 function numbered(count: number): string[] {
   return Array.from({ length: count }, (_, index) => String(index + 1));
 }
 
-const TENS = Array.from({ length: 10 }, (_, index) => (index === 0 ? '00' : `${index}0`));
-const UNITS = Array.from({ length: 10 }, (_, index) => String(index));
+const D100_STEP = 37;
+const D100_LABELS = Array.from({ length: 100 }, (_, index) =>
+  String(((index * D100_STEP) % 100) + 1),
+);
+const SHAPE_LABELS: Readonly<Record<number, readonly string[]>> = {
+  4: numbered(4),
+  6: numbered(6),
+  8: numbered(8),
+  10: numbered(10),
+  12: numbered(12),
+  20: numbered(20),
+  100: D100_LABELS,
+};
 
-function dieFor(sides: number, value: number, dropped: boolean): AnimatedDie[] | null {
-  const critical = !dropped && isCriticalFailure(sides, value);
-  switch (sides) {
-    case 4:
-    case 6:
-    case 8:
-    case 10:
-    case 12:
-    case 20:
-      return [
-        {
-          shape: `d${sides}`,
-          labels: numbered(sides),
-          resultIndex: value - 1,
-          dropped,
-          paired: false,
-          critical,
-        },
-      ];
-    case 100: {
-      const rest = value % 100;
-      return [
-        {
-          shape: 'd10',
-          labels: TENS,
-          resultIndex: Math.floor(rest / 10),
-          dropped,
-          paired: true,
-          critical,
-        },
-        { shape: 'd10', labels: UNITS, resultIndex: rest % 10, dropped, paired: true, critical },
-      ];
-    }
-    default:
-      return null;
+function dieFor(sides: number, value: number, dropped: boolean): AnimatedDie | null {
+  const labels = SHAPE_LABELS[sides];
+  const resultIndex = labels?.indexOf(String(value)) ?? -1;
+  if (!labels || resultIndex < 0) {
+    return null;
   }
+  return {
+    shape: `d${sides}` as DieShape,
+    labels,
+    resultIndex,
+    dropped,
+    outcome: dropped ? null : dieOutcome(sides, value),
+  };
 }
 
 export function animatedDice(roll: RollResult): AnimatedDie[] | null {
@@ -95,33 +119,14 @@ export function animatedDice(roll: RollResult): AnimatedDie[] | null {
   const terms = roll.terms.filter((term): term is DiceTermResult => term.kind === 'dice');
   for (const term of terms) {
     for (const die of term.rolls) {
-      const shapes = dieFor(term.sides, die.value, !die.kept);
-      if (!shapes) {
+      const shape = dieFor(term.sides, die.value, !die.kept);
+      if (!shape) {
         return null;
       }
-      dice.push(...shapes);
+      dice.push(shape);
     }
   }
   return dice.length > 0 && dice.length <= ANIMATED_DICE_LIMIT ? dice : null;
-}
-
-export type NaturalResult = 'max' | 'min' | null;
-
-export function naturalResult(roll: RollResult): NaturalResult {
-  const d20 = roll.terms.filter(
-    (term): term is DiceTermResult => term.kind === 'dice' && term.sides === 20,
-  );
-  if (d20.length !== 1) {
-    return null;
-  }
-  const kept = d20[0].rolls.filter((die) => die.kept);
-  if (kept.length !== 1) {
-    return null;
-  }
-  if (kept[0].value === 20) {
-    return 'max';
-  }
-  return kept[0].value === 1 ? 'min' : null;
 }
 
 export type ChatCommand =

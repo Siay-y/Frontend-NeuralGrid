@@ -17,7 +17,7 @@ import { RollCard } from '../chat/roll-card';
 import { TableState } from '../realtime/table-state';
 import type { ChatMessage } from '../realtime/table.protocol';
 import { loadDiceFont, prefersReducedMotion, readDiceColors } from './dice-env';
-import { animatedDice, hasCriticalFailure, naturalResult, previewColumns } from './dice-rules';
+import { animatedDice, previewColumns, rollHighlights } from './dice-rules';
 import type { DiceSpinner } from './dice-spinner';
 import { RollFeed } from './roll-feed';
 
@@ -53,15 +53,9 @@ export class RollPreviewCard {
     return Math.ceil(count / columns) * Math.round(rowHeight);
   });
   protected readonly revealed = signal(false);
-  protected readonly flag = computed<'critical' | 'max' | null>(() => {
+  protected readonly highlights = computed(() => {
     const roll = this.roll();
-    if (!roll) {
-      return null;
-    }
-    if (hasCriticalFailure(roll)) {
-      return 'critical';
-    }
-    return naturalResult(roll) === 'max' ? 'max' : null;
+    return roll ? rollHighlights(roll) : { failure: false, success: false };
   });
   protected readonly author = computed(() => {
     const { authorId } = this.message();

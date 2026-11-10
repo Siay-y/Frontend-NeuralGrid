@@ -3,6 +3,8 @@ export interface DiceColors {
   ink: string;
   critical: string;
   criticalInk: string;
+  success: string;
+  successInk: string;
 }
 
 export function prefersReducedMotion(): boolean {
@@ -16,6 +18,8 @@ export function readDiceColors(scope: Element = document.documentElement): DiceC
     ink: styles.getPropertyValue('--color-inverse-text').trim() || '#000000',
     critical: styles.getPropertyValue('--color-critical').trim() || '#e5484d',
     criticalInk: styles.getPropertyValue('--color-critical-text').trim() || '#ffffff',
+    success: styles.getPropertyValue('--color-success').trim() || '#3b82f6',
+    successInk: styles.getPropertyValue('--color-success-text').trim() || '#ffffff',
   };
 }
 

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { hasCriticalFailure, isCriticalFailure, naturalResult } from '../dice/dice-rules';
+import { dieOutcome, rollHighlights } from '../dice/dice-rules';
 import type { RollResult } from '../realtime/table.protocol';
 
 @Component({
@@ -12,9 +12,8 @@ export class RollCard {
   readonly roll = input.required<RollResult>();
   readonly pending = input(false);
 
-  protected readonly natural = computed(() => naturalResult(this.roll()));
-  protected readonly criticalFailure = computed(() => hasCriticalFailure(this.roll()));
-  protected readonly isCritical = isCriticalFailure;
+  protected readonly highlights = computed(() => rollHighlights(this.roll()));
+  protected readonly outcome = dieOutcome;
   protected readonly title = computed(() => this.roll().label ?? 'Rolagem');
   protected readonly summary = computed(() => {
     const roll = this.roll();

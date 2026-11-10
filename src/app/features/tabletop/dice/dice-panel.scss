@@ -67,12 +67,44 @@
 }
 
 .stepper__value {
-  min-width: 32px;
+  width: 40px;
   font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 600;
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+.stepper__input {
+  height: 28px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+
+  &.is-set {
+    color: var(--color-text);
+  }
+
+  &:focus-visible {
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-hover);
+  }
+}
+
+.die-button__bonus {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 .dice-grid {
@@ -82,6 +114,7 @@
 }
 
 .die-button {
+  position: relative;
   display: grid;
   justify-items: center;
   gap: 4px;

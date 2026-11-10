@@ -70,7 +70,7 @@ export class DiceSpinner {
     this.spins = dice.map((die, index) => {
       const model = dieModel(die.shape);
       const target = restingOrientation(model, die.resultIndex, random(-0.25, 0.25));
-      const object = this.kit.build({ ...die, critical: false }, colors, DIE_RADIUS);
+      const object = this.kit.build({ ...die, outcome: null }, colors, DIE_RADIUS);
       const column = index % columns;
       const row = Math.floor(index / columns);
       const rest = restingHeight(model, target) * DIE_RADIUS;
@@ -83,7 +83,7 @@ export class DiceSpinner {
       return {
         die,
         colors,
-        revealed: !die.critical,
+        revealed: die.outcome === null,
         object,
         rest,
         hop: random(0.5, 0.9),

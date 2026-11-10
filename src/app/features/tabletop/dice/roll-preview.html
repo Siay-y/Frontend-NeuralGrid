@@ -1,7 +1,7 @@
 <article
   class="preview"
-  [class.is-max]="revealed() && flag() === 'max'"
-  [class.is-critical]="revealed() && flag() === 'critical'"
+  [class.is-success]="revealed() && highlights().success && !highlights().failure"
+  [class.is-critical]="revealed() && highlights().failure"
 >
   <header class="preview__head">
     <span class="preview__author">{{ author() }}</span>
@@ -27,10 +27,11 @@
       <footer class="preview__result" role="status">
         <code class="preview__notation">{{ roll.label ?? roll.notation }}</code>
         @if (revealed()) {
-          @if (flag(); as flag) {
-            <span class="preview__flag" [class.is-critical]="flag === 'critical'">{{
-              flag === 'critical' ? 'Falha crítica' : '20 natural'
-            }}</span>
+          @if (highlights().success) {
+            <span class="preview__flag is-success">Crítico</span>
+          }
+          @if (highlights().failure) {
+            <span class="preview__flag is-critical">Falha crítica</span>
           }
           <span class="preview__total" animate.enter="total-pop">{{ roll.total }}</span>
         } @else {

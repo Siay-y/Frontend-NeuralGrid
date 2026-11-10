@@ -13,8 +13,8 @@
   transition: border-color var(--duration) var(--ease-out);
 }
 
-.preview.is-max {
-  border-color: var(--color-text);
+.preview.is-success {
+  border-color: var(--color-success);
 }
 
 .preview.is-critical {
@@ -108,9 +108,10 @@
   text-transform: uppercase;
 }
 
-.preview.is-max .preview__flag {
-  background: var(--color-inverse);
-  color: var(--color-inverse-text);
+.preview__flag.is-success {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: var(--color-success-text);
 }
 
 .preview__flag.is-critical {
