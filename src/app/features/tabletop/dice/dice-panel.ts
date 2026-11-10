@@ -3,6 +3,7 @@ import { LucideMinus, LucidePlus } from '@lucide/angular';
 import { toAudience } from '../chat/audience';
 import { AudienceSelect } from '../chat/audience-select';
 import { MessageLog } from '../chat/message-log';
+import { Collapsible } from '../panel/collapsible';
 import { TableState } from '../realtime/table-state';
 import { TabletopStore } from '../tabletop.store';
 import {
@@ -27,14 +28,14 @@ const SHAPES: Record<(typeof DICE_SIDES)[number], string> = {
 
 @Component({
   selector: 'app-dice-panel',
-  imports: [AudienceSelect, MessageLog, LucideMinus, LucidePlus],
+  imports: [AudienceSelect, Collapsible, MessageLog, LucideMinus, LucidePlus],
   templateUrl: './dice-panel.html',
   styleUrl: './dice-panel.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DicePanel {
   private readonly table = inject(TableState);
-  private readonly store = inject(TabletopStore);
+  protected readonly store = inject(TabletopStore);
 
   protected readonly dice = DICE_SIDES;
   protected readonly shapes = SHAPES;

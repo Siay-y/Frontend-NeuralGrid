@@ -6,7 +6,9 @@ const token = (overrides: Partial<TableToken>): TableToken => ({
   label: 'Token',
   kind: 'agent',
   icon: null,
+  sex: null,
   hidden: false,
+  nameHidden: false,
   ownerId: null,
   col: 0,
   row: 0,
@@ -20,6 +22,7 @@ describe('token geometry', () => {
     expect(tokenInitials('Dante')).toBe('DA');
     expect(tokenInitials('  zumbi de sangue ')).toBe('ZD');
     expect(tokenInitials('   ')).toBe('?');
+    expect(tokenInitials('???')).toBe('?');
   });
 
   it('hits the round body of a token and favours the one drawn on top', () => {

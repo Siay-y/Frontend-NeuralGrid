@@ -12,7 +12,7 @@ export interface PlacedToken {
 
 export function tokenInitials(label: string): string {
   const words = label.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) {
+  if (words.length === 0 || /^\?+$/.test(label.trim())) {
     return '?';
   }
   const letters = words.length === 1 ? words[0].slice(0, 2) : words[0][0] + words[1][0];

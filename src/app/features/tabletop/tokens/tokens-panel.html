@@ -1,107 +1,155 @@
 <div class="tokens">
   @if (table.isMaster()) {
-    <form class="editor" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-      <p class="eyebrow editor__title">{{ editingId() ? 'Editar token' : 'Novo token' }}</p>
-
-      <div class="field" [class.is-invalid]="showLabelError()">
-        <label class="field__label" for="token-label">Nome</label>
-        <input
-          id="token-label"
-          class="field__input"
-          type="text"
-          formControlName="label"
-          autocomplete="off"
-          [attr.maxlength]="maxLabel"
-          [attr.aria-invalid]="showLabelError()"
-          aria-describedby="token-label-error"
-        />
-        @if (showLabelError()) {
-          <p id="token-label-error" class="field__error">Dê um nome ao token.</p>
-        }
-      </div>
-
-      <fieldset class="field">
-        <legend class="field__label">Tipo</legend>
-        <div class="segmented" role="radiogroup">
-          @for (kind of kinds; track kind) {
-            <label class="segmented__option" [class.is-checked]="form.controls.kind.value === kind">
-              <input type="radio" formControlName="kind" [value]="kind" class="sr-only" />
-              <span class="glyph glyph--sm" [attr.data-kind]="kind" aria-hidden="true"></span>
-              {{ kindLabel[kind] }}
-            </label>
+    <app-collapsible
+      [title]="editingId() ? 'Editar token' : 'Novo token'"
+      [open]="store.isSectionOpen(editorSection)"
+      (toggled)="store.toggleSection(editorSection)"
+    >
+      <form class="editor" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="field" [class.is-invalid]="showLabelError()">
+          <label class="field__label" for="token-label">Nome</label>
+          <input
+            id="token-label"
+            class="field__input"
+            type="text"
+            formControlName="label"
+            autocomplete="off"
+            [attr.maxlength]="maxLabel"
+            [attr.aria-invalid]="showLabelError()"
+            aria-describedby="token-label-error"
+          />
+          @if (showLabelError()) {
+            <p id="token-label-error" class="field__error">Dê um nome ao token.</p>
           }
-        </div>
-      </fieldset>
-
-      <div class="field">
-        <span class="field__label" id="token-icon-label">Ícone</span>
-        <app-token-icon-picker
-          formControlName="icon"
-          aria-labelledby="token-icon-label"
-          [kind]="draftKind()"
-          [label]="draftLabel()"
-        />
-      </div>
-
-      <div class="editor__row">
-        <div class="field field--grow">
-          <label class="field__label" for="token-owner">Dono</label>
-          <div class="select">
-            <select id="token-owner" class="field__input select__control" formControlName="ownerId">
-              <option [ngValue]="null">Sem dono</option>
-              @for (member of table.members(); track member.id) {
-                <option [ngValue]="member.id">{{ member.displayName }}</option>
-              }
-            </select>
-            <svg lucideChevronDown class="select__icon" [size]="14" />
-          </div>
         </div>
 
         <fieldset class="field">
-          <legend class="field__label">Tamanho</legend>
-          <div class="segmented segmented--compact" role="radiogroup">
-            @for (size of sizes; track size) {
+          <legend class="field__label">Tipo</legend>
+          <div class="segmented" role="radiogroup">
+            @for (kind of kinds; track kind) {
               <label
                 class="segmented__option"
-                [class.is-checked]="form.controls.size.value === size"
+                [class.is-checked]="form.controls.kind.value === kind"
               >
-                <input type="radio" formControlName="size" [value]="size" class="sr-only" />
-                {{ size }}
+                <input type="radio" formControlName="kind" [value]="kind" class="sr-only" />
+                <span class="glyph glyph--sm" [attr.data-kind]="kind" aria-hidden="true"></span>
+                {{ kindLabel[kind] }}
               </label>
             }
           </div>
         </fieldset>
-      </div>
 
-      <label class="switch" [class.is-on]="form.controls.hidden.value">
-        <input type="checkbox" class="sr-only" formControlName="hidden" />
-        <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
-        <span class="switch__text">
-          <span class="switch__title">Esconder dos jogadores</span>
-          <span class="switch__hint">{{
-            form.controls.hidden.value
-              ? 'Só o mestre vê. Revele quando entrar em cena.'
-              : 'Todos na mesa veem este token.'
-          }}</span>
-        </span>
-      </label>
+        <fieldset class="field">
+          <legend class="field__label">Sexo</legend>
+          <div class="segmented" role="radiogroup">
+            @for (sex of sexes; track sex) {
+              <button
+                type="button"
+                role="radio"
+                class="segmented__option"
+                [class.is-checked]="form.controls.sex.value === sex"
+                [attr.aria-checked]="form.controls.sex.value === sex"
+                (click)="pickSex(sex)"
+              >
+                {{ sexLabel[sex] }}
+              </button>
+            }
+          </div>
+        </fieldset>
 
-      <div class="editor__actions">
-        @if (editingId()) {
-          <button type="button" class="button button--ghost" (click)="cancelEdit()">
-            Cancelar
-          </button>
-        }
-        <button type="submit" class="button button--primary" [disabled]="saving()">
-          @if (saving()) {
-            <svg lucideLoaderCircle class="spin" [size]="14" />
-          } @else if (!editingId()) {
-            <svg lucidePlus [size]="14" />
+        <div class="field">
+          <span class="field__label" id="token-icon-label">Ícone</span>
+          <app-token-icon-picker
+            formControlName="icon"
+            aria-labelledby="token-icon-label"
+            [kind]="draftKind()"
+            [label]="draftLabel()"
+          />
+        </div>
+
+        <div class="editor__row">
+          <div class="field field--grow">
+            <label class="field__label" for="token-owner">Dono</label>
+            <div class="select">
+              <select
+                id="token-owner"
+                class="field__input select__control"
+                formControlName="ownerId"
+              >
+                <option [ngValue]="null">Sem dono</option>
+                @for (member of table.members(); track member.id) {
+                  <option [ngValue]="member.id">{{ member.displayName }}</option>
+                }
+              </select>
+              <svg lucideChevronDown class="select__icon" [size]="14" />
+            </div>
+          </div>
+
+          <fieldset class="field">
+            <legend class="field__label">Tamanho</legend>
+            <div class="segmented segmented--compact" role="radiogroup">
+              @for (size of sizes; track size) {
+                <label
+                  class="segmented__option"
+                  [class.is-checked]="form.controls.size.value === size"
+                >
+                  <input type="radio" formControlName="size" [value]="size" class="sr-only" />
+                  {{ size }}
+                </label>
+              }
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="editor__switches">
+          <label class="switch" [class.is-on]="form.controls.hidden.value">
+            <input type="checkbox" class="sr-only" formControlName="hidden" />
+            <span class="switch__track" aria-hidden="true"
+              ><span class="switch__thumb"></span
+            ></span>
+            <span class="switch__text">
+              <span class="switch__title">Esconder dos jogadores</span>
+              <span class="switch__hint">{{
+                form.controls.hidden.value
+                  ? 'Só o mestre vê. Revele quando entrar em cena.'
+                  : 'Todos na mesa veem este token.'
+              }}</span>
+            </span>
+          </label>
+
+          <label class="switch" [class.is-on]="form.controls.nameHidden.value">
+            <input type="checkbox" class="sr-only" formControlName="nameHidden" />
+            <span class="switch__track" aria-hidden="true"
+              ><span class="switch__thumb"></span
+            ></span>
+            <span class="switch__text">
+              <span class="switch__title">Esconder o nome</span>
+              <span class="switch__hint">{{
+                form.controls.nameHidden.value
+                  ? 'Os jogadores veem ??? até você desligar.'
+                  : 'Todos veem o nome do token.'
+              }}</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="editor__actions">
+          @if (editingId()) {
+            <button type="button" class="button button--ghost" (click)="cancelEdit()">
+              Cancelar
+            </button>
           }
-          {{ editingId() ? 'Salvar alterações' : 'Adicionar ao tabuleiro' }}
-        </button>
-      </div>
-    </form>
+          <button type="submit" class="button button--primary" [disabled]="saving()">
+            @if (saving()) {
+              <svg lucideLoaderCircle class="spin" [size]="14" />
+            } @else if (!editingId()) {
+              <svg lucidePlus [size]="14" />
+            }
+            {{ editingId() ? 'Salvar alterações' : 'Adicionar ao tabuleiro' }}
+          </button>
+        </div>
+      </form>
+    </app-collapsible>
   }
 
   <section class="list" aria-labelledby="tokens-list-title">
@@ -138,10 +186,13 @@
                   @if (token.hidden) {
                     <span class="tag tag--hidden">oculto</span>
                   }
+                  @if (token.nameHidden && table.isMaster()) {
+                    <span class="tag tag--hidden">???</span>
+                  }
                 </span>
                 <span class="row__meta">
                   <span class="status-dot" [class.is-online]="isOwnerOnline(token)"></span>
-                  {{ kindLabel[token.kind] }} · {{ ownerName(token) }}
+                  {{ tokenMeta(token) }}
                 </span>
               </span>
             </button>

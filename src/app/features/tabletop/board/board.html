@@ -19,6 +19,16 @@
     (contextmenu)="$event.preventDefault()"
   ></canvas>
 
+  @if (hoverCard(); as card) {
+    <app-token-hover-card
+      class="chrome-dark"
+      [token]="card.token"
+      [class.is-below]="card.below"
+      [style.left.px]="card.left"
+      [style.top.px]="card.top"
+    />
+  }
+
   <div class="hud hud--status chrome-dark" aria-hidden="true">
     <span class="hud__key">Célula</span>
     <span class="hud__value">{{ cellLabel() || '·' }}</span>
