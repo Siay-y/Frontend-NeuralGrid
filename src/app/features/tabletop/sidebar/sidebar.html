@@ -1,4 +1,13 @@
-<nav class="sidebar" [class.is-expanded]="store.sidebarExpanded()" aria-label="Ferramentas da mesa">
+<nav
+  class="sidebar"
+  [class.is-expanded]="store.sidebarExpanded()"
+  aria-label="Ferramentas da mesa"
+  (pointerover)="showTip($event)"
+  (pointerleave)="hideTip()"
+  (pointerdown)="hideTip()"
+  (focusin)="showTip($event)"
+  (focusout)="hideTip()"
+>
   <div class="sidebar__head">
     <button
       type="button"
@@ -21,7 +30,7 @@
     </button>
   </div>
 
-  <div class="sidebar__scroll">
+  <div class="sidebar__scroll" (scroll)="hideTip()">
     <section class="group" aria-labelledby="group-map">
       <p id="group-map" class="eyebrow group__label">Mapa</p>
       @for (tool of tools; track tool.id) {
@@ -147,3 +156,11 @@
     </div>
   </div>
 </nav>
+
+@if (!store.sidebarExpanded()) {
+  @if (tip(); as tip) {
+    <span class="tip" aria-hidden="true" [style.top.px]="tip.top" [style.left.px]="tip.left">{{
+      tip.label
+    }}</span>
+  }
+}

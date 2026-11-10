@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  signal,
+} from '@angular/core';
 import {
   LucideDynamicIcon,
   LucideLogOut,
@@ -15,6 +22,14 @@ import { BrandMark } from '../../../shared/ui/brand-mark/brand-mark';
 import { TableState } from '../realtime/table-state';
 import { MAP_TOOLS, SHORTCUT_PANELS, TABLE_PANELS } from '../tabletop.models';
 import { TabletopStore } from '../tabletop.store';
+
+interface Tip {
+  label: string;
+  top: number;
+  left: number;
+}
+
+const TIP_OFFSET_PX = 12;
 
 @Component({
   selector: 'app-sidebar',
@@ -33,6 +48,7 @@ import { TabletopStore } from '../tabletop.store';
 })
 export class Sidebar {
   private readonly auth = inject(AuthService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   protected readonly store = inject(TabletopStore);
   protected readonly theme = inject(ThemeService);
   protected readonly release = inject(ReleaseService);
@@ -57,6 +73,29 @@ export class Sidebar {
   protected readonly themeLabel = computed(() =>
     this.theme.isDark() ? 'Tema claro' : 'Tema escuro',
   );
+
+  protected readonly tip = signal<Tip | null>(null);
+
+  protected showTip(event: Event): void {
+    const item = (event.target as Element).closest<HTMLElement>('[data-tooltip]');
+    const fromMouse = !(event instanceof PointerEvent) || event.pointerType === 'mouse';
+    const fromKeyboard = event.type !== 'focusin' || item?.matches(':focus-visible');
+    if (!item || this.store.sidebarExpanded() || !fromMouse || !fromKeyboard) {
+      this.hideTip();
+      return;
+    }
+    const box = item.getBoundingClientRect();
+    const origin = this.host.nativeElement.getBoundingClientRect();
+    this.tip.set({
+      label: item.dataset['tooltip'] ?? '',
+      top: box.top - origin.top + box.height / 2,
+      left: box.right - origin.left + TIP_OFFSET_PX,
+    });
+  }
+
+  protected hideTip(): void {
+    this.tip.set(null);
+  }
 
   protected logout(): void {
     this.auth.logout();
