@@ -18,6 +18,12 @@
   }
 }
 
+@media (max-width: 480px) {
+  .tabletop {
+    --floating-gap: 8px;
+  }
+}
+
 .tabletop__sidebar {
   position: absolute;
   top: var(--floating-gap);
