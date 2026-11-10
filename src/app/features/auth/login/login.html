@@ -1,0 +1,114 @@
+<main class="login">
+  <div class="login__grid" aria-hidden="true"></div>
+
+  <header class="login__topbar">
+    <span class="login__tag">NG/0.1</span>
+    <app-theme-toggle />
+  </header>
+
+  <section class="card" aria-labelledby="login-title">
+    <div class="card__brand">
+      <app-brand-mark [size]="28" />
+      <div class="card__heading">
+        <h1 id="login-title">NeuralGrid</h1>
+        <p>Mesa privada. Entre com a conta enviada pelo mestre.</p>
+      </div>
+    </div>
+
+    @if (sessionExpired()) {
+      <p class="notice" role="status" animate.enter="reveal">
+        <svg lucideLock [size]="14" />
+        Sua sessão expirou. Entre novamente para voltar à mesa.
+      </p>
+    }
+
+    <form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="field" [class.is-invalid]="showError('username')">
+        <label class="field__label" for="username">Usuário</label>
+        <div class="field__control">
+          <svg lucideUser class="field__icon" [size]="16" />
+          <input
+            id="username"
+            class="field__input"
+            type="text"
+            formControlName="username"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            maxlength="32"
+            [attr.aria-invalid]="showError('username')"
+            aria-describedby="username-error"
+          />
+        </div>
+        @if (showError('username')) {
+          <p id="username-error" class="field__error" animate.enter="reveal">
+            Informe seu usuário.
+          </p>
+        }
+      </div>
+
+      <div class="field" [class.is-invalid]="showError('password')">
+        <label class="field__label" for="password">Senha</label>
+        <div class="field__control">
+          <svg lucideKeyRound class="field__icon" [size]="16" />
+          <input
+            #passwordInput
+            id="password"
+            class="field__input field__input--with-action"
+            [type]="passwordVisible() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="current-password"
+            maxlength="128"
+            [attr.aria-invalid]="showError('password')"
+            aria-describedby="password-error"
+          />
+          <button
+            type="button"
+            class="field__action"
+            [attr.aria-label]="passwordVisible() ? 'Ocultar senha' : 'Mostrar senha'"
+            [attr.aria-pressed]="passwordVisible()"
+            (click)="togglePasswordVisibility()"
+          >
+            @if (passwordVisible()) {
+              <svg lucideEyeOff [size]="16" />
+            } @else {
+              <svg lucideEye [size]="16" />
+            }
+          </button>
+        </div>
+        @if (showError('password')) {
+          <p id="password-error" class="field__error" animate.enter="reveal">Informe sua senha.</p>
+        }
+      </div>
+
+      @if (error(); as message) {
+        <div class="alert" role="alert" animate.enter="reveal">
+          <svg lucideCircleAlert [size]="16" />
+          <span>{{ message }}</span>
+        </div>
+      }
+
+      <button type="submit" class="submit" [class.is-loading]="loading()" [disabled]="loading()">
+        @if (loading()) {
+          <svg lucideLoaderCircle class="spin" [size]="16" />
+          <span>{{ slowServer() ? 'Acordando o servidor' : 'Entrando' }}</span>
+        } @else {
+          <span>Entrar</span>
+          <svg lucideArrowRight class="submit__arrow" [size]="16" />
+        }
+      </button>
+
+      @if (slowServer()) {
+        <p class="hint" role="status" animate.enter="reveal">
+          O servidor descansa quando ninguém está jogando. A primeira conexão pode levar até um
+          minuto.
+        </p>
+      }
+    </form>
+  </section>
+
+  <footer class="login__footer">
+    <svg lucideLock [size]="12" />
+    <span>Acesso restrito · sem cadastro público</span>
+  </footer>
+</main>

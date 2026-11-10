@@ -1,0 +1,11 @@
+<button
+  type="button"
+  class="icon-button toggle"
+  [class.is-dark]="theme.isDark()"
+  [attr.aria-label]="label()"
+  [attr.title]="label()"
+  (click)="theme.toggle()"
+>
+  <svg lucideSun class="icon icon--sun" />
+  <svg lucideMoon class="icon icon--moon" />
+</button>

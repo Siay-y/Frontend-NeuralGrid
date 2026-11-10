@@ -1,0 +1,26 @@
+<aside class="panel" [attr.aria-labelledby]="'panel-title-' + panel().id">
+  <header class="panel__header">
+    <span class="panel__title">
+      <svg [lucideIcon]="panel().icon" [size]="16" />
+      <h2 [id]="'panel-title-' + panel().id">{{ panel().label }}</h2>
+    </span>
+    <button
+      type="button"
+      class="icon-button panel__close"
+      aria-label="Fechar painel"
+      (click)="store.closePanel()"
+    >
+      <svg lucideX [size]="16" />
+    </button>
+  </header>
+
+  @for (current of [panel()]; track current.id) {
+    <div class="panel__empty" animate.enter="swap">
+      <span class="panel__badge">
+        <svg [lucideIcon]="current.icon" [size]="20" />
+      </span>
+      <p class="panel__lead">Em construção</p>
+      <p class="panel__text">{{ current.description }}</p>
+    </div>
+  }
+</aside>

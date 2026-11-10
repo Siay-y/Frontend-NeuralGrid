@@ -1,0 +1,32 @@
+.toggle {
+  overflow: hidden;
+}
+
+.icon {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--duration) var(--ease-out),
+    transform var(--duration-slow) var(--ease-out);
+}
+
+.icon--sun {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.6);
+}
+
+.icon--moon {
+  opacity: 1;
+  transform: none;
+}
+
+.toggle:not(.is-dark) {
+  .icon--sun {
+    opacity: 1;
+    transform: none;
+  }
+
+  .icon--moon {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.6);
+  }
+}
