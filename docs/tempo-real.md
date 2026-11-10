@@ -115,9 +115,11 @@ rolagens são o mesmo tipo (`ChatMessage`) e dividem um único histórico.
 
 ### Painel de dados
 
-O painel tem só a quantidade (1 a 10) e os dados em ordem: d4, d6, d8, d10,
-d12, d20 e d100. Um clique envia `NdF`, como `2d6`. Rolagens com modificador ou
-com `kh`/`kl` continuam disponíveis pelo chat: `/r 2d20kh1+5 Luta`.
+O painel tem a quantidade (1 a 10), o bônus (-99 a +99) e os dados em ordem:
+d4, d6, d8, d10, d12, d20 e d100. Um clique envia `NdF` com o bônus no fim, como
+`2d6` ou `1d20+5`. O bônus aceita digitação (`+3`, `-2`) e fica marcado no canto
+de cada dado enquanto for diferente de zero. Rolagens com `kh`/`kl` continuam
+disponíveis pelo chat: `/r 2d20kh1+5 Luta`.
 
 ### Animação
 
@@ -139,10 +141,15 @@ encenam o que o servidor já sorteou.
 3. A cena grande cai no centro da área livre do tabuleiro, descontando o painel
    aberto, e some 1,4 segundo depois de parar.
 
-O d100 vira dois d10, dezena e unidade, lado a lado nas duas cenas. three.js
+O d100 é um dado só, de 100 faces, como o Zocchihedron. As faces vêm de 100
+pontos espalhados por uma espiral de Fibonacci na esfera: cada ponto vira o
+plano de uma face, e os cantos saem do `ConvexHull` desses pontos. Os números
+seguem uma ordem embaralhada fixa, para os vizinhos não serem consecutivos, e
+os que mudam de valor de cabeça para baixo (6, 9, 18, 66...) ganham um traço
+embaixo. three.js
 fica num chunk próprio de ~114 kB, baixado só na primeira rolagem. Com
 `prefers-reduced-motion`, sem WebGL, com dados que a cena não sabe desenhar
-(como d7) ou com mais de 30 dados (contando o d100 como dois), o cartão mostra
+(como d7) ou com mais de 30 dados, o cartão mostra
 os números direto, sem 3D.
 
 Para pesar pouco, o `DiceKit` monta cada formato de dado uma vez: uma geometria
@@ -207,10 +214,17 @@ preenchido.
 Limpar só para si guarda, no `localStorage` do navegador, o horário da última
 mensagem escondida. Nada vai para o servidor.
 
-### Falha crítica
+### Crítico e falha crítica
 
-Um 1 mantido num d6 ou maior é falha crítica (`isCriticalFailure`). O dado fica
-vermelho (`--color-critical`) no momento em que para, nas duas cenas 3D. Antes
-disso ele gira branco como os outros, para não entregar o resultado. No
-histórico e no cartão, o dado e o selo "Falha crítica" ficam vermelhos. O d4
-fica de fora, e o vermelho é a única cor fora da escala de cinza do projeto.
+`dieOutcome` olha cada dado mantido, do d4 ao d100:
+
+| Resultado | Cor | Selo |
+| --- | --- | --- |
+| 1 | vermelho (`--color-critical`) | Falha crítica |
+| o maior número do dado (4 no d4, 12 no d12, 100 no d100) | azul (`--color-success`) | Crítico |
+
+O dado muda de cor no momento em que para, nas duas cenas 3D. Antes disso ele
+gira branco como os outros, para não entregar o resultado. No histórico e no
+cartão, o dado e o selo ficam com a mesma cor; uma rolagem com os dois casos
+mostra os dois selos. Dados descartados por `kh`/`kl` não contam. Vermelho e azul
+são as únicas cores fora da escala de cinza do projeto.

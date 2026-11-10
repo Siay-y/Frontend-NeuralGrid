@@ -6,6 +6,7 @@ import {
   TetrahedronGeometry,
   Vector3,
 } from 'three';
+import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import type { DieShape } from './dice-rules';
 
 export interface DieFace {
@@ -24,6 +25,16 @@ export interface DieModel {
 }
 
 export const WORLD_UP = new Vector3(0, 1, 0);
+
+export const DIE_SCALE: Readonly<Record<DieShape, number>> = {
+  d4: 1,
+  d6: 1,
+  d8: 1,
+  d10: 1,
+  d12: 1,
+  d20: 1,
+  d100: 1.15,
+};
 const SCREEN_UP = new Vector3(0, 0, -1);
 
 function key(point: Vector3): string {
@@ -130,6 +141,39 @@ function dodecahedron(): Vector3[][] {
   });
 }
 
+const SPHERE_FACES = 100;
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+
+function sphere(count: number): Vector3[][] {
+  const centers = Array.from({ length: count }, (_, index) => {
+    const y = 1 - (2 * (index + 0.5)) / count;
+    const ring = Math.sqrt(1 - y * y);
+    const angle = GOLDEN_ANGLE * index;
+    return new Vector3(Math.cos(angle) * ring, y, Math.sin(angle) * ring);
+  });
+  const corners = new Map<Vector3, Vector3[]>(centers.map((center) => [center, []]));
+  for (const face of new ConvexHull().setFromPoints(centers).faces) {
+    const corner = face.normal.clone().divideScalar(face.constant);
+    let edge = face.edge;
+    do {
+      corners.get(edge.head().point)?.push(corner);
+      edge = edge.next;
+    } while (edge !== face.edge);
+  }
+  return centers.map((center) => {
+    const reference = Math.abs(center.y) < 0.9 ? WORLD_UP : new Vector3(1, 0, 0);
+    const u = new Vector3().crossVectors(reference, center).normalize();
+    const w = new Vector3().crossVectors(center, u);
+    const seen = new Map<string, Vector3>();
+    for (const point of corners.get(center) ?? []) {
+      seen.set(key(point), point);
+    }
+    return [...seen.values()].sort(
+      (a, b) => Math.atan2(a.dot(w), a.dot(u)) - Math.atan2(b.dot(w), b.dot(u)),
+    );
+  });
+}
+
 function rawFaces(shape: DieShape): Vector3[][] {
   switch (shape) {
     case 'd4':
@@ -144,6 +188,8 @@ function rawFaces(shape: DieShape): Vector3[][] {
       return dodecahedron();
     case 'd20':
       return triangles(new IcosahedronGeometry(1, 0));
+    case 'd100':
+      return sphere(SPHERE_FACES);
   }
 }
 
@@ -181,22 +227,29 @@ export function dieModel(shape: DieShape): DieModel {
   return model;
 }
 
+const VIEW_AXIS = new Vector3(0, 27, 5).normalize();
+
+export function restingAxis(shape: DieShape): Vector3 {
+  return shape === 'd100' ? VIEW_AXIS : WORLD_UP;
+}
+
 export function restingOrientation(model: DieModel, resultIndex: number, yaw: number): Quaternion {
-  const target = model.targets[resultIndex];
-  const facing = new Quaternion().setFromUnitVectors(target, WORLD_UP);
+  const axis = restingAxis(model.shape);
+  const facing = new Quaternion().setFromUnitVectors(model.targets[resultIndex], axis);
   const upright = model.uprights[resultIndex];
   if (upright) {
-    const turned = upright.clone().applyQuaternion(facing);
-    turned.y = 0;
+    const turned = upright.clone().applyQuaternion(facing).projectOnPlane(axis);
+    const screenUp = SCREEN_UP.clone().projectOnPlane(axis).normalize();
     if (turned.lengthSq() > 1e-6) {
-      facing.premultiply(new Quaternion().setFromUnitVectors(turned.normalize(), SCREEN_UP));
+      facing.premultiply(new Quaternion().setFromUnitVectors(turned.normalize(), screenUp));
     }
   }
-  return facing.premultiply(new Quaternion().setFromAxisAngle(WORLD_UP, yaw));
+  return facing.premultiply(new Quaternion().setFromAxisAngle(axis, yaw));
 }
 
 export function restingHeight(model: DieModel, orientation: Quaternion): number {
-  return -Math.min(
+  const lowest = Math.min(
     ...model.vertices.map((vertex) => vertex.clone().applyQuaternion(orientation).y),
   );
+  return -lowest * DIE_SCALE[model.shape];
 }

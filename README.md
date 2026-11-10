@@ -33,8 +33,8 @@ A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid)
 ## Visão geral
 
 - **Monocromático de verdade.** Preto, branco e cinza, sem gradiente decorativo.
-  A única exceção é o vermelho da falha crítica. Até o autofill do navegador foi
-  domado para não pintar os campos de amarelo.
+  As únicas exceções são o vermelho da falha crítica e o azul do crítico. Até o
+  autofill do navegador foi domado para não pintar os campos de amarelo.
 - **Tema escuro e claro por tokens.** Uma troca de `data-theme` no `<html>`
   redefine todas as variáveis CSS. Um script de 260 bytes aplica o tema salvo
   antes da primeira pintura, sem piscar.
@@ -50,7 +50,8 @@ A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid)
   motivo.
 - **Presença.** Quem está na mesa aparece no canto do tabuleiro. O estado da
   conexão só aparece quando ela cai, junto com a reconexão automática.
-- **Dados 3D.** Escolha a quantidade e clique no dado, do d4 ao d100. Os dados
+- **Dados 3D.** Escolha a quantidade e o bônus e clique no dado, do d4 ao d100
+  (um dado só, de 100 faces). Os dados
   caem na mesa com gravidade, quicam e param com a face sorteada pelo servidor
   virada para cima. Ao mesmo tempo, toda a mesa vê uma caixinha no canto inferior
   direito com os mesmos dados girando até parar no resultado.
@@ -58,8 +59,8 @@ A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid)
   Rolagens entram no mesmo histórico, `/r 1d20+5 Luta` rola sem sair da
   conversa, e há rolagem oculta do mestre e sussurros. Cada um limpa o chat na
   própria tela; o mestre limpa para todos.
-- **Falha crítica em vermelho.** Um 1 no d6 ou maior pinta o dado de vermelho
-  quando ele para. É a única cor do projeto.
+- **Crítico em azul, falha em vermelho.** O maior número do dado pinta ele de
+  azul; um 1 pinta de vermelho, do d4 ao d100. São as únicas cores do projeto.
 - **Notas de versão.** A aba Atualizações mostra o que mudou em cada versão, e
   um ponto no ícone avisa quem ainda não viu a mais recente.
 - **Token que não vaza.** O interceptor só anexa o `Authorization` a URLs da

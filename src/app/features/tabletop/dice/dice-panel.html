@@ -27,13 +27,50 @@
       </div>
     </div>
 
+    <div class="quantity">
+      <label for="dice-bonus" class="quantity__label">Bônus</label>
+      <div class="stepper" role="group" aria-label="Bônus somado ao fim da rolagem">
+        <button
+          type="button"
+          class="stepper__button"
+          aria-label="Diminuir bônus"
+          [disabled]="bonus() === -bonusLimit"
+          (click)="changeBonus(-1)"
+        >
+          <svg lucideMinus [size]="14" />
+        </button>
+        <input
+          id="dice-bonus"
+          class="stepper__value stepper__input"
+          [class.is-set]="bonus() !== 0"
+          type="text"
+          inputmode="numeric"
+          autocomplete="off"
+          maxlength="3"
+          [value]="bonusText()"
+          (change)="typeBonus($event)"
+          (keydown.enter)="typeBonus($event)"
+          (focus)="$any($event.target).select()"
+        />
+        <button
+          type="button"
+          class="stepper__button"
+          aria-label="Aumentar bônus"
+          [disabled]="bonus() === bonusLimit"
+          (click)="changeBonus(1)"
+        >
+          <svg lucidePlus [size]="14" />
+        </button>
+      </div>
+    </div>
+
     <div class="dice-grid" role="group" aria-label="Escolha o dado para rolar">
       @for (sides of dice; track sides) {
         <button
           type="button"
           class="die-button"
           [disabled]="rolling()"
-          [attr.aria-label]="'Rolar ' + quantity() + 'd' + sides"
+          [attr.aria-label]="'Rolar ' + notation(sides)"
           (click)="roll(sides)"
         >
           <svg class="die-button__shape" viewBox="0 0 40 40" aria-hidden="true">
@@ -45,6 +82,9 @@
             }
             d{{ sides }}
           </span>
+          @if (bonus() !== 0) {
+            <span class="die-button__bonus">{{ bonusText() }}</span>
+          }
         </button>
       }
     </div>

@@ -1,7 +1,7 @@
 <div
   class="roll"
-  [class.is-max]="!pending() && natural() === 'max'"
-  [class.is-critical]="!pending() && criticalFailure()"
+  [class.is-success]="!pending() && highlights().success && !highlights().failure"
+  [class.is-critical]="!pending() && highlights().failure"
   [class.is-pending]="pending()"
   role="group"
   [attr.aria-label]="summary()"
@@ -25,7 +25,8 @@
               <li
                 class="die"
                 [class.is-dropped]="!die.kept"
-                [class.is-critical]="die.kept && isCritical(term.sides, die.value)"
+                [class.is-critical]="die.kept && outcome(term.sides, die.value) === 'failure'"
+                [class.is-success]="die.kept && outcome(term.sides, die.value) === 'success'"
                 [class.is-d20]="term.sides === 20"
                 [attr.title]="'d' + term.sides"
               >
@@ -40,10 +41,15 @@
       <span class="roll__total">{{ roll().total }}</span>
     </div>
 
-    @if (criticalFailure()) {
-      <p class="roll__flag roll__flag--critical">Falha crítica</p>
-    } @else if (natural() === 'max') {
-      <p class="roll__flag">20 natural</p>
+    @if (highlights().failure || highlights().success) {
+      <div class="roll__flags">
+        @if (highlights().success) {
+          <p class="roll__flag roll__flag--success">Crítico</p>
+        }
+        @if (highlights().failure) {
+          <p class="roll__flag roll__flag--critical">Falha crítica</p>
+        }
+      </div>
     }
   }
 </div>

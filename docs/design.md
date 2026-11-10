@@ -9,8 +9,8 @@ projeto, volte ao [README](../README.md).
 
 - **Monocromático.** Preto, branco e uma escala de cinza. Nenhuma cor de
   destaque, nenhum gradiente decorativo. Estados como erro e foco são
-  comunicados por contraste, borda e ícone, nunca por vermelho ou azul. A
-  única exceção é a falha crítica nos dados, que pinta o dado de vermelho.
+  comunicados por contraste, borda e ícone, nunca por vermelho ou azul. As
+  únicas exceções são os dados: vermelho na falha crítica e azul no crítico.
 - **Bordas finas, sombras discretas.** Superfícies se separam por uma borda de
   1px. A única sombra (`--shadow-float`) serve para elementos que flutuam sobre o
   tabuleiro.

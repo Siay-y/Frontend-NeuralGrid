@@ -20,6 +20,29 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.3.3',
+    date: '2026-11-10',
+    title: 'Crítico, bônus e d100 de verdade',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Crítico em azul: tirar o maior número do dado, como 12 no d12 ou 6 no d6, pinta o dado de azul.',
+      },
+      {
+        kind: 'new',
+        text: 'Campo de Bônus no painel de Dados, somado ao fim da rolagem.',
+      },
+      {
+        kind: 'improved',
+        text: 'O d100 agora é um dado só, com 100 faces, em vez de dois d10.',
+      },
+      {
+        kind: 'improved',
+        text: 'Falha crítica também no d4: tirar 1 em qualquer dado deixa ele vermelho.',
+      },
+    ],
+  },
+  {
     version: '0.3.2',
     date: '2026-11-10',
     title: 'Ícones e tokens ocultos',

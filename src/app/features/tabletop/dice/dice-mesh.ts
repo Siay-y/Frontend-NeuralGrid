@@ -16,7 +16,7 @@ import {
   Vector3,
   type WebGLRenderer,
 } from 'three';
-import { type DieFace, type DieModel, dieModel } from './dice-geometry';
+import { DIE_SCALE, type DieFace, type DieModel, dieModel } from './dice-geometry';
 import type { DiceColors } from './dice-env';
 import type { AnimatedDie } from './dice-rules';
 
@@ -88,12 +88,35 @@ const LABEL_SCALE: Record<DieModel['shape'], number> = {
   d10: 0.27,
   d12: 0.36,
   d20: 0.3,
+  d100: 0.4,
 };
 
 const CELL_INSET = 0.96;
 
+const LENGTH_SCALE = [1, 1, 0.8, 0.62];
+
+const UPSIDE_DOWN: Readonly<Record<string, string>> = {
+  '0': '0',
+  '1': '1',
+  '6': '9',
+  '8': '8',
+  '9': '6',
+};
+
+function readsAnotherWayUp(text: string): boolean {
+  const digits = [...text];
+  if (!digits.every((digit) => digit in UPSIDE_DOWN)) {
+    return false;
+  }
+  const turned = digits
+    .reverse()
+    .map((digit) => UPSIDE_DOWN[digit])
+    .join('');
+  return turned !== text && !turned.startsWith('0');
+}
+
 function labelSize(model: DieModel, text: string): number {
-  return TEXTURE_SIZE * LABEL_SCALE[model.shape] * (text.length > 1 ? 0.8 : 1);
+  return TEXTURE_SIZE * LABEL_SCALE[model.shape] * LENGTH_SCALE[Math.min(text.length, 3)];
 }
 
 interface Atlas {
@@ -128,7 +151,7 @@ function paintFace(
     return;
   }
   const text = labels[faceIndex];
-  const underline = (text === '6' || text === '9') && model.shape !== 'd6';
+  const underline = model.shape !== 'd6' && readsAnotherWayUp(text);
   drawLabel(
     context,
     text,
@@ -224,7 +247,7 @@ export class DiceKit {
     body.castShadow = true;
     const group = new Group();
     group.add(body, new LineSegments(parts.edges, look.edges));
-    group.scale.setScalar(radius);
+    group.scale.setScalar(radius * DIE_SCALE[model.shape]);
     return group;
   }
 
@@ -261,7 +284,13 @@ export class DiceKit {
   }
 
   private colorsFor(die: AnimatedDie, theme: DiceColors): Pick<DiceColors, 'body' | 'ink'> {
-    return die.critical ? { body: theme.critical, ink: theme.criticalInk } : theme;
+    if (die.outcome === 'failure') {
+      return { body: theme.critical, ink: theme.criticalInk };
+    }
+    if (die.outcome === 'success') {
+      return { body: theme.success, ink: theme.successInk };
+    }
+    return theme;
   }
 
   private partsFor(model: DieModel): ShapeParts {
