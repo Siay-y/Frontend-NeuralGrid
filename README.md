@@ -1,59 +1,237 @@
-# FrontendNeuralGrid
+<p align="center">
+  <img src="public/favicon.svg" width="120" alt="Marca do NeuralGrid" />
+</p>
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.0.6.
+<h1 align="center">NeuralGrid | Luiz Santos</h1>
 
-## Development server
+<p align="center">
+  <img src="https://img.shields.io/badge/Angular-22.2-DD0031?style=for-the-badge&logo=angular&logoColor=white" alt="Angular 22.2" />
+  <img src="https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript 6.0" />
+  <img src="https://img.shields.io/badge/SCSS-1.104-CC6699?style=for-the-badge&logo=sass&logoColor=white" alt="SCSS 1.104" />
+  <br />
+  <img src="https://img.shields.io/badge/Signals-zoneless-DD0031?style=for-the-badge&logo=angular&logoColor=white" alt="Signals sem zone.js" />
+  <img src="https://img.shields.io/badge/Lucide-1.71-F56565?style=for-the-badge&logo=lucide&logoColor=white" alt="Lucide 1.71" />
+  <img src="https://img.shields.io/badge/Firebase_Hosting-deploy-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" alt="Publicado no Firebase Hosting" />
+  <br />
+  <img src="https://img.shields.io/badge/Vitest-4.1-00FF74?style=for-the-badge&logo=vitest&logoColor=white" alt="Vitest 4.1" />
+  <img src="https://img.shields.io/badge/Prettier-3.9-F7B93E?style=for-the-badge&logo=prettier&logoColor=white" alt="Prettier 3.9" />
+</p>
 
-To start a local development server, run:
+Cliente web do NeuralGrid, um Virtual Tabletop privado para uma mesa de quatro
+pessoas, inspirado no Roll20 mas desenhado para ser rápido, enxuto e silencioso.
+Angular 22 sem zone.js, publicado como SPA estática no Firebase Hosting.
 
-```bash
-ng serve
+Esta etapa entrega o login seguro e o esqueleto da mesa: tabuleiro em canvas
+com grade de quadrados, barra lateral de ferramentas e painéis de fichas, dados
+e chat prontos para receber o tempo real da próxima etapa.
+
+A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid).
+
+---
+
+## Visão geral
+
+- **Monocromático de verdade.** Preto, branco e cinza, sem cor de destaque, sem
+  gradiente decorativo. Até o autofill do navegador foi domado para não pintar
+  os campos de amarelo.
+- **Tema escuro e claro por tokens.** Uma troca de `data-theme` no `<html>`
+  redefine todas as variáveis CSS. Um script de 260 bytes aplica o tema salvo
+  antes da primeira pintura, sem piscar.
+- **Movimento com intenção.** Entradas com `cubic-bezier(0.16, 1, 0.3, 1)`,
+  troca de tema por View Transition, zoom do tabuleiro com interpolação
+  logarítmica. Tudo desliga com `prefers-reduced-motion`.
+- **Sessão reativa.** O estado de autenticação é um `signal`; guard,
+  interceptor, login e barra lateral leem a mesma fonte. A sessão expira sozinha
+  no horário do token e o login avisa o motivo.
+- **Token que não vaza.** O interceptor só anexa o `Authorization` a URLs da
+  própria API, e a CSP servida pelo Firebase restringe para onde o app pode
+  conectar.
+- **Leve.** Pacote inicial em torno de 79 kB transferidos; login e mesa são
+  carregados sob demanda.
+
+---
+
+## Stack
+
+| Camada | Tecnologia |
+| --- | --- |
+| Framework | Angular 22 (standalone, zoneless, sem NgModules) |
+| Estado | Angular Signals (`signal`, `computed`, `effect`) |
+| Formulários | Reactive Forms estritamente tipados |
+| Linguagem | TypeScript 6 com `strict` e `strictTemplates` |
+| Estilo | SCSS modular sobre variáveis CSS nativas |
+| Ícones | `@lucide/angular`, traço de 1.75px |
+| Tipografia | Geist e Geist Mono, auto-hospedadas |
+| Tabuleiro | Canvas 2D com câmera própria (pan, zoom, DPR) |
+| Testes | Vitest com jsdom |
+| Hospedagem | Firebase Hosting |
+
+---
+
+## Arquitetura
+
+```text
+src/
+├── environments/                   URL da API por ambiente
+├── styles/
+│   ├── _tokens.scss                cores, tipografia, movimento e medidas
+│   └── _primitives.scss            icon-button, kbd, eyebrow, sr-only
+├── styles.scss                     reset e base
+└── app/
+    ├── core/
+    │   ├── auth/                   AuthService, guards, interceptor, persistência
+    │   └── theme/                  ThemeService
+    ├── shared/ui/                  BrandMark, ThemeToggle
+    ├── features/
+    │   ├── auth/login/             página de login e tradução de erros
+    │   └── tabletop/
+    │       ├── board/              canvas, câmera e HUD de zoom
+    │       ├── sidebar/            ferramentas, atalhos e conta
+    │       ├── panel/              painel lateral de fichas, dados, chat e ajustes
+    │       ├── tabletop.store.ts   estado local da mesa em signals
+    │       └── tabletop.ts         página que compõe tudo
+    ├── app.config.ts               HttpClient, roteador e Lucide
+    └── app.routes.ts               /login, /tabletop e redirecionamentos
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Todos os componentes são standalone e usam `ChangeDetectionStrategy.OnPush`. Os
+templates usam apenas o fluxo de controle nativo (`@if`, `@for`) e as animações
+de entrada e saída usam `animate.enter` e `animate.leave`, sem
+`@angular/animations`.
 
-## Code scaffolding
+O detalhe de cada parte está em [docs/arquitetura.md](docs/arquitetura.md).
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+### Fluxo de acesso
+
+1. `/tabletop` passa pelo `authGuard`. Sem sessão, o guard devolve um
+   `UrlTree` para `/login`.
+2. O login valida os campos, chama `POST /api/auth/login` e mostra o estado de
+   carregamento. Se o servidor demora mais de 4 segundos, explica que ele está
+   acordando.
+3. A resposta vira uma sessão em `sessionStorage` com o horário de expiração, e
+   o roteador segue para `/tabletop`.
+4. A partir daí, o `authInterceptor` anexa `Authorization: Bearer <token>` a toda
+   chamada da API. Um `401` encerra a sessão e volta ao login.
+
+---
+
+## Variáveis de ambiente
+
+O Angular não lê `process.env` em tempo de execução, então a configuração mora
+em arquivos substituídos no build:
+
+| Arquivo | Usado em | `apiUrl` |
+| --- | --- | --- |
+| `src/environments/environment.development.ts` | `npm start`, `ng build --configuration development` | `http://localhost:3000/api` |
+| `src/environments/environment.ts` | `npm run build` (produção) | `https://neuralgrid-api.onrender.com/api` |
+
+Ao publicar a API com outro nome, atualize o `apiUrl` de produção e o
+`connect-src` da CSP em [`firebase.json`](firebase.json). Os dois precisam
+apontar para o mesmo host, senão o navegador bloqueia o login.
+
+---
+
+## Execução local
+
+Requer Node.js 24.18 ou superior e a [API](https://github.com/Siay-y/Backend-NeuralGrid)
+rodando em `localhost:3000` com `CORS_ORIGINS=http://localhost:4200`.
 
 ```bash
-ng generate component component-name
+git clone https://github.com/Siay-y/Frontend-NeuralGrid.git
+cd Frontend-NeuralGrid
+npm ci
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+A aplicação sobe em `http://localhost:4200/` com recarga automática. Entre com
+uma das contas criadas pelo seed da API.
 
-```bash
-ng generate --help
-```
+> **No Windows**, encerre o `ng serve` com `Ctrl+C` antes de rodar `npm ci`. Um
+> processo ativo mantém trava sobre `node_modules/@esbuild/win32-x64/esbuild.exe`
+> e a reinstalação falha com `EPERM`.
 
-## Building
+### Scripts
 
-To build the project run:
+| Comando | Descrição |
+| --- | --- |
+| `npm start` | Servidor de desenvolvimento em `localhost:4200` |
+| `npm run build` | Build de produção em `dist/Frontend-NeuralGrid/browser` |
+| `npm run watch` | Build de desenvolvimento em modo observador |
+| `npm test` | Suíte de testes com Vitest |
+| `npm run deploy` | Build de produção e publicação no Firebase Hosting |
 
-```bash
-ng build
-```
+### Atalhos da mesa
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+| Tecla | Ação |
+| --- | --- |
+| `V` | Selecionar |
+| `H` | Mover mapa (arrastar) |
+| `R` | Régua |
+| `D` | Desenhar |
+| `E` | Borracha |
+| `Esc` | Fechar painel |
+| Roda do mouse | Zoom em torno do cursor |
+| Botão do meio | Mover mapa com qualquer ferramenta |
 
-## Running unit tests
+---
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Deploy no Firebase Hosting
 
-```bash
-ng test
-```
+1. Instale a CLI e entre na sua conta:
 
-## Running end-to-end tests
+   ```bash
+   npm install -g firebase-tools
+   firebase login
+   ```
 
-For end-to-end (e2e) testing, run:
+2. Crie um projeto no [console do Firebase](https://console.firebase.google.com)
+   e associe-o a esta pasta. O comando gera o `.firebaserc`; o
+   [`.firebaserc.example`](.firebaserc.example) mostra o formato.
 
-```bash
-ng e2e
-```
+   ```bash
+   firebase use --add
+   ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+3. Confira o `apiUrl` de produção e o `connect-src` do `firebase.json`.
+4. Publique:
 
-## Additional Resources
+   ```bash
+   npm run deploy
+   ```
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+5. Adicione as URLs `https://<projeto>.web.app` e
+   `https://<projeto>.firebaseapp.com` ao `CORS_ORIGINS` da API no Render.
+
+| Configuração | Valor |
+| --- | --- |
+| Diretório publicado | `dist/Frontend-NeuralGrid/browser` |
+| Rewrite | toda rota cai em `/index.html` |
+| Cache | `immutable` por um ano para `js`, `css` e `woff2`; `no-cache` no `index.html` |
+| Cabeçalhos | CSP, HSTS, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Permissions-Policy` |
+
+O detalhe de cada cabeçalho e o porquê da escolha do `sessionStorage` estão em
+[docs/seguranca.md](docs/seguranca.md).
+
+---
+
+## Documentação
+
+- [Arquitetura](docs/arquitetura.md): pastas, signals, sessão, tabuleiro e convenções de código.
+- [Design](docs/design.md): tokens, temas, tipografia, movimento e acessibilidade.
+- [Segurança](docs/seguranca.md): armazenamento do token, interceptor, CSP e cabeçalhos.
+
+---
+
+## Licença
+
+Distribuído sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE).
+
+Copyright © 2026 Luiz Henrique Porfírio Santos.
+
+---
+
+## Contato
+
+- GitHub: [@Siay-y](https://github.com/Siay-y)
+- LinkedIn: [Luiz Henrique Porfírio Santos](https://www.linkedin.com/in/luiz-henrique-porf%C3%ADrio-santos-a8b77229a/)
+- E-mail: luiz.porfiriosantos@gmail.com

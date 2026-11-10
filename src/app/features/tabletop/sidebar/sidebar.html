@@ -1,0 +1,115 @@
+<nav class="sidebar" [class.is-expanded]="store.sidebarExpanded()" aria-label="Ferramentas da mesa">
+  <div class="sidebar__head">
+    <button
+      type="button"
+      class="item item--toggle"
+      [attr.aria-expanded]="store.sidebarExpanded()"
+      [attr.aria-label]="store.sidebarExpanded() ? 'Recolher menu' : 'Expandir menu'"
+      (click)="store.toggleSidebar()"
+    >
+      <span class="item__icon">
+        @if (store.sidebarExpanded()) {
+          <svg lucidePanelLeftClose />
+        } @else {
+          <svg lucideMenu />
+        }
+      </span>
+      <span class="item__label sidebar__brand">
+        <app-brand-mark [size]="16" />
+        NeuralGrid
+      </span>
+    </button>
+  </div>
+
+  <div class="sidebar__scroll">
+    <section class="group" aria-labelledby="group-map">
+      <p id="group-map" class="eyebrow group__label">Mapa</p>
+      @for (tool of tools; track tool.id) {
+        <button
+          type="button"
+          class="item"
+          [class.is-active]="store.activeTool() === tool.id"
+          [attr.aria-pressed]="store.activeTool() === tool.id"
+          [attr.aria-label]="tool.label + ', atalho ' + tool.shortcut"
+          [attr.data-tooltip]="tool.label"
+          (click)="store.selectTool(tool.id)"
+        >
+          <span class="item__icon"><svg [lucideIcon]="tool.icon" /></span>
+          <span class="item__label">{{ tool.label }}</span>
+          <kbd class="kbd item__kbd">{{ tool.shortcut }}</kbd>
+        </button>
+      }
+    </section>
+
+    <section class="group" aria-labelledby="group-table">
+      <p id="group-table" class="eyebrow group__label">Mesa</p>
+      @for (panel of shortcuts; track panel.id) {
+        <button
+          type="button"
+          class="item"
+          [class.is-active]="store.activePanel() === panel.id"
+          [attr.aria-pressed]="store.activePanel() === panel.id"
+          [attr.aria-label]="panel.label"
+          [attr.data-tooltip]="panel.label"
+          (click)="store.togglePanel(panel.id)"
+        >
+          <span class="item__icon"><svg [lucideIcon]="panel.icon" /></span>
+          <span class="item__label">{{ panel.label }}</span>
+        </button>
+      }
+    </section>
+  </div>
+
+  <div class="sidebar__footer">
+    <button
+      type="button"
+      class="item"
+      [attr.aria-label]="themeLabel()"
+      [attr.data-tooltip]="themeLabel()"
+      (click)="theme.toggle()"
+    >
+      <span class="item__icon">
+        @if (theme.isDark()) {
+          <svg lucideSun />
+        } @else {
+          <svg lucideMoon />
+        }
+      </span>
+      <span class="item__label">{{ themeLabel() }}</span>
+    </button>
+
+    <button
+      type="button"
+      class="item"
+      [class.is-active]="store.activePanel() === settings.id"
+      [attr.aria-pressed]="store.activePanel() === settings.id"
+      [attr.aria-label]="settings.label"
+      [attr.data-tooltip]="settings.label"
+      (click)="store.togglePanel(settings.id)"
+    >
+      <span class="item__icon"><svg [lucideIcon]="settings.icon" /></span>
+      <span class="item__label">{{ settings.label }}</span>
+    </button>
+
+    <button
+      type="button"
+      class="item"
+      aria-label="Sair da mesa"
+      data-tooltip="Sair da mesa"
+      (click)="logout()"
+    >
+      <span class="item__icon"><svg lucideLogOut /></span>
+      <span class="item__label">Sair da mesa</span>
+    </button>
+
+    <div class="divider" role="separator"></div>
+
+    <div class="profile" [attr.title]="user()?.displayName + ' · ' + roleLabel()">
+      <span class="profile__avatar" aria-hidden="true">{{ initial() }}</span>
+      <span class="profile__meta item__label">
+        <span class="profile__name">{{ user()?.displayName }}</span>
+        <span class="profile__role">{{ roleLabel() }}</span>
+      </span>
+    </div>
+  </div>
+</nav>

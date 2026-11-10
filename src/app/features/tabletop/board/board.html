@@ -1,0 +1,49 @@
+<div class="board" [attr.data-tool]="store.activeTool()" [class.is-panning]="panning()">
+  <canvas
+    #canvas
+    class="board__canvas"
+    role="img"
+    aria-label="Tabuleiro com grade de quadrados"
+    (pointerdown)="onPointerDown($event)"
+    (pointermove)="onPointerMove($event)"
+    (pointerup)="onPointerUp($event)"
+    (pointercancel)="onPointerUp($event)"
+    (pointerleave)="onPointerLeave()"
+    (wheel)="onWheel($event)"
+    (contextmenu)="$event.preventDefault()"
+  ></canvas>
+
+  <div class="hud hud--status" aria-hidden="true">
+    <span class="hud__key">Célula</span>
+    <span class="hud__value">{{ cellLabel() || '·' }}</span>
+  </div>
+
+  <div class="hud hud--zoom" role="group" aria-label="Zoom do tabuleiro">
+    <button
+      type="button"
+      class="icon-button hud__button"
+      aria-label="Diminuir zoom"
+      (click)="zoomOut()"
+    >
+      <svg lucideMinus [size]="16" />
+    </button>
+    <span class="hud__value hud__zoom" aria-live="polite">{{ zoomPercent() }}%</span>
+    <button
+      type="button"
+      class="icon-button hud__button"
+      aria-label="Aumentar zoom"
+      (click)="zoomIn()"
+    >
+      <svg lucidePlus [size]="16" />
+    </button>
+    <span class="hud__divider" aria-hidden="true"></span>
+    <button
+      type="button"
+      class="icon-button hud__button"
+      aria-label="Centralizar tabuleiro"
+      (click)="resetView()"
+    >
+      <svg lucideLocateFixed [size]="16" />
+    </button>
+  </div>
+</div>

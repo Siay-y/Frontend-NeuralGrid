@@ -1,0 +1,70 @@
+:host {
+  display: block;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.tabletop {
+  --sidebar-current: var(--sidebar-collapsed);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--sidebar-collapsed) minmax(0, 1fr);
+  height: 100%;
+  animation: stage-in var(--duration-slow) var(--ease-out) both;
+
+  &.is-expanded {
+    --sidebar-current: var(--sidebar-expanded);
+  }
+}
+
+.tabletop__sidebar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 20;
+}
+
+.tabletop__stage {
+  position: relative;
+  grid-column: 2;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tabletop__panel {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: calc(var(--sidebar-current) - var(--sidebar-collapsed) + 12px);
+  z-index: 10;
+  width: min(var(--panel-width), calc(100% - 24px));
+  transition: left var(--duration-slow) var(--ease-out);
+}
+
+.panel-enter {
+  animation: panel-in var(--duration-slow) var(--ease-out) both;
+}
+
+.panel-leave {
+  animation: panel-out var(--duration) var(--ease-out) both;
+}
+
+@keyframes stage-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px) scale(0.985);
+  }
+}
+
+@keyframes panel-out {
+  to {
+    opacity: 0;
+    transform: translateX(-8px) scale(0.99);
+  }
+}

@@ -1,12 +1,13 @@
-import { Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ThemeService } from './core/theme/theme.service';
 
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet],
   template: '<router-outlet />',
-  styleUrl: './app.scss'
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
-  protected readonly title = signal('Frontend-NeuralGrid');
+  protected readonly theme = inject(ThemeService);
 }
