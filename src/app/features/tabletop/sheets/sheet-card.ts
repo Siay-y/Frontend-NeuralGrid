@@ -22,10 +22,9 @@ import {
   gaugeRatio,
   METERS_PER_CELL,
   modifier,
-  rollLabel,
   signed,
 } from './sheet-model';
-import { injectSheetRoll } from './sheet-roller';
+import { injectSheetRoll, sheetRoller } from './sheet-roller';
 
 const CARD_KEY_PREFIX = 'neuralgrid.sheet-card.';
 
@@ -145,8 +144,9 @@ export class SheetCard {
 
   protected test(sheet: CharacterSheet, attribute: (typeof ATTRIBUTES)[number]): void {
     this.roll(
+      sheetRoller(sheet),
       d20Roll(modifier(sheet.data.attributes[attribute.id])),
-      rollLabel(sheet.data.identity.name.trim() || 'Sem nome', attribute.label),
+      attribute.label,
     );
   }
 }

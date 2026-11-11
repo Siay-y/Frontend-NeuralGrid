@@ -11,14 +11,13 @@ import {
   formatWeight,
   isValidDamage,
   modifier,
-  rollLabel,
   SHEET_LIMITS,
   type SheetData,
   type SheetEquipment,
   type SheetWeapon,
   signed,
 } from './sheet-model';
-import { injectSheetRoll } from './sheet-roller';
+import { injectSheetRoll, type SheetRoller } from './sheet-roller';
 
 type ListKey = keyof SheetEquipment;
 type Entry<K extends ListKey> = SheetEquipment[K][number];
@@ -53,7 +52,7 @@ export class SheetEquipmentEditor {
   readonly value = input.required<SheetEquipment>();
   readonly attributes = input.required<SheetData['attributes']>();
   readonly carry = input.required<number>();
-  readonly character = input.required<string>();
+  readonly character = input.required<SheetRoller>();
   readonly changed = output<SheetEquipment>();
 
   protected readonly limits = SHEET_LIMITS;
@@ -133,16 +132,14 @@ export class SheetEquipmentEditor {
   }
 
   protected rollAttack(weapon: SheetWeapon): void {
-    this.roll(
-      d20Roll(this.attack(weapon)),
-      rollLabel(this.character(), `${weapon.name || 'Arma'}, ataque`),
-    );
+    this.roll(this.character(), d20Roll(this.attack(weapon)), `${weapon.name || 'Arma'}, ataque`);
   }
 
   protected rollDamage(weapon: SheetWeapon): void {
     this.roll(
+      this.character(),
       weapon.damage.replace(/\s+/g, ''),
-      rollLabel(this.character(), `${weapon.name || 'Arma'}, dano`),
+      `${weapon.name || 'Arma'}, dano`,
     );
   }
 

@@ -1,0 +1,27 @@
+<button
+  #trigger
+  type="button"
+  class="icon-button action-menu__trigger"
+  aria-haspopup="menu"
+  [class.is-open]="open()"
+  [attr.aria-expanded]="open()"
+  [attr.aria-controls]="menuId"
+  [attr.aria-label]="label()"
+  [attr.popovertarget]="menuId"
+  title="Mais opções"
+>
+  <svg lucideEllipsis [size]="15" />
+</button>
+
+<div
+  #menu
+  popover
+  class="action-menu"
+  role="menu"
+  [id]="menuId"
+  [attr.aria-label]="label()"
+  (toggle)="toggled($event)"
+  (keydown)="navigate($event)"
+>
+  <ng-content />
+</div>

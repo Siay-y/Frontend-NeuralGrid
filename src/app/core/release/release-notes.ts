@@ -20,6 +20,25 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.4.3',
+    date: '2026-11-11',
+    title: 'Personagens ocultos e aba Tokens',
+    changes: [
+      {
+        kind: 'fixed',
+        text: 'Rolar pela ficha de um personagem escondido dos jogadores não aparece mais para eles, nem no chat nem nas rolagens da mesa. Só os mestres veem.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Quando o nome do personagem está escondido, as rolagens pela ficha aparecem para os jogadores como "???", igual ao token.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Na aba Tokens, as etiquetas não passam mais por cima dos botões. O mestre vê o olho para mostrar ou esconder e um botão de mais opções com abrir ficha, localizar, editar e remover.',
+      },
+    ],
+  },
+  {
     version: '0.4.2',
     date: '2026-11-11',
     title: 'Mesa mais rápida e mais segura',

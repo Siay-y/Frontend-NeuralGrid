@@ -155,10 +155,16 @@ button.segmented__option {
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
+  overflow: hidden;
 
   .tag {
     flex-shrink: 0;
   }
+}
+
+.row__name {
+  flex-shrink: 0;
+  max-width: 60%;
 }
 
 .row__name,

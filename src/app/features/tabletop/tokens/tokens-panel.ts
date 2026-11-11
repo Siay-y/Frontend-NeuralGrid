@@ -24,6 +24,7 @@ import {
   LucideTrash,
 } from '@lucide/angular';
 import { findFreeCell } from '../board/token-geometry';
+import { ActionMenu } from '../panel/action-menu';
 import { Collapsible } from '../panel/collapsible';
 import { TableState } from '../realtime/table-state';
 import {
@@ -68,6 +69,7 @@ const GROUP_ORDER: readonly TokenGroupId[] = [...KINDS, 'unknown'];
   selector: 'app-tokens-panel',
   imports: [
     ReactiveFormsModule,
+    ActionMenu,
     Collapsible,
     TokenEditor,
     TokenGlyph,

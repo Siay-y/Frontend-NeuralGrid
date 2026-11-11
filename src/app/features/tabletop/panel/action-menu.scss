@@ -1,0 +1,81 @@
+app-action-menu {
+  display: contents;
+}
+
+.action-menu__trigger {
+  width: 28px;
+  height: 28px;
+
+  &.is-open {
+    color: var(--color-text);
+    background: var(--color-surface-active);
+  }
+}
+
+.action-menu {
+  position: fixed;
+  inset: auto;
+  min-width: 176px;
+  max-width: calc(100vw - 16px);
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-float);
+  color: var(--color-text);
+
+  &:popover-open {
+    display: grid;
+    animation: action-menu-in var(--duration-fast) var(--ease-out);
+  }
+}
+
+.action-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+
+  svg {
+    flex-shrink: 0;
+    color: var(--color-text-muted);
+  }
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    background: var(--color-surface-hover);
+  }
+
+  &.is-confirming {
+    color: var(--color-inverse-text);
+    background: var(--color-inverse);
+
+    svg {
+      color: inherit;
+    }
+  }
+}
+
+.action-menu__divider {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--color-border);
+}
+
+@keyframes action-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}

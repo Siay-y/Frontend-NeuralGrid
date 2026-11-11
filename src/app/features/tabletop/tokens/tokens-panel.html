@@ -157,25 +157,6 @@
                     </button>
 
                     <div class="row__actions">
-                      @if (sheetId) {
-                        <button
-                          type="button"
-                          class="icon-button row__action"
-                          [attr.aria-label]="'Abrir a ficha de ' + token.label"
-                          title="Abrir ficha"
-                          (click)="store.openSheet(sheetId)"
-                        >
-                          <svg lucideScrollText [size]="15" />
-                        </button>
-                      }
-                      <button
-                        type="button"
-                        class="icon-button row__action row__action--locate"
-                        [attr.aria-label]="'Localizar ' + token.label"
-                        (click)="locate(token)"
-                      >
-                        <svg lucideLocateFixed [size]="15" />
-                      </button>
                       @if (table.isMaster()) {
                         <button
                           type="button"
@@ -197,26 +178,71 @@
                             <svg lucideEye [size]="15" />
                           }
                         </button>
+                        <app-action-menu #more [label]="'Mais opções de ' + token.label">
+                          @if (sheetId) {
+                            <button
+                              type="button"
+                              role="menuitem"
+                              class="action-menu__item"
+                              (click)="more.close(); store.openSheet(sheetId)"
+                            >
+                              <svg lucideScrollText [size]="15" />
+                              Abrir ficha
+                            </button>
+                          }
+                          <button
+                            type="button"
+                            role="menuitem"
+                            class="action-menu__item"
+                            (click)="more.close(); locate(token)"
+                          >
+                            <svg lucideLocateFixed [size]="15" />
+                            Localizar na mesa
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            class="action-menu__item"
+                            (click)="more.close(); startEdit(token)"
+                          >
+                            <svg lucideSquarePen [size]="15" />
+                            Editar token
+                          </button>
+                          <div class="action-menu__divider" role="separator"></div>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            class="action-menu__item"
+                            [class.is-confirming]="confirmingDeleteId() === token.id"
+                            (click)="requestDelete(token)"
+                          >
+                            <svg lucideTrash [size]="15" />
+                            {{
+                              confirmingDeleteId() === token.id
+                                ? 'Clique de novo para remover'
+                                : 'Remover da mesa'
+                            }}
+                          </button>
+                        </app-action-menu>
+                      } @else {
+                        @if (sheetId) {
+                          <button
+                            type="button"
+                            class="icon-button row__action"
+                            [attr.aria-label]="'Abrir a ficha de ' + token.label"
+                            title="Abrir ficha"
+                            (click)="store.openSheet(sheetId)"
+                          >
+                            <svg lucideScrollText [size]="15" />
+                          </button>
+                        }
                         <button
                           type="button"
-                          class="icon-button row__action"
-                          [attr.aria-label]="'Editar ' + token.label"
-                          (click)="startEdit(token)"
+                          class="icon-button row__action row__action--locate"
+                          [attr.aria-label]="'Localizar ' + token.label"
+                          (click)="locate(token)"
                         >
-                          <svg lucideSquarePen [size]="15" />
-                        </button>
-                        <button
-                          type="button"
-                          class="icon-button row__action"
-                          [class.is-confirming]="confirmingDeleteId() === token.id"
-                          [attr.aria-label]="
-                            confirmingDeleteId() === token.id
-                              ? 'Confirmar remoção de ' + token.label
-                              : 'Remover ' + token.label
-                          "
-                          (click)="requestDelete(token)"
-                        >
-                          <svg lucideTrash [size]="15" />
+                          <svg lucideLocateFixed [size]="15" />
                         </button>
                       }
                     </div>

@@ -8,12 +8,11 @@ import {
   clampInteger,
   d20Roll,
   modifier,
-  rollLabel,
   SHEET_LIMITS,
   type SheetData,
   signed,
 } from './sheet-model';
-import { injectSheetRoll } from './sheet-roller';
+import { injectSheetRoll, type SheetRoller } from './sheet-roller';
 
 @Component({
   selector: 'app-sheet-attributes',
@@ -24,7 +23,7 @@ import { injectSheetRoll } from './sheet-roller';
 })
 export class SheetAttributesEditor {
   readonly value = input.required<SheetData['attributes']>();
-  readonly character = input.required<string>();
+  readonly character = input.required<SheetRoller>();
   readonly changed = output<SheetData['attributes']>();
 
   protected readonly attributes = ATTRIBUTES;
@@ -49,6 +48,6 @@ export class SheetAttributesEditor {
   }
 
   protected test(attribute: (typeof ATTRIBUTES)[number]): void {
-    this.roll(this.formula(attribute.id), rollLabel(this.character(), attribute.label));
+    this.roll(this.character(), this.formula(attribute.id), attribute.label);
   }
 }
