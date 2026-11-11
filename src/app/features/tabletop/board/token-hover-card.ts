@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TableState } from '../realtime/table-state';
 import { TOKEN_KIND_LABEL, TOKEN_SEX_LABEL, type TableToken } from '../realtime/table.protocol';
+import { defense, gaugeRatio } from '../sheets/sheet-model';
 import { TokenGlyph } from '../tokens/token-glyph';
 import { tokenIcon } from '../tokens/token-icons';
 
@@ -20,6 +21,9 @@ export class TokenHoverCard {
   readonly token = input.required<TableToken>();
 
   protected readonly isMaster = this.table.isMaster;
+  protected readonly ratio = gaugeRatio;
+  protected readonly defense = defense;
+  protected readonly sheet = computed(() => this.table.sheet(this.token().sheetId));
   protected readonly masked = computed(() => this.table.isMasked(this.token()));
   protected readonly kind = computed(() => {
     const token = this.token();

@@ -1,0 +1,288 @@
+@let equipment = value();
+<div class="section">
+  <div class="group">
+    <header class="group__head">
+      <h4 class="group__title">Armas</h4>
+      <span class="group__count">{{ equipment.weapons.length }}</span>
+    </header>
+
+    @for (weapon of equipment.weapons; track weapon.id) {
+      @let name = weapon.name || 'arma';
+      <div class="card">
+        <div class="card__top">
+          <input
+            class="text"
+            type="text"
+            placeholder="Espada, arco, revólver"
+            aria-label="Nome da arma"
+            [attr.maxlength]="limits.itemName"
+            [value]="weapon.name"
+            (input)="rename('weapons', weapon, $event)"
+          />
+          <button
+            type="button"
+            class="mini-button"
+            [attr.aria-label]="'Remover ' + name"
+            (click)="remove('weapons', weapon.id)"
+          >
+            <svg lucideX [size]="14" />
+          </button>
+        </div>
+        <div class="fields fields--weapon">
+          <label class="mini">
+            <span class="mini__label">Atrib.</span>
+            <span class="select">
+              <select
+                class="mini__select"
+                [attr.aria-label]="'Atributo de ataque de ' + name"
+                (change)="setAttribute(weapon, $event)"
+              >
+                @for (option of attributeOptions; track option.id) {
+                  <option [value]="option.id" [selected]="option.id === weapon.attribute">
+                    {{ option.short }}
+                  </option>
+                }
+              </select>
+              <svg lucideChevronDown class="mini__chevron" [size]="11" />
+            </span>
+          </label>
+          <label class="mini">
+            <span class="mini__label">Bônus</span>
+            <input
+              class="number"
+              type="number"
+              inputmode="numeric"
+              [attr.aria-label]="'Bônus de ataque de ' + name"
+              [value]="weapon.bonus"
+              (change)="setNumber('weapons', weapon, 'bonus', $event)"
+            />
+          </label>
+          <label class="mini">
+            <span class="mini__label">Dano</span>
+            <input
+              class="text text--mono"
+              type="text"
+              placeholder="1d8"
+              autocomplete="off"
+              [attr.aria-label]="'Dano em dados de ' + name"
+              [attr.maxlength]="limits.damage"
+              [value]="weapon.damage"
+              (input)="setDamage(weapon, $event)"
+            />
+          </label>
+          <label class="mini">
+            <span class="mini__label">Peso</span>
+            <input
+              class="number"
+              type="number"
+              inputmode="decimal"
+              step="0.1"
+              [attr.aria-label]="'Peso de ' + name + ' em kg'"
+              [value]="weapon.weight"
+              (change)="setWeight('weapons', weapon, $event)"
+            />
+          </label>
+        </div>
+        <div class="rolls">
+          <button
+            type="button"
+            class="roll"
+            [attr.aria-label]="'Rolar ataque com ' + name + ', d20 ' + signed(attack(weapon))"
+            [disabled]="cooldown.waiting()"
+            (click)="rollAttack(weapon)"
+          >
+            <svg lucideDices [size]="13" />
+            Ataque
+            <span class="roll__formula">d20 {{ signed(attack(weapon)) }}</span>
+          </button>
+          <button
+            type="button"
+            class="roll"
+            [attr.aria-label]="'Rolar dano de ' + name"
+            [disabled]="!canRoll(weapon.damage) || cooldown.waiting()"
+            (click)="rollDamage(weapon)"
+          >
+            <svg lucideDices [size]="13" />
+            Dano
+            <span class="roll__formula">{{ weapon.damage || '—' }}</span>
+          </button>
+        </div>
+      </div>
+    }
+
+    <button
+      type="button"
+      class="add"
+      [disabled]="equipment.weapons.length >= listLimit.weapons"
+      (click)="add('weapons')"
+    >
+      <svg lucidePlus [size]="14" />
+      Adicionar arma
+    </button>
+  </div>
+
+  <div class="group">
+    <header class="group__head">
+      <h4 class="group__title">Armaduras</h4>
+      @if (equipment.armors.length > 0) {
+        <span class="group__count">defesa {{ signed(armorTotal()) }}</span>
+      }
+    </header>
+
+    @for (armor of equipment.armors; track armor.id) {
+      @let name = armor.name || 'armadura';
+      <div class="card">
+        <div class="card__top">
+          <input
+            class="text"
+            type="text"
+            placeholder="Couro, escudo, colete"
+            aria-label="Nome da armadura"
+            [attr.maxlength]="limits.itemName"
+            [value]="armor.name"
+            (input)="rename('armors', armor, $event)"
+          />
+          <button
+            type="button"
+            class="mini-button"
+            [attr.aria-label]="'Remover ' + name"
+            (click)="remove('armors', armor.id)"
+          >
+            <svg lucideX [size]="14" />
+          </button>
+        </div>
+        <div class="fields fields--armor">
+          <label class="mini">
+            <span class="mini__label">Defesa</span>
+            <input
+              class="number"
+              type="number"
+              inputmode="numeric"
+              [attr.aria-label]="'Defesa de ' + name"
+              [value]="armor.defense"
+              (change)="setNumber('armors', armor, 'defense', $event)"
+            />
+          </label>
+          <label class="mini">
+            <span class="mini__label">Bônus</span>
+            <input
+              class="number"
+              type="number"
+              inputmode="numeric"
+              [attr.aria-label]="'Bônus de ' + name"
+              [value]="armor.bonus"
+              (change)="setNumber('armors', armor, 'bonus', $event)"
+            />
+          </label>
+          <label class="mini">
+            <span class="mini__label">Peso</span>
+            <input
+              class="number"
+              type="number"
+              inputmode="decimal"
+              step="0.1"
+              [attr.aria-label]="'Peso de ' + name + ' em kg'"
+              [value]="armor.weight"
+              (change)="setWeight('armors', armor, $event)"
+            />
+          </label>
+        </div>
+      </div>
+    }
+
+    @if (equipment.armors.length > 0) {
+      <p class="hint">Some a defesa e o bônus na Armadura do Status para valer na Defesa.</p>
+    }
+
+    <button
+      type="button"
+      class="add"
+      [disabled]="equipment.armors.length >= listLimit.armors"
+      (click)="add('armors')"
+    >
+      <svg lucidePlus [size]="14" />
+      Adicionar armadura
+    </button>
+  </div>
+
+  <div class="group">
+    <header class="group__head">
+      <h4 class="group__title">Itens</h4>
+      <span class="group__count">{{ equipment.items.length }}</span>
+    </header>
+
+    @if (equipment.items.length > 0) {
+      <div class="row row--labels" aria-hidden="true">
+        <span>Item</span>
+        <span>Qtd.</span>
+        <span>Peso</span>
+      </div>
+    }
+    <ul class="items">
+      @for (item of equipment.items; track item.id) {
+        @let name = item.name || 'item';
+        <li class="row">
+          <input
+            class="text"
+            type="text"
+            placeholder="Corda, tocha, poção"
+            aria-label="Nome do item"
+            [attr.maxlength]="limits.itemName"
+            [value]="item.name"
+            (input)="rename('items', item, $event)"
+          />
+          <input
+            class="number"
+            type="number"
+            inputmode="numeric"
+            [attr.aria-label]="'Quantidade de ' + name"
+            [value]="item.quantity"
+            (change)="setNumber('items', item, 'quantity', $event)"
+          />
+          <input
+            class="number"
+            type="number"
+            inputmode="decimal"
+            step="0.1"
+            [attr.aria-label]="'Peso de cada ' + name + ' em kg'"
+            [value]="item.weight"
+            (change)="setWeight('items', item, $event)"
+          />
+          <button
+            type="button"
+            class="mini-button"
+            [attr.aria-label]="'Remover ' + name"
+            (click)="remove('items', item.id)"
+          >
+            <svg lucideX [size]="14" />
+          </button>
+        </li>
+      }
+    </ul>
+
+    <button
+      type="button"
+      class="add"
+      [disabled]="equipment.items.length >= listLimit.items"
+      (click)="add('items')"
+    >
+      <svg lucidePlus [size]="14" />
+      Adicionar item
+    </button>
+  </div>
+
+  <div class="load" [class.is-over]="overloaded()" aria-live="polite">
+    <div class="load__text">
+      <span class="load__label">Carga</span>
+      <span class="load__value">
+        {{ formatWeight(load()) }} de {{ formatWeight(carry()) }} kg
+        @if (overloaded()) {
+          · acima do limite
+        }
+      </span>
+    </div>
+    <span class="load__track" aria-hidden="true">
+      <span class="load__fill" [style.transform]="'scaleX(' + loadRatio() + ')'"></span>
+    </span>
+  </div>
+</div>

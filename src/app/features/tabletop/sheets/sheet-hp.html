@@ -1,0 +1,85 @@
+@let hp = value();
+<div class="card" role="group" aria-label="Pontos de vida">
+  <div class="hp__head">
+    <span class="hp__title">
+      <span class="heart" [attr.data-state]="heart()" aria-hidden="true">
+        @switch (heart()) {
+          @case ('down') {
+            <svg lucideHeartCrack [size]="16" />
+          }
+          @case ('low') {
+            <svg lucideHeartPulse [size]="16" />
+          }
+          @default {
+            <svg lucideHeart [size]="16" />
+          }
+        }
+      </span>
+      <span class="card__label">HP</span>
+    </span>
+    <span class="hp__numbers">
+      <input
+        class="inline-number hp__current"
+        type="number"
+        inputmode="numeric"
+        aria-label="HP atual"
+        [value]="hp.current"
+        (change)="typeHp('current', $event)"
+      />
+      <span class="hp__slash" aria-hidden="true">/</span>
+      <input
+        class="inline-number hp__max"
+        type="number"
+        inputmode="numeric"
+        aria-label="HP máximo"
+        [value]="hp.max"
+        (change)="typeHp('max', $event)"
+      />
+    </span>
+  </div>
+
+  <div class="hp__bar-row">
+    <button
+      type="button"
+      class="mini-button hp__step"
+      aria-label="Tirar 1 de HP"
+      title="Tirar 1"
+      (click)="step(-1)"
+    >
+      <svg lucideHeartMinus [size]="16" />
+    </button>
+    <div
+      class="bar"
+      role="slider"
+      tabindex="0"
+      aria-label="Barra de HP"
+      [class.is-dragging]="dragging() !== null"
+      [attr.data-state]="heart()"
+      [attr.aria-valuemin]="0"
+      [attr.aria-valuemax]="hp.max"
+      [attr.aria-valuenow]="shown()"
+      [attr.aria-valuetext]="shown() + ' de ' + hp.max"
+      (pointerdown)="grab($event)"
+      (pointermove)="drag($event)"
+      (pointerup)="release()"
+      (pointercancel)="cancel()"
+      (keydown)="key($event)"
+    >
+      <span class="bar__trail" [style.transform]="'scaleX(' + ratio() + ')'"></span>
+      <span class="bar__fill" [style.transform]="'scaleX(' + ratio() + ')'"></span>
+      <span class="bar__ticks"></span>
+      @if (dragging() !== null) {
+        <span class="bar__bubble" [style.left.%]="ratio() * 100">{{ shown() }}</span>
+      }
+    </div>
+    <button
+      type="button"
+      class="mini-button hp__step"
+      aria-label="Somar 1 em HP"
+      title="Somar 1"
+      (click)="step(1)"
+    >
+      <svg lucideHeartPlus [size]="16" />
+    </button>
+  </div>
+</div>

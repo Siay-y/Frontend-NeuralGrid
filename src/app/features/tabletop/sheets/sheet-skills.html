@@ -1,0 +1,35 @@
+<div class="section">
+  <div class="labels" aria-hidden="true">
+    <span>Habilidade</span>
+    <span>Atrib.</span>
+    <span>Bônus</span>
+  </div>
+
+  <ul class="skills">
+    @for (skill of skills; track skill.id) {
+      <li class="skill" [class.is-trained]="bonus(skill) !== 0">
+        <button
+          type="button"
+          class="skill__roll"
+          [attr.aria-label]="'Testar ' + skill.label + ', ' + formula(skill)"
+          [attr.title]="formula(skill)"
+          [disabled]="cooldown.waiting()"
+          (click)="test(skill)"
+        >
+          <span class="skill__name">{{ skill.label }}</span>
+          <span class="skill__total">{{ signed(total(skill)) }}</span>
+        </button>
+        <span class="skill__attribute">{{ attributeShort[skill.attribute] }}</span>
+        <input
+          class="number skill__bonus"
+          type="number"
+          inputmode="numeric"
+          [attr.aria-label]="'Bônus de ' + skill.label"
+          [value]="bonus(skill)"
+          (change)="setBonus(skill, $event)"
+        />
+      </li>
+    }
+  </ul>
+  <p class="hint">Rola d20 + Mod do atributo + bônus. O total aparece ao lado do nome.</p>
+</div>

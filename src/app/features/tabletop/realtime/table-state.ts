@@ -2,6 +2,7 @@ import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core'
 import type { SessionUser } from '../../../core/auth/auth.models';
 import { RollFeed } from '../dice/roll-feed';
 import { TabletopStore } from '../tabletop.store';
+import type { CharacterSheet, SheetData } from '../sheets/sheet-model';
 import { CHAT_COOLDOWN, Cooldown, DICE_COOLDOWN } from './cooldown';
 import { TableConnection } from './table-connection';
 import {
@@ -21,6 +22,7 @@ import {
   type TableSnapshot,
   type TableToken,
   type TokenDraft,
+  type TokenKind,
   type TokenPreview,
 } from './table.protocol';
 
@@ -93,6 +95,7 @@ export class TableState {
   private readonly clearedAt = signal<string | null>(null);
   private readonly drawingsById = signal<ReadonlyMap<string, TableDrawing>>(new Map());
   private readonly rulersBy = signal<ReadonlyMap<string, RemoteRuler>>(new Map());
+  private readonly sheetsById = signal<ReadonlyMap<string, CharacterSheet>>(new Map());
 
   readonly tokens = computed(() => [...this.tokensById().values()]);
   readonly previews = this.previewsById.asReadonly();
@@ -112,6 +115,15 @@ export class TableState {
   readonly diceCooldown = new Cooldown(DICE_COOLDOWN);
   readonly drawings = computed(() => [...this.drawingsById().values()]);
   readonly rulers = computed(() => [...this.rulersBy().values()]);
+  readonly sheets = computed(() =>
+    [...this.sheetsById().values()].sort((a, b) =>
+      a.data.identity.name.localeCompare(b.data.identity.name, 'pt-BR'),
+    ),
+  );
+  readonly ownSheetCount = computed(() => {
+    const me = this.self();
+    return me ? this.sheets().filter((sheet) => sheet.ownerId === me.id).length : 0;
+  });
   readonly hasOwnDrawings = computed(() => {
     const me = this.self();
     return !!me && this.drawings().some((drawing) => drawing.authorId === me.id);
@@ -141,6 +153,9 @@ export class TableState {
         this.rulersBy.update((rulers) => withEntry(rulers, ruler.by, ruler)),
       [TableServerEvent.RulerCleared]: ({ by }: { by: string }) =>
         this.rulersBy.update((rulers) => withoutEntry(rulers, by)),
+      [TableServerEvent.SheetCreated]: (sheet: CharacterSheet) => this.upsertSheet(sheet),
+      [TableServerEvent.SheetUpdated]: (sheet: CharacterSheet) => this.upsertSheet(sheet),
+      [TableServerEvent.SheetDeleted]: ({ id }: { id: string }) => this.removeSheet(id),
     });
   }
 
@@ -155,6 +170,66 @@ export class TableState {
   canMove(token: TableToken): boolean {
     const me = this.self();
     return !!me && (me.role === 'master' || token.ownerId === me.id);
+  }
+
+  sheet(id: string | null): CharacterSheet | undefined {
+    return id ? this.sheetsById().get(id) : undefined;
+  }
+
+  async createSheet(
+    data: SheetData,
+    assignment: { kind?: TokenKind; ownerId?: string | null } = {},
+  ): Promise<CharacterSheet | null> {
+    return this.attempt(async () => {
+      const sheet = await this.connection.request<CharacterSheet>(TableClientEvent.CreateSheet, {
+        ...assignment,
+        data,
+      });
+      this.upsertSheet(sheet);
+      return sheet;
+    });
+  }
+
+  async updateSheet(
+    id: string,
+    changes: { data?: Partial<SheetData>; kind?: TokenKind; ownerId?: string | null },
+  ): Promise<CharacterSheet | null> {
+    const before = this.sheetsById().get(id);
+    if (!before) {
+      return null;
+    }
+    this.sheetsById.update((sheets) =>
+      withEntry(sheets, id, {
+        ...before,
+        kind: changes.kind ?? before.kind,
+        ownerId: changes.ownerId === undefined ? before.ownerId : changes.ownerId,
+        data: { ...before.data, ...changes.data },
+      }),
+    );
+    try {
+      const saved = await this.connection.request<CharacterSheet>(TableClientEvent.UpdateSheet, {
+        id,
+        ...changes,
+      });
+      this.upsertSheet(saved);
+      return saved;
+    } catch (error) {
+      const current = this.sheetsById().get(id);
+      if (current && current.version === before.version) {
+        this.sheetsById.update((sheets) => withEntry(sheets, id, before));
+      }
+      this.report(error);
+      return null;
+    }
+  }
+
+  async deleteSheet(id: string): Promise<boolean> {
+    const removed = await this.attempt(async () => {
+      await this.connection.request(TableClientEvent.DeleteSheet, { id });
+      this.removeSheet(id);
+      return true;
+    });
+    return removed ?? false;
   }
 
   isMasked(token: TableToken): boolean {
@@ -356,6 +431,7 @@ export class TableState {
       new Map((snapshot.drawings ?? []).map((drawing) => [drawing.id, drawing])),
     );
     this.rulersBy.set(new Map());
+    this.sheetsById.set(new Map((snapshot.sheets ?? []).map((sheet) => [sheet.id, sheet])));
     this.synced.set(true);
   }
 
@@ -403,6 +479,30 @@ export class TableState {
     this.tokensById.update((tokens) => withoutEntry(tokens, id));
     this.previewsById.update((previews) => withoutEntry(previews, id));
     this.store.clearSelection(id);
+  }
+
+  private upsertSheet(sheet: CharacterSheet): void {
+    const current = this.sheetsById().get(sheet.id);
+    if (current && current.version >= sheet.version) {
+      return;
+    }
+    this.sheetsById.update((sheets) => withEntry(sheets, sheet.id, sheet));
+  }
+
+  private removeSheet(id: string): void {
+    this.sheetsById.update((sheets) => withoutEntry(sheets, id));
+    this.tokensById.update((tokens) => {
+      let next = tokens;
+      for (const token of tokens.values()) {
+        if (token.sheetId === id) {
+          next = withEntry(next, token.id, { ...token, sheetId: null });
+        }
+      }
+      return next;
+    });
+    if (this.store.activeSheetId() === id) {
+      this.store.showSheet(null);
+    }
   }
 
   private addDrawing(drawing: TableDrawing): void {

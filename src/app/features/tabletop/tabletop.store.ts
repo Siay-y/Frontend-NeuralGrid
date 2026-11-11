@@ -58,6 +58,8 @@ function writeDrawingStyle(style: DrawingStyle): void {
   }
 }
 
+export const QUICK_TOKEN_SECTION = 'token-quick';
+
 @Injectable()
 export class TabletopStore {
   private readonly tool = signal<MapToolId>('select');
@@ -68,8 +70,9 @@ export class TabletopStore {
   private readonly center = signal<GridCell>({ col: 0, row: 0 });
   private readonly currentNotice = signal<Notice | null>(null);
   private readonly audience = signal('public');
-  private readonly closedSections = signal<ReadonlySet<string>>(new Set());
+  private readonly closedSections = signal<ReadonlySet<string>>(new Set([QUICK_TOKEN_SECTION]));
   private readonly style = signal<DrawingStyle>(readDrawingStyle());
+  private readonly sheet = signal<string | null>(null);
   private noticeTimer: ReturnType<typeof setTimeout> | undefined;
 
   readonly activeTool = this.tool.asReadonly();
@@ -81,6 +84,7 @@ export class TabletopStore {
   readonly notice = this.currentNotice.asReadonly();
   readonly chatAudience = this.audience.asReadonly();
   readonly drawingStyle = this.style.asReadonly();
+  readonly activeSheetId = this.sheet.asReadonly();
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.noticeTimer));
@@ -114,6 +118,15 @@ export class TabletopStore {
     const next = { ...this.style(), ...changes };
     this.style.set(next);
     writeDrawingStyle(next);
+  }
+
+  showSheet(id: string | null): void {
+    this.sheet.set(id);
+  }
+
+  openSheet(id: string): void {
+    this.sheet.set(id);
+    this.panel.set('sheets');
   }
 
   togglePanel(panel: PanelId): void {

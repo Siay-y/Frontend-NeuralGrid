@@ -1,0 +1,173 @@
+@let current = value();
+<div class="editor">
+  <header class="top">
+    <button
+      type="button"
+      class="icon-button top__back"
+      aria-label="Voltar para os tokens"
+      (click)="closed.emit()"
+    >
+      <svg lucideArrowLeft [size]="16" />
+    </button>
+    <app-token-glyph
+      [kind]="preview().kind"
+      [label]="preview().label"
+      [icon]="current.icon"
+      [hidden]="current.hidden"
+    />
+    <div class="top__title">
+      <p class="top__name">{{ preview().label || 'Sem nome' }}</p>
+      <p class="top__meta">{{ meta() }}</p>
+    </div>
+  </header>
+
+  <form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="field">
+      <label class="field__label" for="token-sheet">Ficha</label>
+      <div class="select">
+        <select id="token-sheet" class="field__input select__control" formControlName="sheetId">
+          <option [ngValue]="null">Sem ficha</option>
+          @for (sheet of table.sheets(); track sheet.id) {
+            <option [ngValue]="sheet.id">
+              {{ sheet.data.identity.name }} · {{ kindLabel[sheet.kind] }}
+            </option>
+          }
+        </select>
+        <svg lucideChevronDown class="select__icon" [size]="14" />
+      </div>
+    </div>
+
+    @if (linkedSheet(); as sheet) {
+      <div class="linked">
+        <svg lucideScrollText class="linked__icon" [size]="16" />
+        <p class="linked__text">
+          Nome, tipo, sexo e dono vêm da ficha. Mude lá e o token acompanha.
+        </p>
+        <button type="button" class="button button--ghost" (click)="openSheet(sheet.id)">
+          Abrir ficha
+        </button>
+      </div>
+    } @else {
+      <div class="field" [class.is-invalid]="showLabelError()">
+        <label class="field__label" for="token-label">Nome</label>
+        <input
+          id="token-label"
+          class="field__input"
+          type="text"
+          formControlName="label"
+          autocomplete="off"
+          [attr.maxlength]="maxLabel"
+          [attr.aria-invalid]="showLabelError()"
+          aria-describedby="token-label-error"
+        />
+        @if (showLabelError()) {
+          <p id="token-label-error" class="field__error">Dê um nome ao token.</p>
+        }
+      </div>
+
+      <fieldset class="field">
+        <legend class="field__label">Tipo</legend>
+        <div class="segmented" role="radiogroup">
+          @for (kind of kinds; track kind) {
+            <label class="segmented__option" [class.is-checked]="current.kind === kind">
+              <input type="radio" formControlName="kind" [value]="kind" class="sr-only" />
+              <span class="glyph glyph--sm" [attr.data-kind]="kind" aria-hidden="true"></span>
+              {{ kindLabel[kind] }}
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend class="field__label">Sexo</legend>
+        <div class="segmented" role="radiogroup">
+          @for (sex of sexes; track sex) {
+            <button
+              type="button"
+              role="radio"
+              class="segmented__option"
+              [class.is-checked]="current.sex === sex"
+              [attr.aria-checked]="current.sex === sex"
+              (click)="pickSex(sex)"
+            >
+              {{ sexLabel[sex] }}
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label class="field__label" for="token-owner">Dono</label>
+        <div class="select">
+          <select id="token-owner" class="field__input select__control" formControlName="ownerId">
+            <option [ngValue]="null">Sem dono</option>
+            @for (member of table.members(); track member.id) {
+              <option [ngValue]="member.id">{{ member.displayName }}</option>
+            }
+          </select>
+          <svg lucideChevronDown class="select__icon" [size]="14" />
+        </div>
+      </div>
+    }
+
+    <div class="field">
+      <span class="field__label" id="token-icon-label">Ícone</span>
+      <app-token-icon-picker
+        formControlName="icon"
+        aria-labelledby="token-icon-label"
+        [kind]="preview().kind"
+        [label]="preview().label"
+      />
+    </div>
+
+    <fieldset class="field">
+      <legend class="field__label">Tamanho</legend>
+      <div class="segmented segmented--compact" role="radiogroup">
+        @for (size of sizes; track size) {
+          <label class="segmented__option" [class.is-checked]="current.size === size">
+            <input type="radio" formControlName="size" [value]="size" class="sr-only" />
+            {{ size }}
+          </label>
+        }
+      </div>
+    </fieldset>
+
+    <div class="editor__switches">
+      <label class="switch" [class.is-on]="current.hidden">
+        <input type="checkbox" class="sr-only" formControlName="hidden" />
+        <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+        <span class="switch__text">
+          <span class="switch__title">Esconder dos jogadores</span>
+          <span class="switch__hint">{{
+            current.hidden
+              ? 'Só o mestre vê. Revele quando entrar em cena.'
+              : 'Todos na mesa veem este token.'
+          }}</span>
+        </span>
+      </label>
+
+      <label class="switch" [class.is-on]="current.nameHidden">
+        <input type="checkbox" class="sr-only" formControlName="nameHidden" />
+        <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+        <span class="switch__text">
+          <span class="switch__title">Esconder o nome</span>
+          <span class="switch__hint">{{
+            current.nameHidden
+              ? 'Os jogadores veem ??? até você desligar.'
+              : 'Todos veem o nome do token.'
+          }}</span>
+        </span>
+      </label>
+    </div>
+
+    <div class="editor__actions">
+      <button type="button" class="button button--ghost" (click)="closed.emit()">Cancelar</button>
+      <button type="submit" class="button button--primary" [disabled]="saving()">
+        @if (saving()) {
+          <svg lucideLoaderCircle class="spin" [size]="14" />
+        }
+        Salvar
+      </button>
+    </div>
+  </form>
+</div>

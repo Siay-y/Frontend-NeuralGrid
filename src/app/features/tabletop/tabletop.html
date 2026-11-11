@@ -2,6 +2,7 @@
   class="tabletop"
   [class.is-expanded]="store.sidebarExpanded()"
   [class.has-panel]="panel() !== null"
+  [class.has-wide-panel]="panel()?.id === 'sheets'"
 >
   <app-sidebar class="tabletop__sidebar chrome-dark" />
 

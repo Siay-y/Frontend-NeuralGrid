@@ -19,12 +19,6 @@
   padding: 2px 16px 16px;
 }
 
-.editor__row {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-}
-
 button.segmented__option {
   border: 0;
   background: transparent;
@@ -36,9 +30,10 @@ button.segmented__option {
   }
 }
 
-.editor__switches {
-  display: grid;
-  gap: 6px;
+.editor__hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
 }
 
 .editor__actions {
@@ -124,8 +119,7 @@ button.segmented__option {
     background: var(--color-surface-hover);
   }
 
-  &.is-selected,
-  &.is-editing {
+  &.is-selected {
     border-color: var(--color-border);
     background: var(--color-surface-active);
   }
@@ -230,6 +224,17 @@ button.segmented__option {
   }
 }
 
+.swap {
+  animation: swap-in var(--duration) var(--ease-out) both;
+}
+
+@keyframes swap-in {
+  from {
+    opacity: 0;
+    transform: translateX(6px);
+  }
+}
+
 .row-enter {
   animation: row-in var(--duration-slow) var(--ease-out) both;
 }
@@ -242,14 +247,6 @@ button.segmented__option {
 }
 
 @container (max-width: 300px) {
-  .editor__row {
-    flex-wrap: wrap;
-
-    .field--grow {
-      flex-basis: 100%;
-    }
-  }
-
   .segmented__option {
     min-width: 0;
     padding: 0 4px;

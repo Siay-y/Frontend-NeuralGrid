@@ -1,0 +1,94 @@
+<div class="section">
+  <app-sheet-hp [value]="value().hp" (changed)="setHp($event)" />
+
+  <div class="stats">
+    <div
+      class="card stat stat--defense"
+      role="group"
+      aria-live="polite"
+      [attr.aria-label]="'Defesa ' + defense()"
+      [attr.title]="'Armadura ' + value().armor + ' + Mod RES ' + signed(resistance())"
+    >
+      <span class="stat__head">
+        <span class="stat__title">
+          <span class="stat__icon" aria-hidden="true"><svg lucideShield [size]="16" /></span>
+          <span class="card__label">Defesa</span>
+        </span>
+      </span>
+      <span class="stat__value">{{ defense() }}</span>
+    </div>
+    <label class="card stat">
+      <span class="stat__head">
+        <span class="card__label">Armadura</span>
+      </span>
+      <span class="stat__field">
+        <input
+          class="inline-number"
+          type="number"
+          inputmode="numeric"
+          [value]="value().armor"
+          (change)="type('armor', $event)"
+        />
+      </span>
+    </label>
+    <label class="card stat">
+      <span class="stat__head">
+        <span class="card__label">Movimento</span>
+        <span class="stat__extra">{{ cells() }} quadr.</span>
+      </span>
+      <span class="stat__field">
+        <input
+          class="inline-number"
+          type="number"
+          inputmode="numeric"
+          [value]="value().movement"
+          (change)="type('movement', $event)"
+        />
+        <span class="stat__unit">m</span>
+      </span>
+    </label>
+    <label class="card stat">
+      <span class="stat__head">
+        <span class="card__label">XP</span>
+      </span>
+      <span class="stat__field">
+        <input
+          class="inline-number"
+          type="number"
+          inputmode="numeric"
+          [value]="value().xp"
+          (change)="type('xp', $event)"
+        />
+      </span>
+    </label>
+    <label class="card stat">
+      <span class="stat__head">
+        <span class="card__label">Dinheiro</span>
+      </span>
+      <span class="stat__field">
+        <input
+          class="inline-number"
+          type="number"
+          inputmode="numeric"
+          [value]="value().money"
+          (change)="type('money', $event)"
+        />
+      </span>
+    </label>
+    <label class="card stat">
+      <span class="stat__head">
+        <span class="card__label">Carga máx.</span>
+      </span>
+      <span class="stat__field">
+        <input
+          class="inline-number"
+          type="number"
+          inputmode="numeric"
+          [value]="value().carry"
+          (change)="type('carry', $event)"
+        />
+        <span class="stat__unit">kg</span>
+      </span>
+    </label>
+  </div>
+</div>
