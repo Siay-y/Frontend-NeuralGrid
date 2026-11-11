@@ -8,10 +8,14 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { loadDiceFont, prefersReducedMotion, readDiceColors } from './dice-env';
+import { TableState } from '../realtime/table-state';
+import { loadDiceFont, prefersReducedMotion, prefersSavingData, readDiceColors } from './dice-env';
 import { animatedDice } from './dice-rules';
 import type { DiceScene } from './dice-scene';
 import { RollFeed } from './roll-feed';
+
+const PREFETCH_TIMEOUT_MS = 5_000;
+const PREFETCH_FALLBACK_MS = 2_000;
 
 @Component({
   selector: 'app-dice-tray',
@@ -23,8 +27,11 @@ export class DiceTray {
   private readonly feed = inject(RollFeed);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
+  private readonly table = inject(TableState);
   private scene: Promise<DiceScene | null> | null = null;
   private destroyed = false;
+  private prefetchScheduled = false;
+  private cancelPrefetch: (() => void) | undefined;
 
   constructor() {
     effect(() => {
@@ -32,10 +39,36 @@ export class DiceTray {
         untracked(() => void this.drain());
       }
     });
+    effect(() => {
+      if (this.table.ready()) {
+        untracked(() => this.schedulePrefetch());
+      }
+    });
     inject(DestroyRef).onDestroy(() => {
       this.destroyed = true;
+      this.cancelPrefetch?.();
       void this.scene?.then((scene) => scene?.dispose());
     });
+  }
+
+  private schedulePrefetch(): void {
+    if (this.prefetchScheduled || prefersReducedMotion() || prefersSavingData()) {
+      return;
+    }
+    this.prefetchScheduled = true;
+    const prefetch = () => {
+      this.cancelPrefetch = undefined;
+      void Promise.all([import('./dice-scene'), import('./dice-spinner'), loadDiceFont()]).catch(
+        () => undefined,
+      );
+    };
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(prefetch, { timeout: PREFETCH_TIMEOUT_MS });
+      this.cancelPrefetch = () => cancelIdleCallback(id);
+    } else {
+      const timer = setTimeout(prefetch, PREFETCH_FALLBACK_MS);
+      this.cancelPrefetch = () => clearTimeout(timer);
+    }
   }
 
   private async drain(): Promise<void> {

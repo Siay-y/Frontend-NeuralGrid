@@ -11,6 +11,11 @@ export function prefersReducedMotion(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }
 
+export function prefersSavingData(): boolean {
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  return connection?.saveData === true;
+}
+
 export function readDiceColors(scope: Element = document.documentElement): DiceColors {
   const styles = getComputedStyle(scope);
   return {

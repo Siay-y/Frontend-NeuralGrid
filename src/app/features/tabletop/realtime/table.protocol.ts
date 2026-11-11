@@ -41,6 +41,7 @@ export const TableServerEvent = {
   SheetDeleted: 'sheet:deleted',
   SheetStats: 'sheet:stats',
   SessionExpired: 'session:expired',
+  ConnectionLimit: 'session:limit',
 } as const;
 
 export type TokenKind = 'agent' | 'npc' | 'threat';

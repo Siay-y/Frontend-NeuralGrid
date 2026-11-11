@@ -20,6 +20,41 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.4.2',
+    date: '2026-11-11',
+    title: 'Mesa mais rápida e mais segura',
+    changes: [
+      {
+        kind: 'improved',
+        text: 'A tela de entrada já acorda o servidor enquanto você digita a senha, então a primeira pessoa do dia espera bem menos.',
+      },
+      {
+        kind: 'improved',
+        text: 'A mesa começa a baixar durante o login e abre na hora depois de entrar.',
+      },
+      {
+        kind: 'improved',
+        text: 'Os dados 3D são preparados em segundo plano, e a primeira rolagem sai sem espera. Quem usa reduzir movimento ou economia de dados não baixa nada a mais.',
+      },
+      {
+        kind: 'improved',
+        text: 'Os ícones dos tokens ficaram 28% mais leves, sem nenhuma mudança visível.',
+      },
+      {
+        kind: 'improved',
+        text: 'A conexão em tempo real comprime as mensagens grandes, e entrar numa mesa cheia de desenhos baixa até quatro vezes menos dados.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Entrar várias vezes seguidas, como ao abrir abas novas, não bloqueia mais o login por 15 minutos. Só senha errada conta, e quem errar a senha de outra pessoa não tranca mais o dono da conta para fora.',
+      },
+      {
+        kind: 'improved',
+        text: 'Cada pessoa pode ter a mesa aberta em até 5 abas ao mesmo tempo. Na sexta, o selo do topo avisa "Muitas abas abertas".',
+      },
+    ],
+  },
+  {
     version: '0.4.1',
     date: '2026-11-11',
     title: 'Cartão da ficha e revelação aos poucos',

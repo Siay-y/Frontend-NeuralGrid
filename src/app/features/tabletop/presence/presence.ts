@@ -8,6 +8,7 @@ const STATUS_LABEL: Record<ConnectionStatus, string> = {
   online: 'Ao vivo',
   reconnecting: 'Reconectando',
   offline: 'Desconectado',
+  limited: 'Muitas abas abertas',
 };
 
 @Component({
