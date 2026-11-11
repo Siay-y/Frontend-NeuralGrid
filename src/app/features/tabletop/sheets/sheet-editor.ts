@@ -39,6 +39,7 @@ import {
   sheetSummary,
   sheetTokenLabel,
 } from './sheet-model';
+import { sheetRoller } from './sheet-roller';
 import { SheetSkillsEditor } from './sheet-skills';
 import { SheetStatusEditor } from './sheet-status';
 
@@ -94,6 +95,7 @@ export class SheetEditor {
         : sheet.data,
   });
   protected readonly name = computed(() => this.draft().identity.name.trim() || 'Sem nome');
+  protected readonly roller = computed(() => sheetRoller(this.sheet(), this.name()));
   protected readonly summary = computed(() => sheetSummary(this.draft()));
   protected readonly placed = computed(() =>
     this.table.tokens().find((token) => token.sheetId === this.sheet().id),

@@ -5,14 +5,13 @@ import {
   clampInteger,
   d20Roll,
   modifier,
-  rollLabel,
   SHEET_LIMITS,
   type SheetData,
   signed,
   type SkillDefinition,
   SKILLS,
 } from './sheet-model';
-import { injectSheetRoll } from './sheet-roller';
+import { injectSheetRoll, type SheetRoller } from './sheet-roller';
 
 @Component({
   selector: 'app-sheet-skills',
@@ -23,7 +22,7 @@ import { injectSheetRoll } from './sheet-roller';
 export class SheetSkillsEditor {
   readonly value = input.required<SheetData['skills']>();
   readonly attributes = input.required<SheetData['attributes']>();
-  readonly character = input.required<string>();
+  readonly character = input.required<SheetRoller>();
   readonly changed = output<SheetData['skills']>();
 
   protected readonly skills = SKILLS;
@@ -57,6 +56,6 @@ export class SheetSkillsEditor {
   }
 
   protected test(skill: SkillDefinition): void {
-    this.roll(this.formula(skill), rollLabel(this.character(), skill.label));
+    this.roll(this.character(), this.formula(skill), skill.label);
   }
 }

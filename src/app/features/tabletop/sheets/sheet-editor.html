@@ -231,7 +231,7 @@
     >
       <app-sheet-attributes
         [value]="data.attributes"
-        [character]="name()"
+        [character]="roller()"
         (changed)="edit('attributes', $event)"
       />
     </app-collapsible>
@@ -240,7 +240,7 @@
       <app-sheet-skills
         [value]="data.skills"
         [attributes]="data.attributes"
-        [character]="name()"
+        [character]="roller()"
         (changed)="edit('skills', $event)"
       />
     </app-collapsible>
@@ -254,7 +254,7 @@
         [value]="data.equipment"
         [attributes]="data.attributes"
         [carry]="data.status.carry"
-        [character]="name()"
+        [character]="roller()"
         (changed)="edit('equipment', $event)"
       />
     </app-collapsible>
