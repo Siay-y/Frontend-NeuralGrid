@@ -2,7 +2,7 @@ import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core'
 import type { SessionUser } from '../../../core/auth/auth.models';
 import { RollFeed } from '../dice/roll-feed';
 import { TabletopStore } from '../tabletop.store';
-import type { CharacterSheet, SheetData } from '../sheets/sheet-model';
+import type { CharacterSheet, SheetAssignment, SheetData, SheetStats } from '../sheets/sheet-model';
 import { CHAT_COOLDOWN, Cooldown, DICE_COOLDOWN } from './cooldown';
 import { TableConnection } from './table-connection';
 import {
@@ -22,7 +22,6 @@ import {
   type TableSnapshot,
   type TableToken,
   type TokenDraft,
-  type TokenKind,
   type TokenPreview,
 } from './table.protocol';
 
@@ -96,6 +95,7 @@ export class TableState {
   private readonly drawingsById = signal<ReadonlyMap<string, TableDrawing>>(new Map());
   private readonly rulersBy = signal<ReadonlyMap<string, RemoteRuler>>(new Map());
   private readonly sheetsById = signal<ReadonlyMap<string, CharacterSheet>>(new Map());
+  private readonly statsById = signal<ReadonlyMap<string, SheetStats>>(new Map());
 
   readonly tokens = computed(() => [...this.tokensById().values()]);
   readonly previews = this.previewsById.asReadonly();
@@ -115,6 +115,7 @@ export class TableState {
   readonly diceCooldown = new Cooldown(DICE_COOLDOWN);
   readonly drawings = computed(() => [...this.drawingsById().values()]);
   readonly rulers = computed(() => [...this.rulersBy().values()]);
+  readonly sheetsByCreation = computed(() => [...this.sheetsById().values()]);
   readonly sheets = computed(() =>
     [...this.sheetsById().values()].sort((a, b) =>
       a.data.identity.name.localeCompare(b.data.identity.name, 'pt-BR'),
@@ -156,6 +157,8 @@ export class TableState {
       [TableServerEvent.SheetCreated]: (sheet: CharacterSheet) => this.upsertSheet(sheet),
       [TableServerEvent.SheetUpdated]: (sheet: CharacterSheet) => this.upsertSheet(sheet),
       [TableServerEvent.SheetDeleted]: ({ id }: { id: string }) => this.removeSheet(id),
+      [TableServerEvent.SheetStats]: ({ id, stats }: { id: string; stats: SheetStats | null }) =>
+        this.statsById.update((all) => (stats ? withEntry(all, id, stats) : withoutEntry(all, id))),
     });
   }
 
@@ -172,13 +175,17 @@ export class TableState {
     return !!me && (me.role === 'master' || token.ownerId === me.id);
   }
 
+  sheetStats(id: string | null): SheetStats | undefined {
+    return id ? this.statsById().get(id) : undefined;
+  }
+
   sheet(id: string | null): CharacterSheet | undefined {
     return id ? this.sheetsById().get(id) : undefined;
   }
 
   async createSheet(
     data: SheetData,
-    assignment: { kind?: TokenKind; ownerId?: string | null } = {},
+    assignment: SheetAssignment = {},
   ): Promise<CharacterSheet | null> {
     return this.attempt(async () => {
       const sheet = await this.connection.request<CharacterSheet>(TableClientEvent.CreateSheet, {
@@ -192,7 +199,7 @@ export class TableState {
 
   async updateSheet(
     id: string,
-    changes: { data?: Partial<SheetData>; kind?: TokenKind; ownerId?: string | null },
+    changes: SheetAssignment & { data?: Partial<SheetData> },
   ): Promise<CharacterSheet | null> {
     const before = this.sheetsById().get(id);
     if (!before) {
@@ -203,6 +210,9 @@ export class TableState {
         ...before,
         kind: changes.kind ?? before.kind,
         ownerId: changes.ownerId === undefined ? before.ownerId : changes.ownerId,
+        hidden: changes.hidden ?? before.hidden,
+        nameHidden: changes.nameHidden ?? before.nameHidden,
+        statsHidden: changes.statsHidden ?? before.statsHidden,
         data: { ...before.data, ...changes.data },
       }),
     );
@@ -432,6 +442,7 @@ export class TableState {
     );
     this.rulersBy.set(new Map());
     this.sheetsById.set(new Map((snapshot.sheets ?? []).map((sheet) => [sheet.id, sheet])));
+    this.statsById.set(new Map((snapshot.sheetStats ?? []).map((stats) => [stats.id, stats])));
     this.synced.set(true);
   }
 

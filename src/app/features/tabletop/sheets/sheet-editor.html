@@ -144,6 +144,74 @@
               </span>
             </label>
           </div>
+
+          <div class="flags">
+            <label class="switch" [class.is-on]="sheet().hidden">
+              <input
+                type="checkbox"
+                class="sr-only"
+                [checked]="sheet().hidden"
+                (change)="toggleFlag('hidden')"
+              />
+              <span class="switch__track" aria-hidden="true"
+                ><span class="switch__thumb"></span
+              ></span>
+              <span class="switch__text">
+                <span class="switch__title">Esconder dos jogadores</span>
+                <span class="switch__hint">{{
+                  sheet().hidden
+                    ? 'O token desta ficha só aparece para o mestre.'
+                    : 'Todos na mesa veem o token desta ficha.'
+                }}</span>
+              </span>
+            </label>
+            <label class="switch" [class.is-on]="sheet().nameHidden">
+              <input
+                type="checkbox"
+                class="sr-only"
+                [checked]="sheet().nameHidden"
+                (change)="toggleFlag('nameHidden')"
+              />
+              <span class="switch__track" aria-hidden="true"
+                ><span class="switch__thumb"></span
+              ></span>
+              <span class="switch__text">
+                <span class="switch__title">Esconder o nome</span>
+                <span class="switch__hint">{{
+                  sheet().nameHidden
+                    ? 'Os jogadores veem ??? no token até você desligar.'
+                    : 'Todos veem o nome do token.'
+                }}</span>
+              </span>
+            </label>
+            @let statsLocked = sheet().hidden || sheet().nameHidden;
+            <label
+              class="switch switch--sub"
+              [class.is-on]="statsLocked || sheet().statsHidden"
+              [class.is-locked]="statsLocked"
+            >
+              <input
+                type="checkbox"
+                class="sr-only"
+                [checked]="statsLocked || sheet().statsHidden"
+                [disabled]="statsLocked"
+                (change)="toggleFlag('statsHidden')"
+              />
+              <span class="switch__track" aria-hidden="true"
+                ><span class="switch__thumb"></span
+              ></span>
+              <span class="switch__text">
+                <span class="switch__title">Esconder vida e armadura</span>
+                <span class="switch__hint">{{
+                  statsLocked
+                    ? 'Enquanto o token ou o nome estiverem escondidos, HP e Defesa também ficam ???.'
+                    : sheet().statsHidden
+                      ? 'Os jogadores veem o personagem, mas HP e Defesa ficam ???.'
+                      : 'Os jogadores veem o HP e a Defesa ao passar o mouse no token.'
+                }}</span>
+              </span>
+            </label>
+          </div>
         }
       </div>
     </app-collapsible>

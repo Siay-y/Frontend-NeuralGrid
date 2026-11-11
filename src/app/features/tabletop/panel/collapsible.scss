@@ -33,8 +33,15 @@
 }
 
 .toggle__title {
+  flex: 1;
   font-size: 10px;
   color: inherit;
+}
+
+.toggle__count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-subtle);
 }
 
 .toggle__chevron {

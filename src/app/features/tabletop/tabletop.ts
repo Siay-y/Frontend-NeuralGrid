@@ -6,6 +6,7 @@ import { RollFeed } from './dice/roll-feed';
 import { RollPreviews } from './dice/roll-previews';
 import { TablePanelView } from './panel/panel';
 import { Presence } from './presence/presence';
+import { SheetCard } from './sheets/sheet-card';
 import { TableConnection } from './realtime/table-connection';
 import { TableState } from './realtime/table-state';
 import { Sidebar } from './sidebar/sidebar';
@@ -22,7 +23,17 @@ function isEditableTarget(target: EventTarget | null): boolean {
 
 @Component({
   selector: 'app-tabletop',
-  imports: [Board, DiceTray, MapToolbar, RollPreviews, Sidebar, TablePanelView, Presence, LucideX],
+  imports: [
+    Board,
+    DiceTray,
+    MapToolbar,
+    RollPreviews,
+    SheetCard,
+    Sidebar,
+    TablePanelView,
+    Presence,
+    LucideX,
+  ],
   templateUrl: './tabletop.html',
   styleUrl: './tabletop.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,7 +1,14 @@
 import { TOKEN_LABEL_MAX_LENGTH, type TokenKind, type TokenSex } from '../realtime/table.protocol';
 
 export type Attribute =
-  'strength' | 'agility' | 'resistance' | 'perception' | 'intelligence' | 'charisma' | 'luck';
+  | 'strength'
+  | 'dexterity'
+  | 'agility'
+  | 'resistance'
+  | 'perception'
+  | 'intelligence'
+  | 'charisma'
+  | 'luck';
 
 export type Skill =
   | 'acrobacia'
@@ -85,7 +92,24 @@ export interface CharacterSheet {
   ownerId: string | null;
   kind: TokenKind;
   data: SheetData;
+  hidden: boolean;
+  nameHidden: boolean;
+  statsHidden: boolean;
   version: number;
+}
+
+export interface SheetStats {
+  id: string;
+  hp: Gauge;
+  defense: number;
+}
+
+export interface SheetAssignment {
+  kind?: TokenKind;
+  ownerId?: string | null;
+  hidden?: boolean;
+  nameHidden?: boolean;
+  statsHidden?: boolean;
 }
 
 export const SHEET_LIMITS = {
@@ -113,6 +137,7 @@ export const METERS_PER_CELL = 1.5;
 
 export const ATTRIBUTES: readonly { id: Attribute; short: string; label: string }[] = [
   { id: 'strength', short: 'FOR', label: 'Força' },
+  { id: 'dexterity', short: 'DES', label: 'Destreza' },
   { id: 'agility', short: 'AGI', label: 'Agilidade' },
   { id: 'resistance', short: 'RES', label: 'Resistência' },
   { id: 'perception', short: 'PER', label: 'Percepção' },

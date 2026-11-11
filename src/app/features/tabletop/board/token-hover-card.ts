@@ -22,8 +22,17 @@ export class TokenHoverCard {
 
   protected readonly isMaster = this.table.isMaster;
   protected readonly ratio = gaugeRatio;
-  protected readonly defense = defense;
   protected readonly sheet = computed(() => this.table.sheet(this.token().sheetId));
+  protected readonly vitals = computed(() => {
+    const sheet = this.sheet();
+    if (sheet) {
+      return { hp: sheet.data.status.hp, defense: defense(sheet.data) };
+    }
+    return this.table.sheetStats(this.token().sheetId) ?? null;
+  });
+  protected readonly vitalsHidden = computed(
+    () => this.vitals() === null && this.token().sheetId !== null,
+  );
   protected readonly masked = computed(() => this.table.isMasked(this.token()));
   protected readonly kind = computed(() => {
     const token = this.token();

@@ -105,6 +105,23 @@
   width: min(272px, calc(100% - 32px));
 }
 
+.tabletop__sheet-card {
+  position: absolute;
+  right: 16px;
+  bottom: 68px;
+  z-index: 14;
+}
+
+.tabletop__stage:has(.sheet-card__trigger) .tabletop__rolls {
+  bottom: 116px;
+}
+
+@media (min-width: 861px) {
+  .tabletop__stage:has(.sheet-card__panel) .tabletop__rolls {
+    right: 328px;
+  }
+}
+
 .tabletop__notices {
   position: absolute;
   bottom: 72px;

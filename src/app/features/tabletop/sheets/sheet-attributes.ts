@@ -1,16 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
-import {
-  LucideBicepsFlexed,
-  LucideBrain,
-  LucideClover,
-  LucideDices,
-  LucideDynamicIcon,
-  LucideEye,
-  LucideShield,
-  LucideSparkles,
-  LucideWind,
-} from '@lucide/angular';
+import { LucideDices, LucideDynamicIcon } from '@lucide/angular';
 import { TableState } from '../realtime/table-state';
+import { ATTRIBUTE_ICONS } from './attribute-icons';
 import {
   type Attribute,
   ATTRIBUTES,
@@ -23,16 +14,6 @@ import {
   signed,
 } from './sheet-model';
 import { injectSheetRoll } from './sheet-roller';
-
-const ATTRIBUTE_ICONS = {
-  strength: LucideBicepsFlexed,
-  agility: LucideWind,
-  resistance: LucideShield,
-  perception: LucideEye,
-  intelligence: LucideBrain,
-  charisma: LucideSparkles,
-  luck: LucideClover,
-} as const satisfies Record<Attribute, unknown>;
 
 @Component({
   selector: 'app-sheet-attributes',
