@@ -1,0 +1,55 @@
+:host {
+  display: grid;
+  gap: 6px;
+  animation: hint-in var(--duration) var(--ease-out) both;
+}
+
+.text {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--color-text-muted);
+}
+
+.seconds {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.track {
+  height: 2px;
+  overflow: hidden;
+  border-radius: 1px;
+  background: var(--color-border);
+}
+
+.bar {
+  display: block;
+  height: 100%;
+  background: var(--color-text-muted);
+  transform-origin: left center;
+  animation: drain linear both;
+}
+
+@keyframes drain {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+  }
+}

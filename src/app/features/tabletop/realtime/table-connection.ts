@@ -87,7 +87,11 @@ export class TableConnection {
     }
 
     if (!result.ok) {
-      throw new TableActionError(result.error.code, result.error.message);
+      throw new TableActionError(
+        result.error.code,
+        result.error.message,
+        result.error.retryAfterMs,
+      );
     }
     return result.data;
   }

@@ -74,7 +74,7 @@
           <button
             type="button"
             class="die-button"
-            [disabled]="rolling()"
+            [disabled]="rolling() || cooldown.waiting()"
             [attr.aria-label]="'Rolar ' + notation(sides)"
             (click)="roll(sides)"
           >
@@ -93,6 +93,10 @@
           </button>
         }
       </div>
+
+      @if (cooldown.waiting()) {
+        <app-cooldown-hint [cooldown]="cooldown" action="rolar de novo" />
+      }
     </div>
   </app-collapsible>
 

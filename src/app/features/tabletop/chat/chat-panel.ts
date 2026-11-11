@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  signal,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FormControl,
   FormGroup,
@@ -13,6 +21,7 @@ import {
   LucideTrash2,
 } from '@lucide/angular';
 import { parseChatInput } from '../dice/dice-rules';
+import { CooldownHint } from '../panel/cooldown-hint';
 import { TableState } from '../realtime/table-state';
 import { MESSAGE_TEXT_MAX_LENGTH } from '../realtime/table.protocol';
 import { TabletopStore } from '../tabletop.store';
@@ -31,6 +40,7 @@ interface ComposerForm {
   imports: [
     ReactiveFormsModule,
     AudienceSelect,
+    CooldownHint,
     MessageLog,
     LucideEraser,
     LucideLoaderCircle,
@@ -52,6 +62,15 @@ export class ChatPanel {
   protected readonly form: FormGroup<ComposerForm> = inject(NonNullableFormBuilder).group({
     text: ['', [Validators.required, Validators.maxLength(MESSAGE_TEXT_MAX_LENGTH)]],
   });
+
+  private readonly text = toSignal(this.form.controls.text.valueChanges, { initialValue: '' });
+  private readonly isRoll = computed(() => parseChatInput(this.text())?.kind === 'roll');
+  protected readonly cooldown = computed(() =>
+    this.isRoll() ? this.table.diceCooldown : this.table.chatCooldown,
+  );
+  protected readonly cooldownAction = computed(() =>
+    this.isRoll() ? 'rolar de novo' : 'mandar outra mensagem',
+  );
 
   constructor() {
     this.table.markChatRead();
@@ -89,6 +108,10 @@ export class ChatPanel {
     }
     if (command.kind === 'roll' && command.expression === '') {
       this.store.notify('Use /r seguido dos dados, como /r 1d20+5 Luta.');
+      return;
+    }
+    const cooldown = command.kind === 'roll' ? this.table.diceCooldown : this.table.chatCooldown;
+    if (cooldown.waiting()) {
       return;
     }
 

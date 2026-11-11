@@ -1,0 +1,125 @@
+@switch (store.activeTool()) {
+  @case ('draw') {
+    <div class="bar" role="toolbar" aria-label="Opções de desenho" animate.enter="bar-enter">
+      <div class="group" role="radiogroup" aria-label="Forma">
+        @for (shape of shapes; track shape.id) {
+          <button
+            type="button"
+            role="radio"
+            class="option"
+            [class.is-checked]="style().shape === shape.id"
+            [attr.aria-checked]="style().shape === shape.id"
+            [attr.aria-label]="shape.label"
+            [attr.title]="shape.label"
+            (click)="pick({ shape: shape.id })"
+          >
+            <svg [lucideIcon]="shape.icon" [size]="16" />
+          </button>
+        }
+      </div>
+
+      <span class="divider" aria-hidden="true"></span>
+
+      <div class="group" role="radiogroup" aria-label="Cor">
+        @for (color of colors; track color.id) {
+          <button
+            type="button"
+            role="radio"
+            class="option option--swatch"
+            [class.is-checked]="style().color === color.id"
+            [attr.aria-checked]="style().color === color.id"
+            [attr.aria-label]="color.label"
+            [attr.title]="color.label"
+            (click)="pick({ color: color.id })"
+          >
+            <span class="swatch" [style.background]="'var(--draw-' + color.id + ')'"></span>
+          </button>
+        }
+      </div>
+
+      <span class="divider" aria-hidden="true"></span>
+
+      <div class="group" role="radiogroup" aria-label="Espessura">
+        @for (width of widths; track width) {
+          <button
+            type="button"
+            role="radio"
+            class="option"
+            [class.is-checked]="style().width === width"
+            [attr.aria-checked]="style().width === width"
+            [attr.aria-label]="widthLabel[width]"
+            [attr.title]="widthLabel[width]"
+            (click)="pick({ width: width })"
+          >
+            <span
+              class="thickness"
+              [style.width.px]="width + 2"
+              [style.height.px]="width + 2"
+              [style.background]="'var(--draw-' + style().color + ')'"
+            ></span>
+          </button>
+        }
+      </div>
+
+      <span class="divider" aria-hidden="true"></span>
+
+      <button
+        type="button"
+        class="option"
+        aria-label="Desfazer o seu último desenho"
+        title="Desfazer (Ctrl+Z)"
+        [disabled]="!table.hasOwnDrawings()"
+        (click)="undo()"
+      >
+        <svg lucideUndo2 [size]="16" />
+      </button>
+    </div>
+  }
+
+  @case ('erase') {
+    <div class="bar" role="toolbar" aria-label="Opções da borracha" animate.enter="bar-enter">
+      <span class="hint">
+        <svg lucideEraser [size]="14" />
+        {{
+          table.isMaster()
+            ? 'Arraste sobre um desenho para apagar.'
+            : 'Arraste sobre os seus desenhos para apagar.'
+        }}
+      </span>
+
+      <span class="divider" aria-hidden="true"></span>
+
+      <div class="group">
+        <button
+          type="button"
+          class="action"
+          [disabled]="!table.hasOwnDrawings()"
+          (click)="clearMine()"
+        >
+          Apagar os meus
+        </button>
+        @if (table.isMaster()) {
+          <button
+            type="button"
+            class="action"
+            [class.is-confirming]="confirming()"
+            [disabled]="table.drawings().length === 0"
+            (click)="clearAll()"
+          >
+            <svg lucideTrash2 [size]="13" />
+            {{ confirming() ? 'Confirmar' : 'Apagar tudo' }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  @case ('measure') {
+    <div class="bar" role="note" animate.enter="bar-enter">
+      <span class="hint">
+        <svg lucideRuler [size]="14" />
+        Arraste para medir. Cada quadrado vale 1,5 m e a mesa toda vê a sua régua.
+      </span>
+    </div>
+  }
+}

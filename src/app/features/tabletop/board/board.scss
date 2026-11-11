@@ -58,6 +58,7 @@
   gap: 10px;
   padding: 0 12px;
   pointer-events: none;
+  transition: left var(--duration-slow) var(--ease-out);
 }
 
 .hud--zoom {
@@ -107,5 +108,11 @@
   from {
     opacity: 0;
     transform: translateY(8px);
+  }
+}
+
+@media (max-width: 480px) {
+  .hud--status {
+    display: none;
   }
 }

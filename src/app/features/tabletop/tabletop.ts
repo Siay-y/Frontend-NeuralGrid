@@ -9,6 +9,7 @@ import { Presence } from './presence/presence';
 import { TableConnection } from './realtime/table-connection';
 import { TableState } from './realtime/table-state';
 import { Sidebar } from './sidebar/sidebar';
+import { MapToolbar } from './toolbar/map-toolbar';
 import { MAP_TOOLS, TABLE_PANELS } from './tabletop.models';
 import { TabletopStore } from './tabletop.store';
 
@@ -21,7 +22,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
 
 @Component({
   selector: 'app-tabletop',
-  imports: [Board, DiceTray, RollPreviews, Sidebar, TablePanelView, Presence, LucideX],
+  imports: [Board, DiceTray, MapToolbar, RollPreviews, Sidebar, TablePanelView, Presence, LucideX],
   templateUrl: './tabletop.html',
   styleUrl: './tabletop.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,10 +42,17 @@ export class TabletopPage {
   }
 
   protected onKeydown(event: KeyboardEvent): void {
-    if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) {
+    if (event.defaultPrevented || isEditableTarget(event.target)) {
       return;
     }
-    if (isEditableTarget(event.target)) {
+
+    if (this.isUndo(event)) {
+      event.preventDefault();
+      void this.table.undoDrawing();
+      return;
+    }
+
+    if (event.ctrlKey || event.metaKey || event.altKey) {
       return;
     }
 
@@ -71,5 +79,15 @@ export class TabletopPage {
       event.preventDefault();
       this.store.selectTool(tool.id);
     }
+  }
+
+  private isUndo(event: KeyboardEvent): boolean {
+    return (
+      (event.ctrlKey || event.metaKey) &&
+      !event.shiftKey &&
+      !event.altKey &&
+      event.key.toLowerCase() === 'z' &&
+      this.store.activeTool() === 'draw'
+    );
   }
 }

@@ -1,8 +1,14 @@
-<div class="tabletop" [class.is-expanded]="store.sidebarExpanded()">
+<div
+  class="tabletop"
+  [class.is-expanded]="store.sidebarExpanded()"
+  [class.has-panel]="panel() !== null"
+>
   <app-sidebar class="tabletop__sidebar chrome-dark" />
 
   <main class="tabletop__stage">
     <app-board />
+
+    <app-map-toolbar class="tabletop__toolbar chrome-dark" />
 
     <app-dice-tray class="tabletop__tray" />
 

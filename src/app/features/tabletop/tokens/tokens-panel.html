@@ -176,6 +176,7 @@
                 [label]="token.label"
                 [icon]="token.icon"
                 [hidden]="token.hidden"
+                [masked]="table.isMasked(token)"
               />
               <span class="row__text">
                 <span class="row__label">
@@ -191,7 +192,9 @@
                   }
                 </span>
                 <span class="row__meta">
-                  <span class="status-dot" [class.is-online]="isOwnerOnline(token)"></span>
+                  @if (!table.isMasked(token)) {
+                    <span class="status-dot" [class.is-online]="isOwnerOnline(token)"></span>
+                  }
                   <span class="row__meta-text">{{ tokenMeta(token) }}</span>
                 </span>
               </span>

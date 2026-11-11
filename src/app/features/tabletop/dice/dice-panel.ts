@@ -4,6 +4,7 @@ import { toAudience } from '../chat/audience';
 import { AudienceSelect } from '../chat/audience-select';
 import { MessageLog } from '../chat/message-log';
 import { Collapsible } from '../panel/collapsible';
+import { CooldownHint } from '../panel/cooldown-hint';
 import { TableState } from '../realtime/table-state';
 import { TabletopStore } from '../tabletop.store';
 import {
@@ -28,7 +29,7 @@ const SHAPES: Record<(typeof DICE_SIDES)[number], string> = {
 
 @Component({
   selector: 'app-dice-panel',
-  imports: [AudienceSelect, Collapsible, MessageLog, LucideMinus, LucidePlus],
+  imports: [AudienceSelect, Collapsible, CooldownHint, MessageLog, LucideMinus, LucidePlus],
   templateUrl: './dice-panel.html',
   styleUrl: './dice-panel.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -42,6 +43,7 @@ export class DicePanel {
   protected readonly maxQuantity = DICE_QUANTITY_MAX;
   protected readonly quantity = signal(1);
   protected readonly rolling = signal(false);
+  protected readonly cooldown = this.table.diceCooldown;
   protected readonly bonusLimit = BONUS_LIMIT;
   protected readonly bonus = signal(0);
   protected readonly bonusText = computed(() => formatBonus(this.bonus()));
@@ -66,7 +68,7 @@ export class DicePanel {
   }
 
   protected async roll(sides: number): Promise<void> {
-    if (this.rolling()) {
+    if (this.rolling() || this.cooldown.waiting()) {
       return;
     }
     this.rolling.set(true);

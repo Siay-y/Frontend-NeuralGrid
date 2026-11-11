@@ -5,6 +5,7 @@
       [kind]="token().kind"
       [label]="token().label"
       [icon]="token().icon"
+      [masked]="masked()"
     />
     <div class="card__title">
       <p class="card__name">{{ token().label }}</p>
@@ -24,7 +25,9 @@
     <div class="fact">
       <dt>Dono</dt>
       <dd>
-        <span class="status-dot" [class.is-online]="ownerOnline()" aria-hidden="true"></span>
+        @if (!masked()) {
+          <span class="status-dot" [class.is-online]="ownerOnline()" aria-hidden="true"></span>
+        }
         {{ owner() }}
       </dd>
     </div>

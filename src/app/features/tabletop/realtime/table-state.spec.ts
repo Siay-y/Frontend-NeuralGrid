@@ -9,6 +9,7 @@ import {
   TableActionError,
   TableServerEvent,
   type TableSnapshot,
+  type TableDrawing,
   type TableToken,
 } from './table.protocol';
 
@@ -42,6 +43,15 @@ const dante: TableToken = {
   version: 1,
 };
 
+const stroke = (id: string, authorId: string): TableDrawing => ({
+  id,
+  authorId,
+  shape: 'free',
+  color: 'rose',
+  width: 4,
+  points: [0, 0, 1, 1],
+});
+
 const snapshot = (role: 'master' | 'player', id = 'ana'): TableSnapshot => ({
   you: { id, username: id, displayName: id, role },
   tokens: [dante],
@@ -51,6 +61,7 @@ const snapshot = (role: 'master' | 'player', id = 'ana'): TableSnapshot => ({
   ],
   online: ['mestre', 'ana'],
   messages: [],
+  drawings: [],
 });
 
 const message = (id: string, authorId: string): ChatMessage => ({
@@ -245,5 +256,128 @@ describe('TableState', () => {
 
       expect(state.unread()).toBe(1);
     });
+  });
+
+  describe('drawings and rulers', () => {
+    beforeEach(() => {
+      connection.emit(TableServerEvent.Snapshot, {
+        ...snapshot('player'),
+        drawings: [stroke('d1', 'ana'), stroke('d2', 'mestre')],
+      });
+    });
+
+    it('loads the drawings and lets players erase only their own', () => {
+      expect(state.drawings().map((drawing) => drawing.id)).toEqual(['d1', 'd2']);
+      expect(state.canErase(stroke('d1', 'ana'))).toBe(true);
+      expect(state.canErase(stroke('d2', 'mestre'))).toBe(false);
+      expect(state.hasOwnDrawings()).toBe(true);
+    });
+
+    it('adds a drawing once even when the ack and the broadcast both arrive', async () => {
+      const mine = stroke('d3', 'ana');
+      connection.request.mockImplementation(async () => {
+        connection.emit(TableServerEvent.DrawingCreated, mine);
+        return mine;
+      });
+
+      await state.createDrawing({ shape: 'free', color: 'rose', width: 4, points: [0, 0, 1, 1] });
+
+      expect(state.drawings().map((drawing) => drawing.id)).toEqual(['d1', 'd2', 'd3']);
+    });
+
+    it('undoes my last drawing and puts it back if the server refuses', async () => {
+      connection.request.mockRejectedValueOnce(new TableActionError('INTERNAL', 'Falhou.'));
+
+      await state.undoDrawing();
+
+      expect(connection.request).toHaveBeenCalledWith('drawing:erase', { ids: ['d1'] });
+      expect(state.drawings().map((drawing) => drawing.id)).toEqual(['d1', 'd2']);
+      expect(store.notice()?.message).toBe('Falhou.');
+
+      connection.request.mockResolvedValueOnce({ by: 'ana', ids: ['d1'] });
+      await state.undoDrawing();
+      expect(state.drawings().map((drawing) => drawing.id)).toEqual(['d2']);
+      expect(state.hasOwnDrawings()).toBe(false);
+    });
+
+    it('removes drawings erased by someone else', () => {
+      connection.emit(TableServerEvent.DrawingsErased, { by: 'mestre', ids: ['d1', 'd2'] });
+
+      expect(state.drawings()).toEqual([]);
+    });
+
+    it('shows remote rulers until they stop or their owner leaves', () => {
+      const ruler = { by: 'mestre', fromCol: 0, fromRow: 0, toCol: 3, toRow: 1 };
+      connection.emit(TableServerEvent.RulerMoved, ruler);
+      expect(state.rulers()).toEqual([ruler]);
+
+      connection.emit(TableServerEvent.RulerCleared, { by: 'mestre' });
+      expect(state.rulers()).toEqual([]);
+
+      connection.emit(TableServerEvent.RulerMoved, ruler);
+      connection.emit(TableServerEvent.PresenceChanged, { online: ['ana'] });
+      expect(state.rulers()).toEqual([]);
+    });
+
+    it('sends my ruler as a volatile notification', () => {
+      state.moveRuler({ fromCol: 0, fromRow: 0, toCol: 2, toRow: 2 });
+      state.clearRuler();
+
+      expect(connection.notify).toHaveBeenNthCalledWith(1, 'ruler:move', {
+        fromCol: 0,
+        fromRow: 0,
+        toCol: 2,
+        toRow: 2,
+      });
+      expect(connection.notify).toHaveBeenNthCalledWith(2, 'ruler:clear', {});
+    });
+  });
+
+  describe('cooldowns', () => {
+    beforeEach(() => {
+      connection.emit(TableServerEvent.Snapshot, snapshot('player'));
+    });
+
+    it('stops sending locally once the burst is used up', async () => {
+      connection.request.mockImplementation(async (_event, payload) => ({
+        ...message(`m${Math.random()}`, 'ana'),
+        text: (payload as { text: string }).text,
+      }));
+      const audience = { visibility: 'public' as const, recipientId: null };
+
+      const results = [];
+      for (let index = 0; index < 4; index++) {
+        results.push(await state.sendMessage(`oi ${index}`, audience));
+      }
+
+      expect(results).toEqual([true, true, true, false]);
+      expect(connection.request).toHaveBeenCalledTimes(3);
+      expect(state.chatCooldown.waiting()).toBe(true);
+      expect(state.diceCooldown.waiting()).toBe(false);
+    });
+
+    it('waits quietly when the server asks for a pause', async () => {
+      connection.request.mockRejectedValueOnce(new TableActionError('COOLDOWN', 'Aguarde.', 1_500));
+
+      const rolled = await state.rollDice('1d20', null, {
+        visibility: 'public',
+        recipientId: null,
+      });
+
+      expect(rolled).toBeNull();
+      expect(state.diceCooldown.waiting()).toBe(true);
+      expect(state.diceCooldown.seconds()).toBe(2);
+      expect(store.notice()).toBeNull();
+    });
+  });
+
+  it('treats a hidden name as a masked token only for players', () => {
+    const hiddenName = { ...dante, nameHidden: true };
+    connection.emit(TableServerEvent.Snapshot, snapshot('player'));
+    expect(state.isMasked(hiddenName)).toBe(true);
+    expect(state.isMasked(dante)).toBe(false);
+
+    connection.emit(TableServerEvent.Snapshot, snapshot('master', 'mestre'));
+    expect(state.isMasked(hiddenName)).toBe(false);
   });
 });

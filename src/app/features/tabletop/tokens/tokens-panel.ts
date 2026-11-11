@@ -170,6 +170,9 @@ export class TokensPanel {
   }
 
   protected tokenMeta(token: TableToken): string {
+    if (this.table.isMasked(token)) {
+      return 'Identidade oculta';
+    }
     const parts = [this.kindLabel[token.kind]];
     if (token.sex) {
       parts.push(this.sexLabel[token.sex]);

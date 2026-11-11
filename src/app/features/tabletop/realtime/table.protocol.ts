@@ -12,6 +12,11 @@ export const TableClientEvent = {
   SendMessage: 'chat:send',
   RollDice: 'dice:roll',
   ClearChat: 'chat:clear',
+  CreateDrawing: 'drawing:create',
+  EraseDrawings: 'drawing:erase',
+  ClearDrawings: 'drawing:clear',
+  MoveRuler: 'ruler:move',
+  ClearRuler: 'ruler:clear',
 } as const;
 
 export const TableServerEvent = {
@@ -23,6 +28,10 @@ export const TableServerEvent = {
   PresenceChanged: 'presence:changed',
   MessageCreated: 'chat:message',
   ChatCleared: 'chat:cleared',
+  DrawingCreated: 'drawing:created',
+  DrawingsErased: 'drawing:erased',
+  RulerMoved: 'ruler:moved',
+  RulerCleared: 'ruler:cleared',
   SessionExpired: 'session:expired',
 } as const;
 
@@ -72,6 +81,7 @@ export interface TableSnapshot {
   members: TableMember[];
   online: string[];
   messages: ChatMessage[];
+  drawings: TableDrawing[];
 }
 
 export interface TokenPreview {
@@ -90,6 +100,59 @@ export interface TokenDraft {
   nameHidden: boolean;
   ownerId: string | null;
   size: number;
+}
+
+export type DrawingShape = 'free' | 'arrow' | 'rect' | 'ellipse';
+
+export type DrawingColor = 'chalk' | 'rose' | 'peach' | 'butter' | 'mint' | 'sky' | 'lavender';
+
+export const DRAWING_COLORS: readonly { id: DrawingColor; label: string }[] = [
+  { id: 'chalk', label: 'Giz' },
+  { id: 'rose', label: 'Rosa' },
+  { id: 'peach', label: 'Pêssego' },
+  { id: 'butter', label: 'Amarelo' },
+  { id: 'mint', label: 'Menta' },
+  { id: 'sky', label: 'Azul' },
+  { id: 'lavender', label: 'Lavanda' },
+];
+
+export const DRAWING_WIDTHS = [2, 4, 8] as const;
+
+export type DrawingWidth = (typeof DRAWING_WIDTHS)[number];
+
+export const DRAWING_MAX_POINTS = 1000;
+
+export interface DrawingStyle {
+  shape: DrawingShape;
+  color: DrawingColor;
+  width: DrawingWidth;
+}
+
+export interface DrawingDraft extends DrawingStyle {
+  points: number[];
+}
+
+export interface TableDrawing extends DrawingDraft {
+  id: string;
+  authorId: string;
+}
+
+export interface DrawingsErased {
+  by: string;
+  ids: string[];
+}
+
+export type DrawingClearScope = 'mine' | 'all';
+
+export interface RulerSpan {
+  fromCol: number;
+  fromRow: number;
+  toCol: number;
+  toRow: number;
+}
+
+export interface RemoteRuler extends RulerSpan {
+  by: string;
 }
 
 export type MessageVisibility = 'public' | 'gm' | 'whisper';
@@ -143,13 +206,21 @@ export const MESSAGE_TEXT_MAX_LENGTH = 500;
 export const ROLL_LABEL_MAX_LENGTH = 48;
 export const DICE_EXPRESSION_MAX_LENGTH = 64;
 
-export type AckResult<T> =
-  { ok: true; data: T } | { ok: false; error: { code: string; message: string } };
+export interface AckError {
+  code: string;
+  message: string;
+  retryAfterMs?: number;
+}
+
+export type AckResult<T> = { ok: true; data: T } | { ok: false; error: AckError };
+
+export const COOLDOWN_ERROR = 'COOLDOWN';
 
 export class TableActionError extends Error {
   constructor(
     readonly code: string,
     message: string,
+    readonly retryAfterMs = 0,
   ) {
     super(message);
   }
