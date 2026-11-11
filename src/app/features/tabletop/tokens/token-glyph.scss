@@ -25,6 +25,12 @@
   border-color: var(--color-text);
 }
 
+:host([data-kind='unknown']) {
+  border-style: dotted;
+  border-width: 2px;
+  color: var(--color-text-muted);
+}
+
 :host(.is-hidden) {
   opacity: 0.5;
 }

@@ -35,8 +35,27 @@
   @include dark-palette;
 }
 
+:root,
+:root[data-theme='dark'] {
+  --draw-chalk: #f4f4f5;
+  --draw-rose: #f4a6b8;
+  --draw-peach: #f7c09c;
+  --draw-butter: #f3e19b;
+  --draw-mint: #a8e0c2;
+  --draw-sky: #a3cdf2;
+  --draw-lavender: #c5b6f2;
+}
+
 :root[data-theme='light'] {
   color-scheme: light;
+
+  --draw-chalk: #3f3f46;
+  --draw-rose: #e88aa1;
+  --draw-peach: #eba57a;
+  --draw-butter: #d9b950;
+  --draw-mint: #6cc596;
+  --draw-sky: #6aa9e0;
+  --draw-lavender: #a08ce3;
 
   --color-bg: #f4f5f7;
   --color-surface: #ffffff;

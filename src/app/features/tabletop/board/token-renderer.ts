@@ -19,6 +19,7 @@ export interface RenderedToken {
   y: number;
   selected: boolean;
   remote: boolean;
+  masked: boolean;
 }
 
 export interface RenderView {
@@ -131,7 +132,14 @@ export function drawTokens(
     ctx.fillStyle = token.kind === 'agent' ? palette.agentFill : palette.surface;
     ctx.fill();
 
-    if (token.kind !== 'agent') {
+    if (item.masked) {
+      ctx.lineWidth = 2 * dpr;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = palette.stroke;
+      ctx.setLineDash([0.1, 4 * dpr]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    } else if (token.kind !== 'agent') {
       ctx.lineWidth = 1.5 * dpr;
       ctx.strokeStyle = token.kind === 'threat' ? palette.text : palette.stroke;
       ctx.setLineDash(token.kind === 'threat' ? [3 * dpr, 2.5 * dpr] : []);

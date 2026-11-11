@@ -1,13 +1,21 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import type { SessionUser } from '../../../core/auth/auth.models';
 import { RollFeed } from '../dice/roll-feed';
 import { TabletopStore } from '../tabletop.store';
+import { CHAT_COOLDOWN, Cooldown, DICE_COOLDOWN } from './cooldown';
 import { TableConnection } from './table-connection';
 import {
   type ChatMessage,
+  COOLDOWN_ERROR,
+  type DrawingClearScope,
+  type DrawingDraft,
+  type DrawingsErased,
   type MessageAudience,
+  type RemoteRuler,
+  type RulerSpan,
   TableActionError,
   TableClientEvent,
+  type TableDrawing,
   type TableMember,
   TableServerEvent,
   type TableSnapshot,
@@ -51,6 +59,23 @@ function withoutEntry<K, V>(map: ReadonlyMap<K, V>, key: K): ReadonlyMap<K, V> {
   return next;
 }
 
+function restoreDrawings(
+  before: ReadonlyMap<string, TableDrawing>,
+  current: ReadonlyMap<string, TableDrawing>,
+  restored: readonly string[],
+): Map<string, TableDrawing> {
+  const next = new Map<string, TableDrawing>();
+  for (const [id, drawing] of before) {
+    if (current.has(id) || restored.includes(id)) {
+      next.set(id, current.get(id) ?? drawing);
+    }
+  }
+  for (const [id, drawing] of current) {
+    next.set(id, drawing);
+  }
+  return next;
+}
+
 @Injectable()
 export class TableState {
   private readonly connection = inject(TableConnection);
@@ -66,6 +91,8 @@ export class TableState {
   private readonly messageList = signal<readonly ChatMessage[]>([]);
   private readonly unreadCount = signal(0);
   private readonly clearedAt = signal<string | null>(null);
+  private readonly drawingsById = signal<ReadonlyMap<string, TableDrawing>>(new Map());
+  private readonly rulersBy = signal<ReadonlyMap<string, RemoteRuler>>(new Map());
 
   readonly tokens = computed(() => [...this.tokensById().values()]);
   readonly previews = this.previewsById.asReadonly();
@@ -81,6 +108,21 @@ export class TableState {
     return clearedAt ? list.filter((message) => message.createdAt > clearedAt) : list;
   });
   readonly unread = this.unreadCount.asReadonly();
+  readonly chatCooldown = new Cooldown(CHAT_COOLDOWN);
+  readonly diceCooldown = new Cooldown(DICE_COOLDOWN);
+  readonly drawings = computed(() => [...this.drawingsById().values()]);
+  readonly rulers = computed(() => [...this.rulersBy().values()]);
+  readonly hasOwnDrawings = computed(() => {
+    const me = this.self();
+    return !!me && this.drawings().some((drawing) => drawing.authorId === me.id);
+  });
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      this.chatCooldown.dispose();
+      this.diceCooldown.dispose();
+    });
+  }
 
   start(): void {
     this.connection.connect({
@@ -93,6 +135,12 @@ export class TableState {
         this.applyPresence(online),
       [TableServerEvent.MessageCreated]: (message: ChatMessage) => this.receive(message),
       [TableServerEvent.ChatCleared]: ({ by }: { by: string }) => this.applyChatCleared(by),
+      [TableServerEvent.DrawingCreated]: (drawing: TableDrawing) => this.addDrawing(drawing),
+      [TableServerEvent.DrawingsErased]: ({ ids }: DrawingsErased) => this.dropDrawings(ids),
+      [TableServerEvent.RulerMoved]: (ruler: RemoteRuler) =>
+        this.rulersBy.update((rulers) => withEntry(rulers, ruler.by, ruler)),
+      [TableServerEvent.RulerCleared]: ({ by }: { by: string }) =>
+        this.rulersBy.update((rulers) => withoutEntry(rulers, by)),
     });
   }
 
@@ -107,6 +155,72 @@ export class TableState {
   canMove(token: TableToken): boolean {
     const me = this.self();
     return !!me && (me.role === 'master' || token.ownerId === me.id);
+  }
+
+  isMasked(token: TableToken): boolean {
+    return token.nameHidden && !this.isMaster();
+  }
+
+  canErase(drawing: TableDrawing): boolean {
+    const me = this.self();
+    return !!me && (me.role === 'master' || drawing.authorId === me.id);
+  }
+
+  async createDrawing(draft: DrawingDraft): Promise<TableDrawing | null> {
+    return this.attempt(async () => {
+      const drawing = await this.connection.request<TableDrawing>(
+        TableClientEvent.CreateDrawing,
+        draft,
+      );
+      this.addDrawing(drawing);
+      return drawing;
+    });
+  }
+
+  async eraseDrawings(ids: readonly string[]): Promise<boolean> {
+    const before = this.drawingsById();
+    const known = ids.filter((id) => before.has(id));
+    if (known.length === 0) {
+      return false;
+    }
+    this.dropDrawings(known);
+    try {
+      await this.connection.request<DrawingsErased>(TableClientEvent.EraseDrawings, {
+        ids: known,
+      });
+      return true;
+    } catch (error) {
+      this.drawingsById.update((current) => restoreDrawings(before, current, known));
+      this.report(error);
+      return false;
+    }
+  }
+
+  async undoDrawing(): Promise<boolean> {
+    const me = this.self();
+    const last = me
+      ? [...this.drawings()].reverse().find((drawing) => drawing.authorId === me.id)
+      : undefined;
+    return last ? this.eraseDrawings([last.id]) : false;
+  }
+
+  async clearDrawings(scope: DrawingClearScope): Promise<boolean> {
+    const cleared = await this.attempt(async () => {
+      const erased = await this.connection.request<DrawingsErased>(TableClientEvent.ClearDrawings, {
+        scope,
+      });
+      this.dropDrawings(erased.ids);
+      return true;
+    });
+    return cleared ?? false;
+  }
+
+  moveRuler(span: RulerSpan): void {
+    this.connection.notify(TableClientEvent.MoveRuler, span);
+  }
+
+  clearRuler(): void {
+    this.connection.notify(TableClientEvent.ClearRuler, {});
   }
 
   async createToken(draft: TokenDraft, col: number, row: number): Promise<TableToken | null> {
@@ -142,6 +256,9 @@ export class TableState {
   }
 
   async sendMessage(text: string, audience: MessageAudience): Promise<boolean> {
+    if (!this.chatCooldown.tryTake()) {
+      return false;
+    }
     const sent = await this.attempt(async () => {
       const message = await this.connection.request<ChatMessage>(TableClientEvent.SendMessage, {
         text,
@@ -149,7 +266,7 @@ export class TableState {
       });
       this.append(message);
       return true;
-    });
+    }, this.chatCooldown);
     return sent ?? false;
   }
 
@@ -158,6 +275,9 @@ export class TableState {
     label: string | null,
     audience: MessageAudience,
   ): Promise<ChatMessage | null> {
+    if (!this.diceCooldown.tryTake()) {
+      return null;
+    }
     return this.attempt(async () => {
       const message = await this.connection.request<ChatMessage>(TableClientEvent.RollDice, {
         expression,
@@ -168,7 +288,7 @@ export class TableState {
       this.feed.throwDice(message);
       this.feed.show(message);
       return message;
-    });
+    }, this.diceCooldown);
   }
 
   markChatRead(): void {
@@ -232,6 +352,10 @@ export class TableState {
     this.previewsById.set(new Map());
     this.messageList.set(snapshot.messages.slice(-CHAT_MEMORY_LIMIT));
     this.clearedAt.set(readClearedAt(snapshot.you.id));
+    this.drawingsById.set(
+      new Map((snapshot.drawings ?? []).map((drawing) => [drawing.id, drawing])),
+    );
+    this.rulersBy.set(new Map());
     this.synced.set(true);
   }
 
@@ -281,6 +405,18 @@ export class TableState {
     this.store.clearSelection(id);
   }
 
+  private addDrawing(drawing: TableDrawing): void {
+    if (!this.drawingsById().has(drawing.id)) {
+      this.drawingsById.update((drawings) => withEntry(drawings, drawing.id, drawing));
+    }
+  }
+
+  private dropDrawings(ids: readonly string[]): void {
+    this.drawingsById.update((drawings) =>
+      ids.reduce<ReadonlyMap<string, TableDrawing>>((acc, id) => withoutEntry(acc, id), drawings),
+    );
+  }
+
   private applyPreview(preview: TokenPreview): void {
     const token = this.tokensById().get(preview.id);
     if (!token) {
@@ -299,13 +435,22 @@ export class TableState {
       const stale = [...previews.values()].filter((preview) => !ids.has(preview.by));
       return stale.reduce((acc, preview) => withoutEntry(acc, preview.id), previews);
     });
+    this.rulersBy.update((rulers) =>
+      [...rulers.keys()]
+        .filter((by) => !ids.has(by))
+        .reduce<ReadonlyMap<string, RemoteRuler>>((acc, by) => withoutEntry(acc, by), rulers),
+    );
   }
 
-  private async attempt<T>(action: () => Promise<T>): Promise<T | null> {
+  private async attempt<T>(action: () => Promise<T>, cooldown?: Cooldown): Promise<T | null> {
     try {
       return await action();
     } catch (error) {
-      this.report(error);
+      if (cooldown && error instanceof TableActionError && error.code === COOLDOWN_ERROR) {
+        cooldown.hold(error.retryAfterMs);
+      } else {
+        this.report(error);
+      }
       return null;
     }
   }

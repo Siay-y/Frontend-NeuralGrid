@@ -1,0 +1,9 @@
+<span class="sr-only">Muitos envios seguidos. Aguarde alguns segundos para {{ action() }}.</span>
+<span class="text" aria-hidden="true">
+  Aguarde <span class="seconds">{{ cooldown().seconds() }} s</span> para {{ action() }}.
+</span>
+@for (period of [cooldown().period()]; track period.cycle) {
+  <span class="track" aria-hidden="true">
+    <span class="bar" [style.animation-duration.ms]="period.ms"></span>
+  </span>
+}

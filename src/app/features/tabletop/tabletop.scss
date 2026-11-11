@@ -7,7 +7,7 @@
 .tabletop {
   --sidebar-current: var(--sidebar-collapsed);
   --floating-gap: 12px;
-  --board-inset-left: calc(var(--sidebar-collapsed) + var(--floating-gap) * 2);
+  --board-inset-left: calc(var(--sidebar-current) + var(--floating-gap) * 2);
 
   position: relative;
   height: 100%;
@@ -47,6 +47,37 @@
   z-index: 10;
   width: min(var(--panel-width), calc(100% - var(--board-inset-left) - var(--floating-gap)));
   transition: left var(--duration-slow) var(--ease-out);
+}
+
+.tabletop__toolbar {
+  position: absolute;
+  top: 12px;
+  left: calc(var(--sidebar-current) + var(--floating-gap) * 2);
+  z-index: 9;
+  max-width: calc(100% - var(--sidebar-current) - var(--floating-gap) * 2 - 16px);
+  transition: left var(--duration-slow) var(--ease-out);
+
+  .has-panel & {
+    left: calc(var(--sidebar-current) + var(--floating-gap) * 3 + var(--panel-width));
+  }
+}
+
+@media (max-width: 860px) {
+  .tabletop__toolbar,
+  .has-panel .tabletop__toolbar {
+    top: auto;
+    bottom: 64px;
+    left: var(--board-inset-left);
+    right: 16px;
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .tabletop__toolbar,
+  .has-panel .tabletop__toolbar {
+    left: calc(var(--sidebar-collapsed) + var(--floating-gap) * 2);
+  }
 }
 
 .tabletop__presence {

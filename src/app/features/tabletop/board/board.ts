@@ -14,6 +14,12 @@ import {
 import { LucideLocateFixed, LucideMinus, LucidePlus } from '@lucide/angular';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { TableState } from '../realtime/table-state';
+import {
+  DRAWING_MAX_POINTS,
+  type DrawingDraft,
+  type RulerSpan,
+  type TableDrawing,
+} from '../realtime/table.protocol';
 import { type FocusRequest, TabletopStore } from '../tabletop.store';
 import {
   type Camera,
@@ -28,7 +34,22 @@ import {
   ZOOM_STEP,
   zoomAround,
 } from './board-camera';
-import { hitTest, type PlacedToken, snapToCell } from './token-geometry';
+import {
+  type Bounds,
+  drawingBounds,
+  hitsSweep,
+  isMeaningfulShape,
+  simplifyStroke,
+  sweepBounds,
+} from './drawing-geometry';
+import {
+  drawDrawings,
+  drawEraserCursor,
+  drawRuler,
+  readDrawPalette,
+  readOverlayPalette,
+} from './drawing-renderer';
+import { clampToGrid, hitTest, type PlacedToken, snapToCell } from './token-geometry';
 import { TokenHoverCard } from './token-hover-card';
 import { type Point, TokenMotion } from './token-motion';
 import {
@@ -59,6 +80,24 @@ interface TokenDrag {
   lastRow: number;
 }
 
+interface StrokeGesture {
+  pointerId: number;
+  draft: DrawingDraft;
+}
+
+interface EraseGesture {
+  pointerId: number;
+  ids: Set<string>;
+  last: Point;
+}
+
+interface MeasureGesture {
+  pointerId: number;
+  span: RulerSpan;
+  sentAt: number;
+  timer?: ReturnType<typeof setTimeout>;
+}
+
 interface Viewport {
   width: number;
   height: number;
@@ -70,6 +109,16 @@ const MIN_MINOR_LINE_SPACING = 10;
 const HOVER_CARD_GAP_PX = 10;
 const HOVER_CARD_HALF_WIDTH_PX = 118;
 const HOVER_CARD_ROOM_PX = 190;
+const ERASER_RADIUS_PX = 10;
+const STROKE_STEP_PX = 2;
+const STROKE_TOLERANCE_PX = 0.6;
+const RULER_SEND_MS = 80;
+const COORDINATE_PRECISION = 100;
+const HOVER_TOOLS = new Set(['select', 'pan']);
+
+function roundCoordinate(value: number): number {
+  return Math.round(clampToGrid(value) * COORDINATE_PRECISION) / COORDINATE_PRECISION;
+}
 
 @Component({
   selector: 'app-board',
@@ -92,10 +141,19 @@ export class Board {
   protected readonly draggingToken = signal(false);
   protected readonly overMovableToken = signal(false);
   protected readonly hoveredTokenId = signal<string | null>(null);
+  protected readonly gesturing = signal(false);
+  private readonly ownRuler = signal<RulerSpan | null>(null);
   protected readonly hoverCard = computed(() => {
     const id = this.hoveredTokenId();
     const token = id ? this.table.token(id) : undefined;
-    if (!token || this.panning() || this.draggingToken()) {
+    const tool = this.store.activeTool();
+    if (
+      !token ||
+      this.panning() ||
+      this.draggingToken() ||
+      this.gesturing() ||
+      !HOVER_TOOLS.has(tool)
+    ) {
       return null;
     }
     const { x, y, zoom } = this.camera();
@@ -121,6 +179,12 @@ export class Board {
   private context: CanvasRenderingContext2D | null = null;
   private panDrag: PanDrag | null = null;
   private tokenDrag: TokenDrag | null = null;
+  private stroke: StrokeGesture | null = null;
+  private erasing: EraseGesture | null = null;
+  private measuring: MeasureGesture | null = null;
+  private pendingDrafts: DrawingDraft[] = [];
+  private pointer: Point | null = null;
+  private readonly bounds = new WeakMap<TableDrawing, Bounds>();
   private readonly motion = new TokenMotion();
   private placed: PlacedToken[] = [];
   private frame = 0;
@@ -136,6 +200,10 @@ export class Board {
       this.store.selectedTokenId();
       this.table.tokens();
       this.table.previews();
+      this.table.drawings();
+      this.table.rulers();
+      this.table.members();
+      this.ownRuler();
       this.scheduleDraw();
     });
 
@@ -163,18 +231,33 @@ export class Board {
         stopListening();
         cancelAnimationFrame(this.frame);
         cancelAnimationFrame(this.tween);
+        clearTimeout(this.measuring?.timer);
       });
     });
   }
 
   protected onPointerDown(event: PointerEvent): void {
-    const wantsPan = this.store.activeTool() === 'pan' || event.button === 1;
-    if (wantsPan) {
+    const tool = this.store.activeTool();
+    if (tool === 'pan' || event.button === 1) {
       this.startPan(event);
       return;
     }
-    if (this.store.activeTool() === 'select' && event.button === 0) {
-      this.pickToken(event);
+    if (event.button !== 0 || this.stroke || this.erasing || this.measuring) {
+      return;
+    }
+    switch (tool) {
+      case 'select':
+        this.pickToken(event);
+        break;
+      case 'draw':
+        this.startStroke(event);
+        break;
+      case 'erase':
+        this.startErase(event);
+        break;
+      case 'measure':
+        this.startMeasure(event);
+        break;
     }
   }
 
@@ -192,6 +275,22 @@ export class Board {
     const world = this.toWorld(event);
     if (this.tokenDrag?.pointerId === event.pointerId) {
       this.dragTokenTo(world);
+      return;
+    }
+    if (this.store.activeTool() === 'erase') {
+      this.pointer = this.toLocal(event);
+      this.scheduleDraw();
+    }
+    if (this.stroke?.pointerId === event.pointerId) {
+      this.extendStroke(world);
+      return;
+    }
+    if (this.erasing?.pointerId === event.pointerId) {
+      this.sweepErase(world);
+      return;
+    }
+    if (this.measuring?.pointerId === event.pointerId) {
+      this.extendMeasure(world);
       return;
     }
 
@@ -212,13 +311,24 @@ export class Board {
       this.panning.set(false);
       return;
     }
+    const commit = event.type !== 'pointercancel';
     if (this.tokenDrag?.pointerId === event.pointerId) {
-      this.dropToken(event.type !== 'pointercancel');
+      this.dropToken(commit);
+    } else if (this.stroke?.pointerId === event.pointerId) {
+      this.finishStroke(commit);
+    } else if (this.erasing?.pointerId === event.pointerId) {
+      this.finishErase(commit);
+    } else if (this.measuring?.pointerId === event.pointerId) {
+      this.finishMeasure();
     }
   }
 
   protected onPointerLeave(): void {
-    if (!this.panDrag && !this.tokenDrag) {
+    if (this.pointer) {
+      this.pointer = null;
+      this.scheduleDraw();
+    }
+    if (!this.panDrag && !this.tokenDrag && !this.measuring) {
       this.hoveredCell.set(null);
       this.overMovableToken.set(false);
     }
@@ -282,6 +392,180 @@ export class Board {
       lastRow: hit.token.row,
     };
     this.draggingToken.set(true);
+  }
+
+  private capture(event: PointerEvent): void {
+    event.preventDefault();
+    this.canvasRef().nativeElement.setPointerCapture(event.pointerId);
+    this.gesturing.set(true);
+  }
+
+  private cellsPerPixel(): number {
+    return 1 / (CELL_SIZE * this.camera().zoom);
+  }
+
+  private startStroke(event: PointerEvent): void {
+    this.capture(event);
+    const world = this.toWorld(event);
+    const x = roundCoordinate(world.x);
+    const y = roundCoordinate(world.y);
+    const style = this.store.drawingStyle();
+    this.stroke = {
+      pointerId: event.pointerId,
+      draft: { ...style, points: style.shape === 'free' ? [x, y] : [x, y, x, y] },
+    };
+    this.scheduleDraw();
+  }
+
+  private extendStroke(world: Point): void {
+    const draft = this.stroke?.draft;
+    if (!draft) {
+      return;
+    }
+    const x = roundCoordinate(world.x);
+    const y = roundCoordinate(world.y);
+    const { points } = draft;
+    if (draft.shape !== 'free') {
+      points[2] = x;
+      points[3] = y;
+    } else {
+      const lastX = points[points.length - 2];
+      const lastY = points[points.length - 1];
+      if (Math.hypot(x - lastX, y - lastY) < STROKE_STEP_PX * this.cellsPerPixel()) {
+        return;
+      }
+      points.push(x, y);
+    }
+    this.scheduleDraw();
+  }
+
+  private finishStroke(commit: boolean): void {
+    const draft = this.stroke?.draft;
+    this.stroke = null;
+    this.gesturing.set(false);
+    this.scheduleDraw();
+    if (!draft || !commit || !isMeaningfulShape(draft.shape, draft.points)) {
+      return;
+    }
+
+    const points =
+      draft.shape === 'free'
+        ? simplifyStroke(
+            draft.points.length === 2 ? [...draft.points, ...draft.points] : draft.points,
+            STROKE_TOLERANCE_PX * this.cellsPerPixel(),
+            DRAWING_MAX_POINTS,
+          )
+        : draft.points;
+    const pending: DrawingDraft = { ...draft, points };
+    this.pendingDrafts = [...this.pendingDrafts, pending];
+    void this.table.createDrawing(pending).finally(() => {
+      this.pendingDrafts = this.pendingDrafts.filter((item) => item !== pending);
+      this.scheduleDraw();
+    });
+  }
+
+  private startErase(event: PointerEvent): void {
+    this.capture(event);
+    const world = this.toWorld(event);
+    this.erasing = { pointerId: event.pointerId, ids: new Set(), last: world };
+    this.pointer = this.toLocal(event);
+    this.sweepErase(world);
+  }
+
+  private sweepErase(world: Point): void {
+    const erasing = this.erasing;
+    if (!erasing) {
+      return;
+    }
+    const sweep = { x0: erasing.last.x, y0: erasing.last.y, x1: world.x, y1: world.y };
+    const radius = ERASER_RADIUS_PX * this.cellsPerPixel();
+    const area = sweepBounds(sweep, radius);
+    for (const drawing of this.table.drawings()) {
+      if (
+        !erasing.ids.has(drawing.id) &&
+        this.table.canErase(drawing) &&
+        this.boundsOf(drawing).intersects(area) &&
+        hitsSweep(drawing, sweep, radius)
+      ) {
+        erasing.ids.add(drawing.id);
+      }
+    }
+    erasing.last = world;
+    this.scheduleDraw();
+  }
+
+  private boundsOf(drawing: TableDrawing): Bounds {
+    let bounds = this.bounds.get(drawing);
+    if (!bounds) {
+      bounds = drawingBounds(drawing);
+      this.bounds.set(drawing, bounds);
+    }
+    return bounds;
+  }
+
+  private finishErase(commit: boolean): void {
+    const ids = this.erasing?.ids;
+    this.erasing = null;
+    this.gesturing.set(false);
+    this.scheduleDraw();
+    if (commit && ids && ids.size > 0) {
+      void this.table.eraseDrawings([...ids]);
+    }
+  }
+
+  private startMeasure(event: PointerEvent): void {
+    this.capture(event);
+    const world = this.toWorld(event);
+    const col = clampToGrid(Math.floor(world.x));
+    const row = clampToGrid(Math.floor(world.y));
+    const span = { fromCol: col, fromRow: row, toCol: col, toRow: row };
+    this.measuring = { pointerId: event.pointerId, span, sentAt: 0 };
+    this.ownRuler.set(span);
+    this.sendRuler();
+  }
+
+  private extendMeasure(world: Point): void {
+    const measuring = this.measuring;
+    if (!measuring) {
+      return;
+    }
+    const toCol = clampToGrid(Math.floor(world.x));
+    const toRow = clampToGrid(Math.floor(world.y));
+    if (toCol === measuring.span.toCol && toRow === measuring.span.toRow) {
+      return;
+    }
+    measuring.span = { ...measuring.span, toCol, toRow };
+    this.ownRuler.set(measuring.span);
+    this.hoveredCell.set({ col: toCol, row: toRow });
+    this.sendRuler();
+  }
+
+  private sendRuler(): void {
+    const measuring = this.measuring;
+    if (!measuring || measuring.timer) {
+      return;
+    }
+    const wait = measuring.sentAt + RULER_SEND_MS - performance.now();
+    const send = () => {
+      measuring.timer = undefined;
+      measuring.sentAt = performance.now();
+      if (this.measuring === measuring) {
+        this.table.moveRuler(measuring.span);
+      }
+    };
+    if (wait <= 0) {
+      send();
+    } else {
+      measuring.timer = setTimeout(send, wait);
+    }
+  }
+
+  private finishMeasure(): void {
+    clearTimeout(this.measuring?.timer);
+    this.measuring = null;
+    this.gesturing.set(false);
+    this.ownRuler.set(null);
+    this.table.clearRuler();
   }
 
   private dragTokenTo(world: Point): void {
@@ -442,8 +726,10 @@ export class Board {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    const tool = this.store.activeTool();
     const hovered = this.hoveredCell();
-    if (hovered && this.store.activeTool() !== 'pan' && !this.tokenDrag) {
+    const showsHover = tool === 'select' || (tool === 'measure' && !this.measuring);
+    if (hovered && showsHover && !this.tokenDrag) {
       ctx.fillStyle = color('--grid-cell-hover');
       ctx.fillRect(originX + hovered.col * cell, originY + hovered.row * cell, cell, cell);
     }
@@ -451,6 +737,13 @@ export class Board {
     this.drawGrid(ctx, originX, originY, cell, dpr, color);
 
     const view: RenderView = { originX, originY, cell, dpr, zoom };
+    const drawPalette = readDrawPalette(styles);
+    drawDrawings(ctx, this.table.drawings(), view, drawPalette, {
+      cache: true,
+      faded: this.erasing?.ids,
+    });
+    const live = this.stroke ? [...this.pendingDrafts, this.stroke.draft] : this.pendingDrafts;
+    drawDrawings(ctx, live, view, drawPalette, { cache: false });
     const palette = readTokenPalette(styles);
     const previews = this.table.previews();
     const selectedId = this.store.selectedTokenId();
@@ -472,11 +765,31 @@ export class Board {
         y: position.y,
         selected: token.id === selectedId,
         remote: previews.has(token.id),
+        masked: this.table.isMasked(token),
       });
     }
     const draggedId = this.tokenDrag?.id;
     rendered.sort((a, b) => Number(a.token.id === draggedId) - Number(b.token.id === draggedId));
     drawTokens(ctx, rendered, view, palette);
+
+    const overlay = readOverlayPalette(styles);
+    for (const ruler of this.table.rulers()) {
+      drawRuler(ctx, ruler, view, overlay, this.table.member(ruler.by)?.displayName ?? '?');
+    }
+    const ownRuler = this.ownRuler();
+    if (ownRuler) {
+      drawRuler(ctx, ownRuler, view, overlay, null);
+    }
+    if (tool === 'erase' && this.pointer) {
+      drawEraserCursor(
+        ctx,
+        this.pointer.x * dpr,
+        this.pointer.y * dpr,
+        ERASER_RADIUS_PX * dpr,
+        dpr,
+        overlay,
+      );
+    }
 
     return animating;
   }

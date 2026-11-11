@@ -1,4 +1,10 @@
 import { DestroyRef, inject, Injectable, signal } from '@angular/core';
+import {
+  DRAWING_COLORS,
+  DRAWING_WIDTHS,
+  type DrawingShape,
+  type DrawingStyle,
+} from './realtime/table.protocol';
 import type { MapToolId, PanelId } from './tabletop.models';
 
 export interface GridCell {
@@ -17,6 +23,40 @@ export interface FocusRequest extends GridCell {
 }
 
 const NOTICE_DURATION_MS = 4_000;
+const DRAWING_STYLE_KEY = 'neuralgrid.drawing-style';
+const DRAWING_SHAPES: readonly DrawingShape[] = ['free', 'arrow', 'rect', 'ellipse'];
+
+export const DEFAULT_DRAWING_STYLE: DrawingStyle = { shape: 'free', color: 'rose', width: 4 };
+
+export function parseDrawingStyle(raw: string | null): DrawingStyle {
+  try {
+    const value = JSON.parse(raw ?? '{}') as Partial<Record<keyof DrawingStyle, unknown>>;
+    return {
+      shape: DRAWING_SHAPES.find((shape) => shape === value.shape) ?? DEFAULT_DRAWING_STYLE.shape,
+      color:
+        DRAWING_COLORS.find((color) => color.id === value.color)?.id ?? DEFAULT_DRAWING_STYLE.color,
+      width: DRAWING_WIDTHS.find((width) => width === value.width) ?? DEFAULT_DRAWING_STYLE.width,
+    };
+  } catch {
+    return DEFAULT_DRAWING_STYLE;
+  }
+}
+
+function readDrawingStyle(): DrawingStyle {
+  try {
+    return parseDrawingStyle(localStorage.getItem(DRAWING_STYLE_KEY));
+  } catch {
+    return DEFAULT_DRAWING_STYLE;
+  }
+}
+
+function writeDrawingStyle(style: DrawingStyle): void {
+  try {
+    localStorage.setItem(DRAWING_STYLE_KEY, JSON.stringify(style));
+  } catch {
+    return;
+  }
+}
 
 @Injectable()
 export class TabletopStore {
@@ -29,6 +69,7 @@ export class TabletopStore {
   private readonly currentNotice = signal<Notice | null>(null);
   private readonly audience = signal('public');
   private readonly closedSections = signal<ReadonlySet<string>>(new Set());
+  private readonly style = signal<DrawingStyle>(readDrawingStyle());
   private noticeTimer: ReturnType<typeof setTimeout> | undefined;
 
   readonly activeTool = this.tool.asReadonly();
@@ -39,6 +80,7 @@ export class TabletopStore {
   readonly viewCenter = this.center.asReadonly();
   readonly notice = this.currentNotice.asReadonly();
   readonly chatAudience = this.audience.asReadonly();
+  readonly drawingStyle = this.style.asReadonly();
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.noticeTimer));
@@ -66,6 +108,12 @@ export class TabletopStore {
 
   selectTool(tool: MapToolId): void {
     this.tool.set(tool);
+  }
+
+  setDrawingStyle(changes: Partial<DrawingStyle>): void {
+    const next = { ...this.style(), ...changes };
+    this.style.set(next);
+    writeDrawingStyle(next);
   }
 
   togglePanel(panel: PanelId): void {

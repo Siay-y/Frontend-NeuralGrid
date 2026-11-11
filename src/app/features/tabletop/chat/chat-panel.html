@@ -45,8 +45,18 @@
         [attr.maxlength]="maxLength"
         (keydown.enter)="onEnter($event)"
       ></textarea>
-      <button type="submit" class="composer__send" aria-label="Enviar" [disabled]="form.invalid">
-        @if (pending() > 0) {
+      <button
+        type="submit"
+        class="composer__send"
+        [class.is-waiting]="cooldown().waiting()"
+        [attr.aria-label]="
+          cooldown().waiting() ? 'Aguarde ' + cooldown().seconds() + ' segundos' : 'Enviar'
+        "
+        [disabled]="form.invalid || cooldown().waiting()"
+      >
+        @if (cooldown().waiting()) {
+          <span class="composer__seconds">{{ cooldown().seconds() }}</span>
+        } @else if (pending() > 0) {
           <svg lucideLoaderCircle class="spin" [size]="15" />
         } @else {
           <svg lucideSendHorizontal [size]="15" />
@@ -54,9 +64,17 @@
       </button>
     </div>
 
-    <p class="composer__hint">
-      <kbd class="kbd">Enter</kbd> envia · <kbd class="kbd">Shift</kbd> +
-      <kbd class="kbd">Enter</kbd> quebra a linha
-    </p>
+    @if (cooldown().waiting()) {
+      <app-cooldown-hint
+        class="composer__cooldown"
+        [cooldown]="cooldown()"
+        [action]="cooldownAction()"
+      />
+    } @else {
+      <p class="composer__hint">
+        <kbd class="kbd">Enter</kbd> envia · <kbd class="kbd">Shift</kbd> +
+        <kbd class="kbd">Enter</kbd> quebra a linha
+      </p>
+    }
   </form>
 </div>

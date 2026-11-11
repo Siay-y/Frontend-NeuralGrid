@@ -20,6 +20,49 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.3.6',
+    date: '2026-11-10',
+    title: 'Desenho, régua e chat sem spam',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Desenhar no mapa: traço livre, seta, retângulo e círculo, em sete cores pastel e três espessuras. Todos na mesa veem na hora, e os desenhos ficam salvos.',
+      },
+      {
+        kind: 'new',
+        text: 'Borracha: arraste sobre um desenho para apagar. Jogadores apagam os seus; o mestre apaga qualquer um e pode limpar o mapa inteiro.',
+      },
+      {
+        kind: 'new',
+        text: 'Régua: arraste para medir em metros, com 1,5 m por quadrado e a segunda diagonal contando dobrado. A mesa toda vê a sua régua com o seu nome.',
+      },
+      {
+        kind: 'new',
+        text: 'Desfazer o último desenho com o botão da barra ou Ctrl+Z. A cor, a forma e a espessura escolhidas ficam guardadas no seu navegador.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Token com nome oculto agora esconde tudo dos jogadores: aparece com uma interrogação, sem ícone, tipo, sexo, tamanho ou dono até o mestre revelar.',
+      },
+      {
+        kind: 'improved',
+        text: 'Mensagens e rolagens em sequência agora têm um respiro: dá para mandar três seguidas e depois uma a cada 2 segundos. O botão mostra a contagem e uma barrinha indica quanto falta.',
+      },
+      {
+        kind: 'improved',
+        text: 'O chat e os dados contam separado, então esperar para falar não impede de rolar, e vice-versa.',
+      },
+      {
+        kind: 'improved',
+        text: 'O servidor guarda as 500 mensagens mais recentes da mesa, para o histórico não crescer sem fim.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Ao abrir o menu lateral, o indicador de célula no canto do tabuleiro anda junto e não fica mais escondido atrás do menu.',
+      },
+    ],
+  },
+  {
     version: '0.3.5',
     date: '2026-11-10',
     title: 'Painéis em telas estreitas',
