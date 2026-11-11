@@ -82,11 +82,29 @@
   list-style: none;
 }
 
-.card {
+.item {
   display: flex;
   align-items: center;
+  gap: 2px;
+}
+
+.remove {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+
+  &.is-confirming {
+    color: var(--color-inverse-text);
+    background: var(--color-inverse);
+  }
+}
+
+.card {
+  display: flex;
+  flex: 1;
+  align-items: center;
   gap: 10px;
-  width: 100%;
+  min-width: 0;
   padding: 10px 8px;
   border: 1px solid transparent;
   border-radius: var(--radius);
@@ -148,6 +166,10 @@
   text-transform: uppercase;
   vertical-align: 1px;
   color: var(--color-text-muted);
+}
+
+.card__tag--dashed {
+  border-style: dashed;
 }
 
 .card__meta {

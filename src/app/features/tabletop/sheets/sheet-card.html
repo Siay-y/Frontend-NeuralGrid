@@ -1,0 +1,119 @@
+@if (sheet(); as sheet) {
+  @let data = sheet.data;
+  @let status = data.status;
+  @if (open()) {
+    <section
+      id="sheet-card"
+      class="sheet-card__panel"
+      role="dialog"
+      [attr.aria-label]="'Cartão de ' + title(sheet)"
+      animate.enter="card-enter"
+    >
+      <header class="head">
+        <app-brand-mark class="head__mark" [size]="20" />
+        <button
+          type="button"
+          class="icon-button head__close"
+          aria-label="Fechar cartão"
+          (click)="open.set(false)"
+        >
+          <svg lucideX [size]="14" />
+        </button>
+      </header>
+
+      @if (mine().length > 1) {
+        <div class="switcher" role="radiogroup" aria-label="Personagem">
+          @for (option of mine(); track option.id) {
+            <button
+              type="button"
+              role="radio"
+              class="switcher__option"
+              [class.is-checked]="option.id === sheet.id"
+              [attr.aria-checked]="option.id === sheet.id"
+              [attr.title]="title(option)"
+              (click)="pick(option.id)"
+            >
+              <span class="switcher__label">{{ title(option) }}</span>
+            </button>
+          }
+        </div>
+      }
+
+      <div class="identity">
+        <p class="identity__title">{{ title(sheet) }}</p>
+        @if (subtitle(sheet); as line) {
+          <p class="identity__meta">{{ line }}</p>
+        }
+      </div>
+
+      <div class="hp" role="group" aria-label="Pontos de vida">
+        <span class="hp__label">HP</span>
+        <span class="hp__track" aria-hidden="true">
+          <span class="hp__fill" [style.transform]="'scaleX(' + ratio(status.hp) + ')'"></span>
+        </span>
+        <span class="hp__value">{{ status.hp.current }}/{{ status.hp.max }}</span>
+      </div>
+
+      <div class="core">
+        <div class="tile">
+          <span class="tile__label">Movimento</span>
+          <span class="tile__value">{{ status.movement }} m</span>
+          <span class="tile__hint">{{ cells(sheet) }} quadr.</span>
+        </div>
+        <div class="tile tile--end">
+          <span class="tile__label">XP</span>
+          <span class="tile__value">{{ status.xp }}</span>
+        </div>
+        <div class="tile">
+          <span class="tile__label">Dinheiro</span>
+          <span class="tile__value">{{ status.money }}</span>
+        </div>
+        <div class="tile tile--end">
+          <span class="tile__label">Carga</span>
+          <span class="tile__value">{{ load(sheet) }}</span>
+          <span class="tile__hint">de {{ formatWeight(status.carry) }} kg</span>
+        </div>
+        <div class="defense" [attr.aria-label]="'Defesa ' + defense(sheet)">
+          <svg lucideShield [size]="12" aria-hidden="true" />
+          <span class="defense__value">{{ defense(sheet) }}</span>
+        </div>
+      </div>
+
+      <div class="attributes">
+        @for (attribute of attributes; track attribute.id) {
+          @let value = data.attributes[attribute.id];
+          @let mod = modifier(value);
+          <button
+            type="button"
+            class="attribute"
+            [attr.aria-label]="'Rolar ' + attribute.label + ', 1d20 ' + signed(mod)"
+            [attr.title]="attribute.label + ' · d20 ' + signed(mod)"
+            [disabled]="cooldown.waiting()"
+            (click)="test(sheet, attribute)"
+          >
+            <span class="attribute__head">
+              <svg [lucideIcon]="icons[attribute.id]" [size]="12" aria-hidden="true" />
+              {{ attribute.short }}
+            </span>
+            <span class="attribute__value">{{ value }}</span>
+            <span class="attribute__mod">{{ signed(mod) }}</span>
+          </button>
+        }
+      </div>
+      <p class="hint">Clique num atributo para rolar d20 + Mod.</p>
+    </section>
+  }
+
+  <button
+    type="button"
+    class="sheet-card__trigger"
+    aria-controls="sheet-card"
+    [class.is-open]="open()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-label]="open() ? 'Fechar o cartão da ficha' : 'Abrir o cartão da ficha'"
+    [attr.title]="open() ? 'Fechar cartão' : 'Cartão da ficha'"
+    (click)="open.set(!open())"
+  >
+    <svg lucideIdCard [size]="18" />
+  </button>
+}

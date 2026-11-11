@@ -5,7 +5,11 @@
   [attr.aria-controls]="bodyId"
   (click)="toggled.emit()"
 >
+  <ng-content select="[collapsibleLead]" />
   <span class="eyebrow toggle__title">{{ title() }}</span>
+  @if (count() !== null) {
+    <span class="toggle__count">{{ count() }}</span>
+  }
   <svg lucideChevronDown class="toggle__chevron" [size]="14" />
 </button>
 

@@ -134,6 +134,10 @@
   background: var(--color-border);
 }
 
+.gauge__track--unknown {
+  background: repeating-linear-gradient(-45deg, var(--color-border) 0 4px, transparent 4px 8px);
+}
+
 .gauge__fill {
   display: block;
   height: 100%;

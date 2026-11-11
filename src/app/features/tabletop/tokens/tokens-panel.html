@@ -100,118 +100,140 @@
       @if (!table.ready()) {
         <p class="list__empty">Sincronizando com a mesa.</p>
       } @else {
-        <ul class="list__items">
-          @for (token of tokens(); track token.id) {
-            @let sheetId = sheetOf(token);
-            <li
-              class="row"
-              [class.is-selected]="store.selectedTokenId() === token.id"
-              [class.is-hidden]="token.hidden"
-              animate.enter="row-enter"
+        <div class="list__items">
+          @for (group of groups(); track group.id) {
+            <app-collapsible
+              [title]="group.label"
+              [count]="group.tokens.length"
+              [open]="store.isSectionOpen(group.section)"
+              (toggled)="store.toggleSection(group.section)"
             >
-              <button type="button" class="row__main" (click)="locate(token)">
-                <app-token-glyph
-                  [kind]="token.kind"
-                  [label]="token.label"
-                  [icon]="token.icon"
-                  [hidden]="token.hidden"
-                  [masked]="table.isMasked(token)"
-                />
-                <span class="row__text">
-                  <span class="row__label">
-                    <span class="row__name">{{ token.label }}</span>
-                    @if (isMine(token)) {
-                      <span class="tag">seu</span>
-                    }
-                    @if (token.hidden) {
-                      <span class="tag tag--hidden">oculto</span>
-                    }
-                    @if (token.nameHidden && table.isMaster()) {
-                      <span class="tag tag--hidden">???</span>
-                    }
-                  </span>
-                  <span class="row__meta">
-                    @if (!table.isMasked(token)) {
-                      <span class="status-dot" [class.is-online]="isOwnerOnline(token)"></span>
-                    }
-                    <span class="row__meta-text">{{ tokenMeta(token) }}</span>
-                  </span>
-                </span>
-              </button>
+              <span
+                collapsibleLead
+                class="glyph glyph--sm"
+                [attr.data-kind]="group.id"
+                aria-hidden="true"
+              ></span>
+              <ul class="group__items">
+                @for (token of group.tokens; track token.id) {
+                  @let sheetId = sheetOf(token);
+                  <li
+                    class="row"
+                    [class.is-selected]="store.selectedTokenId() === token.id"
+                    [class.is-hidden]="token.hidden"
+                    animate.enter="row-enter"
+                  >
+                    <button type="button" class="row__main" (click)="locate(token)">
+                      <app-token-glyph
+                        [kind]="token.kind"
+                        [label]="token.label"
+                        [icon]="token.icon"
+                        [hidden]="token.hidden"
+                        [masked]="table.isMasked(token)"
+                      />
+                      <span class="row__text">
+                        <span class="row__label">
+                          <span class="row__name">{{ token.label }}</span>
+                          @if (isMine(token)) {
+                            <span class="tag">seu</span>
+                          }
+                          @if (token.hidden) {
+                            <span class="tag tag--hidden">oculto</span>
+                          }
+                          @if (token.nameHidden && table.isMaster()) {
+                            <span class="tag tag--hidden">???</span>
+                          }
+                        </span>
+                        <span class="row__meta">
+                          @if (!table.isMasked(token)) {
+                            <span
+                              class="status-dot"
+                              [class.is-online]="isOwnerOnline(token)"
+                            ></span>
+                          }
+                          <span class="row__meta-text">{{ tokenMeta(token) }}</span>
+                        </span>
+                      </span>
+                    </button>
 
-              <div class="row__actions">
-                @if (sheetId) {
-                  <button
-                    type="button"
-                    class="icon-button row__action"
-                    [attr.aria-label]="'Abrir a ficha de ' + token.label"
-                    title="Abrir ficha"
-                    (click)="store.openSheet(sheetId)"
-                  >
-                    <svg lucideScrollText [size]="15" />
-                  </button>
+                    <div class="row__actions">
+                      @if (sheetId) {
+                        <button
+                          type="button"
+                          class="icon-button row__action"
+                          [attr.aria-label]="'Abrir a ficha de ' + token.label"
+                          title="Abrir ficha"
+                          (click)="store.openSheet(sheetId)"
+                        >
+                          <svg lucideScrollText [size]="15" />
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="icon-button row__action row__action--locate"
+                        [attr.aria-label]="'Localizar ' + token.label"
+                        (click)="locate(token)"
+                      >
+                        <svg lucideLocateFixed [size]="15" />
+                      </button>
+                      @if (table.isMaster()) {
+                        <button
+                          type="button"
+                          class="icon-button row__action"
+                          [class.is-off]="token.hidden"
+                          [attr.aria-label]="
+                            token.hidden
+                              ? 'Mostrar ' + token.label + ' aos jogadores'
+                              : 'Esconder ' + token.label + ' dos jogadores'
+                          "
+                          [attr.title]="
+                            token.hidden ? 'Mostrar aos jogadores' : 'Esconder dos jogadores'
+                          "
+                          (click)="toggleHidden(token)"
+                        >
+                          @if (token.hidden) {
+                            <svg lucideEyeOff [size]="15" />
+                          } @else {
+                            <svg lucideEye [size]="15" />
+                          }
+                        </button>
+                        <button
+                          type="button"
+                          class="icon-button row__action"
+                          [attr.aria-label]="'Editar ' + token.label"
+                          (click)="startEdit(token)"
+                        >
+                          <svg lucideSquarePen [size]="15" />
+                        </button>
+                        <button
+                          type="button"
+                          class="icon-button row__action"
+                          [class.is-confirming]="confirmingDeleteId() === token.id"
+                          [attr.aria-label]="
+                            confirmingDeleteId() === token.id
+                              ? 'Confirmar remoção de ' + token.label
+                              : 'Remover ' + token.label
+                          "
+                          (click)="requestDelete(token)"
+                        >
+                          <svg lucideTrash [size]="15" />
+                        </button>
+                      }
+                    </div>
+                  </li>
                 }
-                <button
-                  type="button"
-                  class="icon-button row__action row__action--locate"
-                  [attr.aria-label]="'Localizar ' + token.label"
-                  (click)="locate(token)"
-                >
-                  <svg lucideLocateFixed [size]="15" />
-                </button>
-                @if (table.isMaster()) {
-                  <button
-                    type="button"
-                    class="icon-button row__action"
-                    [class.is-off]="token.hidden"
-                    [attr.aria-label]="
-                      token.hidden
-                        ? 'Mostrar ' + token.label + ' aos jogadores'
-                        : 'Esconder ' + token.label + ' dos jogadores'
-                    "
-                    [attr.title]="token.hidden ? 'Mostrar aos jogadores' : 'Esconder dos jogadores'"
-                    (click)="toggleHidden(token)"
-                  >
-                    @if (token.hidden) {
-                      <svg lucideEyeOff [size]="15" />
-                    } @else {
-                      <svg lucideEye [size]="15" />
-                    }
-                  </button>
-                  <button
-                    type="button"
-                    class="icon-button row__action"
-                    [attr.aria-label]="'Editar ' + token.label"
-                    (click)="startEdit(token)"
-                  >
-                    <svg lucideSquarePen [size]="15" />
-                  </button>
-                  <button
-                    type="button"
-                    class="icon-button row__action"
-                    [class.is-confirming]="confirmingDeleteId() === token.id"
-                    [attr.aria-label]="
-                      confirmingDeleteId() === token.id
-                        ? 'Confirmar remoção de ' + token.label
-                        : 'Remover ' + token.label
-                    "
-                    (click)="requestDelete(token)"
-                  >
-                    <svg lucideTrash [size]="15" />
-                  </button>
-                }
-              </div>
-            </li>
+              </ul>
+            </app-collapsible>
           } @empty {
-            <li class="list__empty">
+            <p class="list__empty">
               {{
                 table.isMaster()
                   ? 'Nenhum token ainda. Coloque os personagens pela aba Fichas ou crie um token rápido acima.'
                   : 'Nenhum token na mesa. O mestre vai posicionar os agentes em breve.'
               }}
-            </li>
+            </p>
           }
-        </ul>
+        </div>
       }
     </section>
   </div>

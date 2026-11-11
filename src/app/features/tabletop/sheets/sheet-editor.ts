@@ -152,6 +152,10 @@ export class SheetEditor {
     }
   }
 
+  protected toggleFlag(flag: 'hidden' | 'nameHidden' | 'statsHidden'): void {
+    void this.table.updateSheet(this.sheet().id, { [flag]: !this.sheet()[flag] });
+  }
+
   protected assignOwner(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     void this.table.updateSheet(this.sheet().id, { ownerId: value === '' ? null : value });
@@ -175,8 +179,8 @@ export class SheetEditor {
         kind: sheet.kind,
         icon: null,
         sex: this.draft().identity.sex,
-        hidden: false,
-        nameHidden: false,
+        hidden: sheet.hidden,
+        nameHidden: sheet.nameHidden,
         ownerId: sheet.ownerId,
         size: 1,
         sheetId: sheet.id,

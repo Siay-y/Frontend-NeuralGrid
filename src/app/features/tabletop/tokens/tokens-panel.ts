@@ -45,8 +45,24 @@ interface QuickTokenForm {
   hidden: FormControl<boolean>;
 }
 
+type TokenGroupId = TokenKind | 'unknown';
+
+interface TokenGroup {
+  id: TokenGroupId;
+  section: string;
+  label: string;
+  tokens: TableToken[];
+}
+
 const DELETE_CONFIRM_MS = 3_000;
 const KINDS = Object.keys(TOKEN_KIND_LABEL) as TokenKind[];
+const GROUP_LABEL: Record<TokenGroupId, string> = {
+  agent: 'Agentes',
+  npc: 'NPCs',
+  threat: 'Ameaças',
+  unknown: 'Desconhecidos',
+};
+const GROUP_ORDER: readonly TokenGroupId[] = [...KINDS, 'unknown'];
 
 @Component({
   selector: 'app-tokens-panel',
@@ -100,6 +116,17 @@ export class TokensPanel {
   protected readonly tokens = computed(() =>
     [...this.table.tokens()].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR')),
   );
+  protected readonly groups = computed<TokenGroup[]>(() => {
+    const buckets = new Map<TokenGroupId, TableToken[]>();
+    for (const token of this.tokens()) {
+      const id = this.table.isMasked(token) ? 'unknown' : token.kind;
+      buckets.set(id, [...(buckets.get(id) ?? []), token]);
+    }
+    return GROUP_ORDER.flatMap((id) => {
+      const tokens = buckets.get(id);
+      return tokens ? [{ id, section: `tokens-group-${id}`, label: GROUP_LABEL[id], tokens }] : [];
+    });
+  });
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.confirmTimer));
@@ -149,6 +176,11 @@ export class TokensPanel {
   }
 
   protected toggleHidden(token: TableToken): void {
+    const sheetId = this.sheetOf(token);
+    if (sheetId) {
+      void this.table.updateSheet(sheetId, { hidden: !token.hidden });
+      return;
+    }
     void this.table.updateToken(token.id, { hidden: !token.hidden });
   }
 

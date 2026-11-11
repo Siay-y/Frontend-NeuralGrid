@@ -1,5 +1,5 @@
 import type { SessionUser, UserRole } from '../../../core/auth/auth.models';
-import type { CharacterSheet } from '../sheets/sheet-model';
+import type { CharacterSheet, SheetStats } from '../sheets/sheet-model';
 
 export const TABLE_NAMESPACE = 'table';
 export const HANDSHAKE_UNAUTHORIZED = 'UNAUTHORIZED';
@@ -39,6 +39,7 @@ export const TableServerEvent = {
   SheetCreated: 'sheet:created',
   SheetUpdated: 'sheet:updated',
   SheetDeleted: 'sheet:deleted',
+  SheetStats: 'sheet:stats',
   SessionExpired: 'session:expired',
 } as const;
 
@@ -91,6 +92,7 @@ export interface TableSnapshot {
   messages: ChatMessage[];
   drawings: TableDrawing[];
   sheets: CharacterSheet[];
+  sheetStats?: SheetStats[];
 }
 
 export interface TokenPreview {

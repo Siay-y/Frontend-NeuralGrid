@@ -33,25 +33,38 @@
     </div>
   </dl>
 
-  @if (sheet(); as sheet) {
+  @if (vitals(); as vitals) {
     <div class="gauges">
-      @let hp = sheet.data.status.hp;
       <div class="gauge">
         <span class="gauge__label">HP</span>
         <span class="gauge__track">
-          <span class="gauge__fill" [style.transform]="'scaleX(' + ratio(hp) + ')'"></span>
+          <span class="gauge__fill" [style.transform]="'scaleX(' + ratio(vitals.hp) + ')'"></span>
         </span>
-        <span class="gauge__value">{{ hp.current }}/{{ hp.max }}</span>
+        <span class="gauge__value">{{ vitals.hp.current }}/{{ vitals.hp.max }}</span>
       </div>
       <div class="gauge">
         <span class="gauge__label">DEF</span>
-        <span class="gauge__value gauge__value--wide">{{ defense(sheet.data) }}</span>
+        <span class="gauge__value gauge__value--wide">{{ vitals.defense }}</span>
       </div>
-      <p class="gauges__hint">Clique duas vezes para abrir a ficha</p>
+      @if (sheet()) {
+        <p class="gauges__hint">Clique duas vezes para abrir a ficha</p>
+      }
+    </div>
+  } @else if (vitalsHidden()) {
+    <div class="gauges">
+      <div class="gauge">
+        <span class="gauge__label">HP</span>
+        <span class="gauge__track gauge__track--unknown"></span>
+        <span class="gauge__value">???</span>
+      </div>
+      <div class="gauge">
+        <span class="gauge__label">DEF</span>
+        <span class="gauge__value gauge__value--wide">???</span>
+      </div>
     </div>
   }
 
-  @if (mine() || (isMaster() && (token().hidden || token().nameHidden))) {
+  @if (mine() || (isMaster() && (token().hidden || token().nameHidden || sheet()?.statsHidden))) {
     <div class="tags">
       @if (mine()) {
         <span class="tag">seu</span>
@@ -61,6 +74,9 @@
       }
       @if (isMaster() && token().nameHidden) {
         <span class="tag tag--dashed">nome oculto</span>
+      }
+      @if (isMaster() && sheet()?.statsHidden) {
+        <span class="tag tag--dashed">vida oculta</span>
       }
     </div>
   }

@@ -14,6 +14,7 @@ let nextId = 0;
 export class Collapsible {
   readonly title = input.required<string>();
   readonly open = input(true);
+  readonly count = input<number | null>(null);
   readonly toggled = output<void>();
 
   protected readonly bodyId = `collapsible-${++nextId}`;

@@ -27,7 +27,7 @@
       <ul class="list">
         @for (sheet of table.sheets(); track sheet.id) {
           @let data = sheet.data;
-          <li>
+          <li class="item">
             <button type="button" class="card" (click)="store.showSheet(sheet.id)">
               <app-token-glyph [kind]="sheet.kind" [label]="data.identity.name" />
               <span class="card__text">
@@ -38,6 +38,12 @@
                   }
                   @if (placed().has(sheet.id)) {
                     <span class="card__tag">na mesa</span>
+                  }
+                  @if (table.isMaster() && sheet.hidden) {
+                    <span class="card__tag card__tag--dashed">oculta</span>
+                  }
+                  @if (table.isMaster() && sheet.nameHidden) {
+                    <span class="card__tag card__tag--dashed">???</span>
                   }
                 </span>
                 <span class="card__meta">
@@ -59,6 +65,22 @@
                   ></span>
                 </span>
               </span>
+            </button>
+            <button
+              type="button"
+              class="icon-button remove"
+              [class.is-confirming]="confirmingId() === sheet.id"
+              [attr.aria-label]="
+                confirmingId() === sheet.id
+                  ? 'Confirmar exclusão de ' + data.identity.name
+                  : 'Apagar a ficha de ' + data.identity.name
+              "
+              [attr.title]="
+                confirmingId() === sheet.id ? 'Clique de novo para apagar' : 'Apagar ficha'
+              "
+              (click)="remove(sheet)"
+            >
+              <svg lucideTrash2 [size]="15" />
             </button>
           </li>
         } @empty {

@@ -41,7 +41,7 @@
       <div class="linked">
         <svg lucideScrollText class="linked__icon" [size]="16" />
         <p class="linked__text">
-          Nome, tipo, sexo e dono vêm da ficha. Mude lá e o token acompanha.
+          Nome, tipo, sexo, dono e visibilidade vêm da ficha. Mude lá e o token acompanha.
         </p>
         <button type="button" class="button button--ghost" (click)="openSheet(sheet.id)">
           Abrir ficha
@@ -132,33 +132,35 @@
       </div>
     </fieldset>
 
-    <div class="editor__switches">
-      <label class="switch" [class.is-on]="current.hidden">
-        <input type="checkbox" class="sr-only" formControlName="hidden" />
-        <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
-        <span class="switch__text">
-          <span class="switch__title">Esconder dos jogadores</span>
-          <span class="switch__hint">{{
-            current.hidden
-              ? 'Só o mestre vê. Revele quando entrar em cena.'
-              : 'Todos na mesa veem este token.'
-          }}</span>
-        </span>
-      </label>
+    @if (!linkedSheet()) {
+      <div class="editor__switches">
+        <label class="switch" [class.is-on]="current.hidden">
+          <input type="checkbox" class="sr-only" formControlName="hidden" />
+          <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+          <span class="switch__text">
+            <span class="switch__title">Esconder dos jogadores</span>
+            <span class="switch__hint">{{
+              current.hidden
+                ? 'Só o mestre vê. Revele quando entrar em cena.'
+                : 'Todos na mesa veem este token.'
+            }}</span>
+          </span>
+        </label>
 
-      <label class="switch" [class.is-on]="current.nameHidden">
-        <input type="checkbox" class="sr-only" formControlName="nameHidden" />
-        <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
-        <span class="switch__text">
-          <span class="switch__title">Esconder o nome</span>
-          <span class="switch__hint">{{
-            current.nameHidden
-              ? 'Os jogadores veem ??? até você desligar.'
-              : 'Todos veem o nome do token.'
-          }}</span>
-        </span>
-      </label>
-    </div>
+        <label class="switch" [class.is-on]="current.nameHidden">
+          <input type="checkbox" class="sr-only" formControlName="nameHidden" />
+          <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+          <span class="switch__text">
+            <span class="switch__title">Esconder o nome</span>
+            <span class="switch__hint">{{
+              current.nameHidden
+                ? 'Os jogadores veem ??? até você desligar.'
+                : 'Todos veem o nome do token.'
+            }}</span>
+          </span>
+        </label>
+      </div>
+    }
 
     <div class="editor__actions">
       <button type="button" class="button button--ghost" (click)="closed.emit()">Cancelar</button>

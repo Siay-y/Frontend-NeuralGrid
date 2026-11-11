@@ -20,6 +20,41 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.4.1',
+    date: '2026-11-11',
+    title: 'Cartão da ficha e revelação aos poucos',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Cartão da ficha: com o seu personagem na mesa, um botão no canto inferior direito abre um cartão com codinome, HP, Defesa, Movimento, XP, Dinheiro, carga e atributos, sem abrir a ficha inteira. Clique num atributo para rolar d20 + Mod.',
+      },
+      {
+        kind: 'new',
+        text: 'Com mais de um personagem na mesa, o cartão mostra o token que você selecionar e lembra o último que você viu. As abas no topo trocam de personagem e ficam sempre na ordem em que as fichas foram criadas.',
+      },
+      {
+        kind: 'improved',
+        text: 'A lista da aba Tokens agora se divide em Agentes, NPCs e Ameaças, cada um numa seção que abre e fecha com um clique. Cada grupo só aparece quando tem algum token na mesa. Para os jogadores, tokens com identidade oculta ficam em Desconhecidos, para não entregar o tipo.',
+      },
+      {
+        kind: 'improved',
+        text: 'Apagar ficha ficou mais fácil: cada ficha da lista tem uma lixeira. Clique uma vez e confirme com o segundo clique, sem precisar abrir a ficha.',
+      },
+      {
+        kind: 'new',
+        text: 'Destreza entra nos atributos, e as armas também podem atacar com ela.',
+      },
+      {
+        kind: 'new',
+        text: 'Na ficha, o mestre pode esconder o personagem dos jogadores e esconder o nome dele, igual no token. O token ligado obedece na hora, e o olho da aba Tokens muda a ficha também.',
+      },
+      {
+        kind: 'new',
+        text: 'Esconder vida e armadura: revele o chefe aos poucos. Os jogadores veem nome, sexo e tamanho, mas HP e Defesa ficam ??? até o mestre liberar. Depois disso, a vida aparece ao passar o mouse no token e acompanha cada golpe.',
+      },
+    ],
+  },
+  {
     version: '0.4.0',
     date: '2026-11-10',
     title: 'Fichas de personagem',

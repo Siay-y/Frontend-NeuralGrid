@@ -93,9 +93,11 @@ button.segmented__option {
 
 .list__items {
   flex: 1;
-  margin: 0;
-  padding: 0 8px 12px;
   overflow-y: auto;
+}
+
+.group__items {
+  padding: 0 8px 8px;
   list-style: none;
 }
 
@@ -159,7 +161,8 @@ button.segmented__option {
   }
 }
 
-.row__name {
+.row__name,
+.row__meta-text {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -173,16 +176,6 @@ button.segmented__option {
   font-size: 11px;
   color: var(--color-text-muted);
   white-space: nowrap;
-}
-
-.row__meta-text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.status-dot {
-  flex-shrink: 0;
 }
 
 .row__actions {
@@ -213,6 +206,7 @@ button.segmented__option {
 }
 
 .status-dot {
+  flex-shrink: 0;
   width: 6px;
   height: 6px;
   border: 1px solid var(--color-text-subtle);

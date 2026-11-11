@@ -380,6 +380,9 @@ describe('TableState', () => {
       ownerId: 'ana',
       kind: 'agent',
       data: newSheetData('Kian'),
+      hidden: false,
+      nameHidden: false,
+      statsHidden: true,
       version: 1,
     };
 
@@ -419,6 +422,31 @@ describe('TableState', () => {
 
       expect(state.sheet('kian')?.data.status.xp).toBe(0);
       expect(store.notice()?.message).toBe('Não deu.');
+    });
+
+    it('hides a sheet for the master right away', async () => {
+      connection.emit(TableServerEvent.Snapshot, {
+        ...snapshot('master', 'mestre'),
+        sheets: [kian],
+      });
+      connection.request.mockImplementation(async () => ({ ...kian, hidden: true, version: 2 }));
+
+      const saving = state.updateSheet('kian', { hidden: true });
+
+      expect(state.sheet('kian')?.hidden).toBe(true);
+      await saving;
+      expect(connection.request).toHaveBeenCalledWith('sheet:update', { id: 'kian', hidden: true });
+    });
+
+    it('keeps the HP and defense the master revealed, and forgets them when hidden again', () => {
+      connection.emit(TableServerEvent.SheetStats, {
+        id: 'dragao',
+        stats: { id: 'dragao', hp: { current: 80, max: 100 }, defense: 15 },
+      });
+      expect(state.sheetStats('dragao')?.defense).toBe(15);
+
+      connection.emit(TableServerEvent.SheetStats, { id: 'dragao', stats: null });
+      expect(state.sheetStats('dragao')).toBeUndefined();
     });
 
     it('ignores an echo older than what it already has', () => {
