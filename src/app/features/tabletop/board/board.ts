@@ -120,6 +120,23 @@ function roundCoordinate(value: number): number {
   return Math.round(clampToGrid(value) * COORDINATE_PRECISION) / COORDINATE_PRECISION;
 }
 
+const GRID_FADE = { radiusX: 0.75, radiusY: 0.7, solidUntil: 0.3, edgeOpacity: 0.3 };
+
+function fadeGridEdges(ctx: CanvasRenderingContext2D): void {
+  const { width, height } = ctx.canvas;
+  const reach = 1 / Math.min(GRID_FADE.radiusX, GRID_FADE.radiusY);
+  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  gradient.addColorStop(GRID_FADE.solidUntil, '#000');
+  gradient.addColorStop(1, `rgba(0, 0, 0, ${GRID_FADE.edgeOpacity})`);
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.translate(width / 2, height / 2);
+  ctx.scale(width * GRID_FADE.radiusX, height * GRID_FADE.radiusY);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(-reach, -reach, reach * 2, reach * 2);
+  ctx.restore();
+}
+
 @Component({
   selector: 'app-board',
   imports: [LucideLocateFixed, LucideMinus, LucidePlus, TokenHoverCard],
@@ -333,6 +350,17 @@ export class Board {
       this.overMovableToken.set(false);
     }
     this.hoveredTokenId.set(null);
+  }
+
+  protected onDoubleClick(event: MouseEvent): void {
+    if (this.store.activeTool() !== 'select') {
+      return;
+    }
+    const world = this.toWorld(event);
+    const sheet = this.table.sheet(hitTest(this.placed, world.x, world.y)?.token.sheetId ?? null);
+    if (sheet) {
+      this.store.openSheet(sheet.id);
+    }
   }
 
   protected onWheel(event: WheelEvent): void {
@@ -726,6 +754,9 @@ export class Board {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    this.drawGrid(ctx, originX, originY, cell, dpr, color);
+    fadeGridEdges(ctx);
+
     const tool = this.store.activeTool();
     const hovered = this.hoveredCell();
     const showsHover = tool === 'select' || (tool === 'measure' && !this.measuring);
@@ -733,8 +764,6 @@ export class Board {
       ctx.fillStyle = color('--grid-cell-hover');
       ctx.fillRect(originX + hovered.col * cell, originY + hovered.row * cell, cell, cell);
     }
-
-    this.drawGrid(ctx, originX, originY, cell, dpr, color);
 
     const view: RenderView = { originX, originY, cell, dpr, zoom };
     const drawPalette = readDrawPalette(styles);

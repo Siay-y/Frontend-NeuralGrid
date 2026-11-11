@@ -20,6 +20,61 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.4.0',
+    date: '2026-11-10',
+    title: 'Fichas de personagem',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Fichas de personagem: nome, codinome, classe, idade e gênero, HP, XP, Movimento, Dinheiro, Armadura e Defesa, sete atributos, onze habilidades e equipamentos com carga.',
+      },
+      {
+        kind: 'new',
+        text: 'Cada jogador cria e edita as próprias fichas, até cinco. O mestre vê e edita todas, cria NPCs e ameaças e escolhe de quem é cada ficha.',
+      },
+      {
+        kind: 'new',
+        text: 'Digite o valor do atributo e o Mod sai sozinho: (valor − 10) ÷ 2, para baixo. Clique num atributo ou numa habilidade para rolar d20 + Mod, e nas habilidades soma também o bônus que você escrever.',
+      },
+      {
+        kind: 'new',
+        text: 'Tudo salva sozinho enquanto você digita e aparece na hora para o mestre e para o dono da ficha.',
+      },
+      {
+        kind: 'new',
+        text: 'Armas com botão de Ataque (d20 + Mod do atributo + bônus) e de Dano. Armaduras e itens com peso, e a carga mostra quanto você leva perto do limite.',
+      },
+      {
+        kind: 'new',
+        text: 'A Defesa sai sozinha da Armadura + Mod de Resistência e aparece pronta no Status, com o escudo.',
+      },
+      {
+        kind: 'new',
+        text: 'Barra de HP de verdade: clique ou arraste para mudar a vida, use as setas do teclado, e o coração pulsa quando a vida fica baixa. Cada atributo ganhou um ícone que vira dado ao passar o mouse.',
+      },
+      {
+        kind: 'new',
+        text: 'Colocar na mesa: o mestre gera o token direto da ficha. Ao passar o mouse no token aparecem HP e Defesa, e um clique duplo abre a ficha.',
+      },
+      {
+        kind: 'new',
+        text: 'O token ligado a uma ficha segue a ficha: mudou o nome, o codinome, o tipo ou o jogador, o token muda junto para todo mundo.',
+      },
+      {
+        kind: 'improved',
+        text: 'A aba Tokens virou a lista do que está na mesa. Tokens com ficha ganham um atalho para abri-la, e a ficha mostra Localizar na mesa quando já tem token.',
+      },
+      {
+        kind: 'improved',
+        text: 'Token rápido para figurantes, portas e marcadores: só nome, tipo, tamanho e se entra escondido. O resto fica na edição do token, que agora também liga o token a uma ficha.',
+      },
+      {
+        kind: 'improved',
+        text: 'A grade do tabuleiro some aos poucos nas bordas, como na tela de login, e deixa o centro em destaque. Tokens e desenhos continuam nítidos em qualquer lugar.',
+      },
+    ],
+  },
+  {
     version: '0.3.6',
     date: '2026-11-10',
     title: 'Desenho, régua e chat sem spam',

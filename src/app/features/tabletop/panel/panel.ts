@@ -4,12 +4,21 @@ import type { TablePanel } from '../tabletop.models';
 import { TabletopStore } from '../tabletop.store';
 import { ChatPanel } from '../chat/chat-panel';
 import { DicePanel } from '../dice/dice-panel';
+import { SheetsPanel } from '../sheets/sheets-panel';
 import { TokensPanel } from '../tokens/tokens-panel';
 import { UpdatesPanel } from '../updates/updates-panel';
 
 @Component({
   selector: 'app-table-panel',
-  imports: [LucideDynamicIcon, LucideX, ChatPanel, DicePanel, TokensPanel, UpdatesPanel],
+  imports: [
+    LucideDynamicIcon,
+    LucideX,
+    ChatPanel,
+    DicePanel,
+    SheetsPanel,
+    TokensPanel,
+    UpdatesPanel,
+  ],
   templateUrl: './panel.html',
   styleUrl: './panel.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,0 +1,76 @@
+@if (active(); as sheet) {
+  <app-sheet-editor [sheet]="sheet" (closed)="store.showSheet(null)" animate.enter="swap" />
+} @else {
+  <div class="sheets" animate.enter="swap">
+    <header class="head">
+      <div class="head__text">
+        <h3 class="eyebrow">{{ table.isMaster() ? 'Fichas da mesa' : 'Seus personagens' }}</h3>
+        <span class="head__count">{{ table.sheets().length }}</span>
+      </div>
+      <button type="button" class="create" [disabled]="creating() || atLimit()" (click)="create()">
+        @if (creating()) {
+          <svg lucideLoaderCircle class="spin" [size]="14" />
+        } @else {
+          <svg lucidePlus [size]="14" />
+        }
+        Nova ficha
+      </button>
+    </header>
+
+    @if (atLimit()) {
+      <p class="note">Você chegou a {{ perPlayer }} fichas. Apague uma para criar outra.</p>
+    }
+
+    @if (!table.ready()) {
+      <p class="empty">Sincronizando com a mesa.</p>
+    } @else {
+      <ul class="list">
+        @for (sheet of table.sheets(); track sheet.id) {
+          @let data = sheet.data;
+          <li>
+            <button type="button" class="card" (click)="store.showSheet(sheet.id)">
+              <app-token-glyph [kind]="sheet.kind" [label]="data.identity.name" />
+              <span class="card__text">
+                <span class="card__name">
+                  {{ data.identity.name }}
+                  @if (data.identity.codename) {
+                    <span class="card__codename">“{{ data.identity.codename }}”</span>
+                  }
+                  @if (placed().has(sheet.id)) {
+                    <span class="card__tag">na mesa</span>
+                  }
+                </span>
+                <span class="card__meta">
+                  {{ summary(data) }}
+                  @if (table.isMaster()) {
+                    · {{ owner(sheet) }}
+                  }
+                </span>
+              </span>
+              <span
+                class="hp"
+                [attr.title]="'HP ' + data.status.hp.current + '/' + data.status.hp.max"
+              >
+                <span class="hp__value">{{ data.status.hp.current }}/{{ data.status.hp.max }}</span>
+                <span class="bar" aria-hidden="true">
+                  <span
+                    class="bar__fill"
+                    [style.transform]="'scaleX(' + ratio(data.status.hp) + ')'"
+                  ></span>
+                </span>
+              </span>
+            </button>
+          </li>
+        } @empty {
+          <li class="empty">
+            {{
+              table.isMaster()
+                ? 'Nenhuma ficha ainda. Crie NPCs e ameaças aqui, ou espere os jogadores criarem os agentes.'
+                : 'Você ainda não tem personagem. Crie a sua ficha e o mestre coloca o seu agente na mesa.'
+            }}
+          </li>
+        }
+      </ul>
+    }
+  </div>
+}

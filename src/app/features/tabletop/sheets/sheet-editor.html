@@ -1,0 +1,206 @@
+@let data = draft();
+<div class="editor">
+  <header class="top">
+    <button
+      type="button"
+      class="icon-button top__back"
+      aria-label="Voltar para as fichas"
+      (click)="closed.emit()"
+    >
+      <svg lucideArrowLeft [size]="16" />
+    </button>
+    <div class="top__title">
+      <p class="top__name">{{ name() }}</p>
+      <p class="top__meta">
+        {{ kindLabel[sheet().kind] }} · {{ summary() }}
+        @if (data.identity.codename) {
+          · “{{ data.identity.codename }}”
+        }
+      </p>
+    </div>
+    <span class="top__state" [class.is-saving]="saving()" aria-live="polite">
+      {{ saving() ? 'Salvando' : 'Salvo' }}
+    </span>
+  </header>
+
+  @if (placed(); as token) {
+    <div class="actions">
+      <button type="button" class="button button--ghost" (click)="locate(token)">
+        <svg lucideLocateFixed [size]="14" />
+        Localizar na mesa
+      </button>
+    </div>
+  } @else if (table.isMaster()) {
+    <div class="actions">
+      <button type="button" class="button button--primary" [disabled]="placing()" (click)="place()">
+        <svg lucideMapPin [size]="14" />
+        Colocar na mesa
+      </button>
+    </div>
+  }
+
+  <div class="scroll">
+    <app-collapsible title="Identidade" [open]="section('identity')" (toggled)="toggle('identity')">
+      <div class="form">
+        <div class="row">
+          <label class="field field--grow">
+            <span class="field__label">Nome</span>
+            <input
+              class="field__input"
+              type="text"
+              autocomplete="off"
+              [attr.maxlength]="limits.name"
+              [value]="data.identity.name"
+              (input)="typeIdentity('name', $event)"
+            />
+          </label>
+          <label class="field field--grow">
+            <span class="field__label">Codinome</span>
+            <input
+              class="field__input"
+              type="text"
+              autocomplete="off"
+              [attr.maxlength]="limits.short"
+              [value]="data.identity.codename"
+              (input)="typeIdentity('codename', $event)"
+            />
+          </label>
+        </div>
+
+        <div class="row">
+          <label class="field field--grow">
+            <span class="field__label">Classe</span>
+            <input
+              class="field__input"
+              type="text"
+              autocomplete="off"
+              placeholder="Espadachim, médico, atirador..."
+              [attr.maxlength]="limits.short"
+              [value]="data.identity.className"
+              (input)="typeIdentity('className', $event)"
+            />
+          </label>
+          <label class="field field--age">
+            <span class="field__label">Idade</span>
+            <input
+              class="field__input"
+              type="number"
+              inputmode="numeric"
+              [value]="data.identity.age ?? ''"
+              (change)="typeAge($event)"
+            />
+          </label>
+        </div>
+
+        <div class="field" role="radiogroup" aria-label="Gênero">
+          <span class="field__label">Gênero</span>
+          <div class="segmented">
+            @for (sex of sexes; track sex) {
+              <button
+                type="button"
+                role="radio"
+                class="segmented__option"
+                [class.is-checked]="data.identity.sex === sex"
+                [attr.aria-checked]="data.identity.sex === sex"
+                (click)="pickSex(sex)"
+              >
+                {{ sexLabel[sex] }}
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (table.isMaster()) {
+          <div class="row master">
+            <div class="field field--grow" role="radiogroup" aria-label="Tipo">
+              <span class="field__label">Tipo</span>
+              <div class="segmented">
+                @for (kind of kinds; track kind) {
+                  <button
+                    type="button"
+                    role="radio"
+                    class="segmented__option"
+                    [class.is-checked]="sheet().kind === kind"
+                    [attr.aria-checked]="sheet().kind === kind"
+                    (click)="assignKind(kind)"
+                  >
+                    {{ kindLabel[kind] }}
+                  </button>
+                }
+              </div>
+            </div>
+            <label class="field field--grow">
+              <span class="field__label">Jogador</span>
+              <span class="select">
+                <select class="field__input select__control" (change)="assignOwner($event)">
+                  <option value="" [selected]="sheet().ownerId === null">Do mestre</option>
+                  @for (member of table.members(); track member.id) {
+                    <option [value]="member.id" [selected]="sheet().ownerId === member.id">
+                      {{ member.displayName }}
+                    </option>
+                  }
+                </select>
+                <svg lucideChevronDown class="select__icon" [size]="14" />
+              </span>
+            </label>
+          </div>
+        }
+      </div>
+    </app-collapsible>
+
+    <app-collapsible title="Status" [open]="section('status')" (toggled)="toggle('status')">
+      <app-sheet-status
+        [value]="data.status"
+        [attributes]="data.attributes"
+        (changed)="edit('status', $event)"
+      />
+    </app-collapsible>
+
+    <app-collapsible
+      title="Atributos"
+      [open]="section('attributes')"
+      (toggled)="toggle('attributes')"
+    >
+      <app-sheet-attributes
+        [value]="data.attributes"
+        [character]="name()"
+        (changed)="edit('attributes', $event)"
+      />
+    </app-collapsible>
+
+    <app-collapsible title="Habilidades" [open]="section('skills')" (toggled)="toggle('skills')">
+      <app-sheet-skills
+        [value]="data.skills"
+        [attributes]="data.attributes"
+        [character]="name()"
+        (changed)="edit('skills', $event)"
+      />
+    </app-collapsible>
+
+    <app-collapsible
+      title="Equipamentos"
+      [open]="section('equipment')"
+      (toggled)="toggle('equipment')"
+    >
+      <app-sheet-equipment
+        [value]="data.equipment"
+        [attributes]="data.attributes"
+        [carry]="data.status.carry"
+        [character]="name()"
+        (changed)="edit('equipment', $event)"
+      />
+    </app-collapsible>
+
+    <div class="danger">
+      <button
+        type="button"
+        class="danger__button"
+        [class.is-confirming]="confirmingDelete()"
+        (click)="remove()"
+      >
+        <svg lucideTrash2 [size]="13" />
+        {{ confirmingDelete() ? 'Confirmar exclusão' : 'Apagar ficha' }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,60 @@
+.card {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &:focus-within {
+    border-color: var(--color-border-strong);
+  }
+}
+
+.card__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.inline-number {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  outline: none;
+  appearance: textfield;
+  cursor: text;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration) var(--ease-out);
+
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    margin: 0;
+    appearance: none;
+  }
+
+  &:hover {
+    border-color: var(--color-border);
+  }
+
+  &:focus {
+    border-color: var(--color-text-muted);
+    background: var(--color-surface);
+    box-shadow: 0 0 0 3px var(--color-ring);
+  }
+}

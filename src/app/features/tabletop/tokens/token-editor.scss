@@ -1,0 +1,152 @@
+@use '../panel/forms';
+
+:host {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  container-type: inline-size;
+}
+
+.editor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.top__back {
+  width: 32px;
+  height: 32px;
+}
+
+.top__title {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.top__name,
+.top__meta {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.top__name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.top__meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.form {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: 14px;
+  min-height: 0;
+  padding: 14px 16px 16px;
+  overflow-y: auto;
+}
+
+.linked {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px 10px;
+  padding: 12px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface-raised);
+
+  .button {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+}
+
+.linked__icon {
+  margin-top: 1px;
+  color: var(--color-text-muted);
+}
+
+.linked__text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+button.segmented__option {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+  }
+}
+
+.glyph {
+  display: grid;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-text-muted);
+
+  &[data-kind='agent'] {
+    background: var(--color-inverse);
+    border-color: var(--color-inverse);
+  }
+
+  &[data-kind='threat'] {
+    border-style: dashed;
+    border-color: var(--color-text);
+  }
+}
+
+.glyph--sm {
+  width: 10px;
+  height: 10px;
+}
+
+.editor__switches {
+  display: grid;
+  gap: 6px;
+}
+
+.editor__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+@container (max-width: 300px) {
+  .segmented__option {
+    min-width: 0;
+    padding: 0 4px;
+    gap: 4px;
+    font-size: 11px;
+  }
+
+  .glyph--sm {
+    display: none;
+  }
+
+  .editor__actions .button {
+    flex: 1;
+    justify-content: center;
+  }
+}

@@ -33,6 +33,24 @@
     </div>
   </dl>
 
+  @if (sheet(); as sheet) {
+    <div class="gauges">
+      @let hp = sheet.data.status.hp;
+      <div class="gauge">
+        <span class="gauge__label">HP</span>
+        <span class="gauge__track">
+          <span class="gauge__fill" [style.transform]="'scaleX(' + ratio(hp) + ')'"></span>
+        </span>
+        <span class="gauge__value">{{ hp.current }}/{{ hp.max }}</span>
+      </div>
+      <div class="gauge">
+        <span class="gauge__label">DEF</span>
+        <span class="gauge__value gauge__value--wide">{{ defense(sheet.data) }}</span>
+      </div>
+      <p class="gauges__hint">Clique duas vezes para abrir a ficha</p>
+    </div>
+  }
+
   @if (mine() || (isMaster() && (token().hidden || token().nameHidden))) {
     <div class="tags">
       @if (mine()) {

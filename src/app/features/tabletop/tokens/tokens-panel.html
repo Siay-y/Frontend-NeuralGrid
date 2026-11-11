@@ -1,89 +1,51 @@
-<div class="tokens">
-  @if (table.isMaster()) {
-    <app-collapsible
-      [title]="editingId() ? 'Editar token' : 'Novo token'"
-      [open]="store.isSectionOpen(editorSection)"
-      (toggled)="store.toggleSection(editorSection)"
-    >
-      <form class="editor" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <div class="field" [class.is-invalid]="showLabelError()">
-          <label class="field__label" for="token-label">Nome</label>
-          <input
-            id="token-label"
-            class="field__input"
-            type="text"
-            formControlName="label"
-            autocomplete="off"
-            [attr.maxlength]="maxLabel"
-            [attr.aria-invalid]="showLabelError()"
-            aria-describedby="token-label-error"
-          />
-          @if (showLabelError()) {
-            <p id="token-label-error" class="field__error">Dê um nome ao token.</p>
-          }
-        </div>
+@if (editing(); as token) {
+  <app-token-editor [token]="token" (closed)="editingId.set(null)" animate.enter="swap" />
+} @else {
+  <div class="tokens" animate.enter="swap">
+    @if (table.isMaster()) {
+      <app-collapsible
+        title="Token rápido"
+        [open]="store.isSectionOpen(quickSection)"
+        (toggled)="store.toggleSection(quickSection)"
+      >
+        <form class="editor" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <p class="editor__hint">
+            Para figurantes, portas e marcadores. Personagens entram pela aba Fichas.
+          </p>
 
-        <fieldset class="field">
-          <legend class="field__label">Tipo</legend>
-          <div class="segmented" role="radiogroup">
-            @for (kind of kinds; track kind) {
-              <label
-                class="segmented__option"
-                [class.is-checked]="form.controls.kind.value === kind"
-              >
-                <input type="radio" formControlName="kind" [value]="kind" class="sr-only" />
-                <span class="glyph glyph--sm" [attr.data-kind]="kind" aria-hidden="true"></span>
-                {{ kindLabel[kind] }}
-              </label>
+          <div class="field" [class.is-invalid]="showLabelError()">
+            <label class="field__label" for="quick-token-label">Nome</label>
+            <input
+              id="quick-token-label"
+              class="field__input"
+              type="text"
+              formControlName="label"
+              autocomplete="off"
+              placeholder="Cultista, porta, objetivo..."
+              [attr.maxlength]="maxLabel"
+              [attr.aria-invalid]="showLabelError()"
+              aria-describedby="quick-token-label-error"
+            />
+            @if (showLabelError()) {
+              <p id="quick-token-label-error" class="field__error">Dê um nome ao token.</p>
             }
           </div>
-        </fieldset>
 
-        <fieldset class="field">
-          <legend class="field__label">Sexo</legend>
-          <div class="segmented" role="radiogroup">
-            @for (sex of sexes; track sex) {
-              <button
-                type="button"
-                role="radio"
-                class="segmented__option"
-                [class.is-checked]="form.controls.sex.value === sex"
-                [attr.aria-checked]="form.controls.sex.value === sex"
-                (click)="pickSex(sex)"
-              >
-                {{ sexLabel[sex] }}
-              </button>
-            }
-          </div>
-        </fieldset>
-
-        <div class="field">
-          <span class="field__label" id="token-icon-label">Ícone</span>
-          <app-token-icon-picker
-            formControlName="icon"
-            aria-labelledby="token-icon-label"
-            [kind]="draftKind()"
-            [label]="draftLabel()"
-          />
-        </div>
-
-        <div class="editor__row">
-          <div class="field field--grow">
-            <label class="field__label" for="token-owner">Dono</label>
-            <div class="select">
-              <select
-                id="token-owner"
-                class="field__input select__control"
-                formControlName="ownerId"
-              >
-                <option [ngValue]="null">Sem dono</option>
-                @for (member of table.members(); track member.id) {
-                  <option [ngValue]="member.id">{{ member.displayName }}</option>
-                }
-              </select>
-              <svg lucideChevronDown class="select__icon" [size]="14" />
+          <fieldset class="field">
+            <legend class="field__label">Tipo</legend>
+            <div class="segmented" role="radiogroup">
+              @for (kind of kinds; track kind) {
+                <label
+                  class="segmented__option"
+                  [class.is-checked]="form.controls.kind.value === kind"
+                >
+                  <input type="radio" formControlName="kind" [value]="kind" class="sr-only" />
+                  <span class="glyph glyph--sm" [attr.data-kind]="kind" aria-hidden="true"></span>
+                  {{ kindLabel[kind] }}
+                </label>
+              }
             </div>
-          </div>
+          </fieldset>
 
           <fieldset class="field">
             <legend class="field__label">Tamanho</legend>
@@ -99,9 +61,7 @@
               }
             </div>
           </fieldset>
-        </div>
 
-        <div class="editor__switches">
           <label class="switch" [class.is-on]="form.controls.hidden.value">
             <input type="checkbox" class="sr-only" formControlName="hidden" />
             <span class="switch__track" aria-hidden="true"
@@ -111,157 +71,148 @@
               <span class="switch__title">Esconder dos jogadores</span>
               <span class="switch__hint">{{
                 form.controls.hidden.value
-                  ? 'Só o mestre vê. Revele quando entrar em cena.'
-                  : 'Todos na mesa veem este token.'
+                  ? 'Entra escondido. Revele quando entrar em cena.'
+                  : 'Todos na mesa veem o token na hora.'
               }}</span>
             </span>
           </label>
 
-          <label class="switch" [class.is-on]="form.controls.nameHidden.value">
-            <input type="checkbox" class="sr-only" formControlName="nameHidden" />
-            <span class="switch__track" aria-hidden="true"
-              ><span class="switch__thumb"></span
-            ></span>
-            <span class="switch__text">
-              <span class="switch__title">Esconder o nome</span>
-              <span class="switch__hint">{{
-                form.controls.nameHidden.value
-                  ? 'Os jogadores veem ??? até você desligar.'
-                  : 'Todos veem o nome do token.'
-              }}</span>
-            </span>
-          </label>
-        </div>
-
-        <div class="editor__actions">
-          @if (editingId()) {
-            <button type="button" class="button button--ghost" (click)="cancelEdit()">
-              Cancelar
-            </button>
-          }
-          <button type="submit" class="button button--primary" [disabled]="saving()">
-            @if (saving()) {
-              <svg lucideLoaderCircle class="spin" [size]="14" />
-            } @else if (!editingId()) {
-              <svg lucidePlus [size]="14" />
-            }
-            {{ editingId() ? 'Salvar alterações' : 'Adicionar ao tabuleiro' }}
-          </button>
-        </div>
-      </form>
-    </app-collapsible>
-  }
-
-  <section class="list" aria-labelledby="tokens-list-title">
-    <header class="list__header">
-      <h3 id="tokens-list-title" class="eyebrow">Na mesa</h3>
-      <span class="list__count">{{ tokens().length }}</span>
-    </header>
-
-    @if (!table.ready()) {
-      <p class="list__empty">Sincronizando com a mesa.</p>
-    } @else {
-      <ul class="list__items">
-        @for (token of tokens(); track token.id) {
-          <li
-            class="row"
-            [class.is-selected]="store.selectedTokenId() === token.id"
-            [class.is-editing]="editingId() === token.id"
-            [class.is-hidden]="token.hidden"
-            animate.enter="row-enter"
-          >
-            <button type="button" class="row__main" (click)="locate(token)">
-              <app-token-glyph
-                [kind]="token.kind"
-                [label]="token.label"
-                [icon]="token.icon"
-                [hidden]="token.hidden"
-                [masked]="table.isMasked(token)"
-              />
-              <span class="row__text">
-                <span class="row__label">
-                  <span class="row__name">{{ token.label }}</span>
-                  @if (isMine(token)) {
-                    <span class="tag">seu</span>
-                  }
-                  @if (token.hidden) {
-                    <span class="tag tag--hidden">oculto</span>
-                  }
-                  @if (token.nameHidden && table.isMaster()) {
-                    <span class="tag tag--hidden">???</span>
-                  }
-                </span>
-                <span class="row__meta">
-                  @if (!table.isMasked(token)) {
-                    <span class="status-dot" [class.is-online]="isOwnerOnline(token)"></span>
-                  }
-                  <span class="row__meta-text">{{ tokenMeta(token) }}</span>
-                </span>
-              </span>
-            </button>
-
-            <div class="row__actions">
-              <button
-                type="button"
-                class="icon-button row__action row__action--locate"
-                [attr.aria-label]="'Localizar ' + token.label"
-                (click)="locate(token)"
-              >
-                <svg lucideLocateFixed [size]="15" />
-              </button>
-              @if (table.isMaster()) {
-                <button
-                  type="button"
-                  class="icon-button row__action"
-                  [class.is-off]="token.hidden"
-                  [attr.aria-label]="
-                    token.hidden
-                      ? 'Mostrar ' + token.label + ' aos jogadores'
-                      : 'Esconder ' + token.label + ' dos jogadores'
-                  "
-                  [attr.title]="token.hidden ? 'Mostrar aos jogadores' : 'Esconder dos jogadores'"
-                  (click)="toggleHidden(token)"
-                >
-                  @if (token.hidden) {
-                    <svg lucideEyeOff [size]="15" />
-                  } @else {
-                    <svg lucideEye [size]="15" />
-                  }
-                </button>
-                <button
-                  type="button"
-                  class="icon-button row__action"
-                  [attr.aria-label]="'Editar ' + token.label"
-                  (click)="startEdit(token)"
-                >
-                  <svg lucideSquarePen [size]="15" />
-                </button>
-                <button
-                  type="button"
-                  class="icon-button row__action"
-                  [class.is-confirming]="confirmingDeleteId() === token.id"
-                  [attr.aria-label]="
-                    confirmingDeleteId() === token.id
-                      ? 'Confirmar remoção de ' + token.label
-                      : 'Remover ' + token.label
-                  "
-                  (click)="requestDelete(token)"
-                >
-                  <svg lucideTrash [size]="15" />
-                </button>
+          <div class="editor__actions">
+            <button type="submit" class="button button--primary" [disabled]="saving()">
+              @if (saving()) {
+                <svg lucideLoaderCircle class="spin" [size]="14" />
+              } @else {
+                <svg lucidePlus [size]="14" />
               }
-            </div>
-          </li>
-        } @empty {
-          <li class="list__empty">
-            {{
-              table.isMaster()
-                ? 'Nenhum token ainda. Crie o primeiro acima e ele aparece no centro da tela.'
-                : 'Nenhum token na mesa. O mestre vai posicionar os agentes em breve.'
-            }}
-          </li>
-        }
-      </ul>
+              Adicionar ao tabuleiro
+            </button>
+          </div>
+        </form>
+      </app-collapsible>
     }
-  </section>
-</div>
+
+    <section class="list" aria-labelledby="tokens-list-title">
+      <header class="list__header">
+        <h3 id="tokens-list-title" class="eyebrow">Na mesa</h3>
+        <span class="list__count">{{ tokens().length }}</span>
+      </header>
+
+      @if (!table.ready()) {
+        <p class="list__empty">Sincronizando com a mesa.</p>
+      } @else {
+        <ul class="list__items">
+          @for (token of tokens(); track token.id) {
+            @let sheetId = sheetOf(token);
+            <li
+              class="row"
+              [class.is-selected]="store.selectedTokenId() === token.id"
+              [class.is-hidden]="token.hidden"
+              animate.enter="row-enter"
+            >
+              <button type="button" class="row__main" (click)="locate(token)">
+                <app-token-glyph
+                  [kind]="token.kind"
+                  [label]="token.label"
+                  [icon]="token.icon"
+                  [hidden]="token.hidden"
+                  [masked]="table.isMasked(token)"
+                />
+                <span class="row__text">
+                  <span class="row__label">
+                    <span class="row__name">{{ token.label }}</span>
+                    @if (isMine(token)) {
+                      <span class="tag">seu</span>
+                    }
+                    @if (token.hidden) {
+                      <span class="tag tag--hidden">oculto</span>
+                    }
+                    @if (token.nameHidden && table.isMaster()) {
+                      <span class="tag tag--hidden">???</span>
+                    }
+                  </span>
+                  <span class="row__meta">
+                    @if (!table.isMasked(token)) {
+                      <span class="status-dot" [class.is-online]="isOwnerOnline(token)"></span>
+                    }
+                    <span class="row__meta-text">{{ tokenMeta(token) }}</span>
+                  </span>
+                </span>
+              </button>
+
+              <div class="row__actions">
+                @if (sheetId) {
+                  <button
+                    type="button"
+                    class="icon-button row__action"
+                    [attr.aria-label]="'Abrir a ficha de ' + token.label"
+                    title="Abrir ficha"
+                    (click)="store.openSheet(sheetId)"
+                  >
+                    <svg lucideScrollText [size]="15" />
+                  </button>
+                }
+                <button
+                  type="button"
+                  class="icon-button row__action row__action--locate"
+                  [attr.aria-label]="'Localizar ' + token.label"
+                  (click)="locate(token)"
+                >
+                  <svg lucideLocateFixed [size]="15" />
+                </button>
+                @if (table.isMaster()) {
+                  <button
+                    type="button"
+                    class="icon-button row__action"
+                    [class.is-off]="token.hidden"
+                    [attr.aria-label]="
+                      token.hidden
+                        ? 'Mostrar ' + token.label + ' aos jogadores'
+                        : 'Esconder ' + token.label + ' dos jogadores'
+                    "
+                    [attr.title]="token.hidden ? 'Mostrar aos jogadores' : 'Esconder dos jogadores'"
+                    (click)="toggleHidden(token)"
+                  >
+                    @if (token.hidden) {
+                      <svg lucideEyeOff [size]="15" />
+                    } @else {
+                      <svg lucideEye [size]="15" />
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-button row__action"
+                    [attr.aria-label]="'Editar ' + token.label"
+                    (click)="startEdit(token)"
+                  >
+                    <svg lucideSquarePen [size]="15" />
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-button row__action"
+                    [class.is-confirming]="confirmingDeleteId() === token.id"
+                    [attr.aria-label]="
+                      confirmingDeleteId() === token.id
+                        ? 'Confirmar remoção de ' + token.label
+                        : 'Remover ' + token.label
+                    "
+                    (click)="requestDelete(token)"
+                  >
+                    <svg lucideTrash [size]="15" />
+                  </button>
+                }
+              </div>
+            </li>
+          } @empty {
+            <li class="list__empty">
+              {{
+                table.isMaster()
+                  ? 'Nenhum token ainda. Coloque os personagens pela aba Fichas ou crie um token rápido acima.'
+                  : 'Nenhum token na mesa. O mestre vai posicionar os agentes em breve.'
+              }}
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+}

@@ -10,6 +10,7 @@ const token = (overrides: Partial<TableToken>): TableToken => ({
   hidden: false,
   nameHidden: false,
   ownerId: null,
+  sheetId: null,
   col: 0,
   row: 0,
   size: 1,

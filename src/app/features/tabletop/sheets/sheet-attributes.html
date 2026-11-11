@@ -1,0 +1,43 @@
+<div class="section">
+  <div class="attributes">
+    @for (attribute of attributes; track attribute.id) {
+      @let current = mod(attribute.id);
+      <div class="attribute">
+        <button
+          type="button"
+          class="attribute__roll"
+          [attr.aria-label]="'Testar ' + attribute.label + ', ' + formula(attribute.id)"
+          [attr.title]="attribute.label + ' · ' + formula(attribute.id)"
+          [disabled]="cooldown.waiting()"
+          (click)="test(attribute)"
+        >
+          <span class="attribute__icon" aria-hidden="true">
+            <svg class="attribute__glyph" [lucideIcon]="icons[attribute.id]" [size]="16" />
+            <svg class="attribute__dice" lucideDices [size]="16" />
+          </span>
+          <span class="attribute__short">{{ attribute.short }}</span>
+        </button>
+        <input
+          class="number attribute__value"
+          type="number"
+          inputmode="numeric"
+          min="0"
+          max="30"
+          [attr.aria-label]="attribute.label"
+          [value]="value()[attribute.id]"
+          (change)="type(attribute.id, $event)"
+        />
+        <span
+          class="attribute__mod"
+          [class.is-negative]="current < 0"
+          [attr.aria-label]="'Modificador ' + signed(current)"
+          >{{ signed(current) }}</span
+        >
+      </div>
+    }
+  </div>
+  <p class="hint">
+    Digite o valor e o Mod sai sozinho: (valor − 10) ÷ 2, para baixo. Clique no ícone para rolar d20
+    + Mod.
+  </p>
+</div>

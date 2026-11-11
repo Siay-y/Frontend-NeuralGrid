@@ -16,6 +16,10 @@
   &.is-expanded {
     --sidebar-current: var(--sidebar-expanded);
   }
+
+  &.has-wide-panel {
+    --panel-width: 400px;
+  }
 }
 
 @media (max-width: 480px) {

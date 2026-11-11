@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { RollFeed } from '../dice/roll-feed';
 import { TabletopStore } from '../tabletop.store';
+import { type CharacterSheet, newSheetData } from '../sheets/sheet-model';
 import { TableConnection, type ServerEventHandlers } from './table-connection';
 import { TableState } from './table-state';
 import {
@@ -37,6 +38,7 @@ const dante: TableToken = {
   hidden: false,
   nameHidden: false,
   ownerId: 'ana',
+  sheetId: null,
   col: 0,
   row: 0,
   size: 1,
@@ -62,6 +64,7 @@ const snapshot = (role: 'master' | 'player', id = 'ana'): TableSnapshot => ({
   online: ['mestre', 'ana'],
   messages: [],
   drawings: [],
+  sheets: [],
 });
 
 const message = (id: string, authorId: string): ChatMessage => ({
@@ -368,6 +371,81 @@ describe('TableState', () => {
       expect(state.diceCooldown.waiting()).toBe(true);
       expect(state.diceCooldown.seconds()).toBe(2);
       expect(store.notice()).toBeNull();
+    });
+  });
+
+  describe('sheets', () => {
+    const kian: CharacterSheet = {
+      id: 'kian',
+      ownerId: 'ana',
+      kind: 'agent',
+      data: newSheetData('Kian'),
+      version: 1,
+    };
+
+    beforeEach(() => {
+      connection.emit(TableServerEvent.Snapshot, { ...snapshot('player'), sheets: [kian] });
+    });
+
+    it('loads my sheets and counts them toward the limit', () => {
+      expect(state.sheet('kian')?.data.identity.name).toBe('Kian');
+      expect(state.ownSheetCount()).toBe(1);
+    });
+
+    it('shows an edit right away and keeps what the server saved', async () => {
+      const hurt = { ...kian.data.status, hp: { current: 3, max: 20 } };
+      let seenWhileSaving: number | undefined;
+      connection.request.mockImplementation(async () => {
+        seenWhileSaving = state.sheet('kian')?.data.status.hp.current;
+        return { ...kian, data: { ...kian.data, status: hurt }, version: 2 };
+      });
+
+      await state.updateSheet('kian', { data: { status: hurt } });
+
+      expect(seenWhileSaving).toBe(3);
+      expect(connection.request).toHaveBeenCalledWith('sheet:update', {
+        id: 'kian',
+        data: { status: hurt },
+      });
+      expect(state.sheet('kian')?.version).toBe(2);
+    });
+
+    it('puts the sheet back when the server refuses an edit', async () => {
+      connection.request.mockRejectedValueOnce(new TableActionError('INVALID_SHEET', 'Não deu.'));
+
+      await state.updateSheet('kian', {
+        data: { status: { ...kian.data.status, xp: 300 } },
+      });
+
+      expect(state.sheet('kian')?.data.status.xp).toBe(0);
+      expect(store.notice()?.message).toBe('Não deu.');
+    });
+
+    it('ignores an echo older than what it already has', () => {
+      connection.emit(TableServerEvent.SheetUpdated, { ...kian, version: 3 });
+      connection.emit(TableServerEvent.SheetUpdated, {
+        ...kian,
+        data: newSheetData('Velho'),
+        version: 2,
+      });
+
+      expect(state.sheet('kian')?.version).toBe(3);
+      expect(state.sheet('kian')?.data.identity.name).toBe('Kian');
+    });
+
+    it('closes the open sheet when it is deleted elsewhere', () => {
+      store.openSheet('kian');
+      connection.emit(TableServerEvent.SheetDeleted, { id: 'kian' });
+
+      expect(state.sheet('kian')).toBeUndefined();
+      expect(store.activeSheetId()).toBeNull();
+    });
+
+    it('unlinks the tokens of a deleted sheet', () => {
+      connection.emit(TableServerEvent.TokenUpdated, { ...dante, sheetId: 'kian', version: 2 });
+      connection.emit(TableServerEvent.SheetDeleted, { id: 'kian' });
+
+      expect(state.token('dante')?.sheetId).toBeNull();
     });
   });
 

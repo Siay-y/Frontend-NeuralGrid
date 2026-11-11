@@ -49,8 +49,7 @@ export const TABLE_PANELS: Readonly<Record<PanelId, TablePanel>> = {
   sheets: {
     id: 'sheets',
     label: 'Fichas',
-    description:
-      'As fichas dos personagens da mesa vão aparecer aqui, sincronizadas em tempo real.',
+    description: 'Fichas dos agentes, NPCs e ameaças, sincronizadas em tempo real.',
     icon: LucideScrollText,
   },
   dice: {

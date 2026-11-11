@@ -1,4 +1,5 @@
 import type { SessionUser, UserRole } from '../../../core/auth/auth.models';
+import type { CharacterSheet } from '../sheets/sheet-model';
 
 export const TABLE_NAMESPACE = 'table';
 export const HANDSHAKE_UNAUTHORIZED = 'UNAUTHORIZED';
@@ -17,6 +18,9 @@ export const TableClientEvent = {
   ClearDrawings: 'drawing:clear',
   MoveRuler: 'ruler:move',
   ClearRuler: 'ruler:clear',
+  CreateSheet: 'sheet:create',
+  UpdateSheet: 'sheet:update',
+  DeleteSheet: 'sheet:delete',
 } as const;
 
 export const TableServerEvent = {
@@ -32,6 +36,9 @@ export const TableServerEvent = {
   DrawingsErased: 'drawing:erased',
   RulerMoved: 'ruler:moved',
   RulerCleared: 'ruler:cleared',
+  SheetCreated: 'sheet:created',
+  SheetUpdated: 'sheet:updated',
+  SheetDeleted: 'sheet:deleted',
   SessionExpired: 'session:expired',
 } as const;
 
@@ -63,6 +70,7 @@ export interface TableToken {
   hidden: boolean;
   nameHidden: boolean;
   ownerId: string | null;
+  sheetId: string | null;
   col: number;
   row: number;
   size: number;
@@ -82,6 +90,7 @@ export interface TableSnapshot {
   online: string[];
   messages: ChatMessage[];
   drawings: TableDrawing[];
+  sheets: CharacterSheet[];
 }
 
 export interface TokenPreview {
@@ -100,6 +109,7 @@ export interface TokenDraft {
   nameHidden: boolean;
   ownerId: string | null;
   size: number;
+  sheetId?: string | null;
 }
 
 export type DrawingShape = 'free' | 'arrow' | 'rect' | 'ellipse';
