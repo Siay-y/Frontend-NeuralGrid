@@ -11,7 +11,7 @@ import {
   TableServerEvent,
 } from './table.protocol';
 
-export type ConnectionStatus = 'connecting' | 'online' | 'reconnecting' | 'offline';
+export type ConnectionStatus = 'connecting' | 'online' | 'reconnecting' | 'offline' | 'limited';
 
 export type ServerEventHandlers = Partial<Record<string, (payload: never) => void>>;
 
@@ -46,9 +46,11 @@ export class TableConnection {
     this.socket = socket;
 
     socket.on('connect', () => this.state.set('online'));
-    socket.on('disconnect', (reason) =>
-      this.state.set(reason === 'io client disconnect' ? 'offline' : 'reconnecting'),
-    );
+    socket.on('disconnect', (reason) => {
+      if (this.state() !== 'limited') {
+        this.state.set(reason === 'io client disconnect' ? 'offline' : 'reconnecting');
+      }
+    });
     socket.on('connect_error', (error) => {
       if (error.message === HANDSHAKE_UNAUTHORIZED) {
         this.auth.logout('expired');
@@ -57,6 +59,7 @@ export class TableConnection {
       this.state.set('reconnecting');
     });
     socket.on(TableServerEvent.SessionExpired, () => this.auth.logout('expired'));
+    socket.on(TableServerEvent.ConnectionLimit, () => this.state.set('limited'));
 
     for (const [event, handler] of Object.entries(handlers)) {
       if (handler) {

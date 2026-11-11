@@ -1,8 +1,10 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { Subject } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 import type { SessionUser } from '../../../core/auth/auth.models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { LoginPage } from './login';
@@ -22,6 +24,8 @@ describe('LoginPage', () => {
       imports: [LoginPage],
       providers: [
         provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: AuthService, useValue: { login, signOutReason: signal(null) } },
       ],
     }).compileComponents();
@@ -42,6 +46,12 @@ describe('LoginPage', () => {
     element.querySelector<HTMLFormElement>('form')!.dispatchEvent(new Event('submit'));
     await fixture.whenStable();
   };
+
+  it('wakes the server as soon as the page opens', () => {
+    const wake = TestBed.inject(HttpTestingController).expectOne(`${environment.apiUrl}/health/db`);
+    expect(wake.request.method).toBe('GET');
+    wake.flush({ status: 'ok', database: 'up' });
+  });
 
   it('requires both fields before calling the API', async () => {
     await submit();

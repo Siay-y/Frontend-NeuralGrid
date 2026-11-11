@@ -8,6 +8,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormControl,
@@ -29,6 +30,7 @@ import {
   LucideUser,
 } from '@lucide/angular';
 import { finalize } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth/auth.service';
 import { AUTHOR } from '../../../core/release/credits';
 import { APP_VERSION } from '../../../core/release/release-notes';
@@ -92,6 +94,9 @@ export class LoginPage {
   );
 
   constructor() {
+    inject(HttpClient)
+      .get(`${environment.apiUrl}/health/db`)
+      .subscribe({ error: () => undefined });
     this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.error.set(null));
   }
 
