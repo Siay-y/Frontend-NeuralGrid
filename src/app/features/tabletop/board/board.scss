@@ -24,6 +24,10 @@
     cursor: grab;
   }
 
+  &.is-adjusting-map .board__canvas {
+    cursor: move;
+  }
+
   &.is-panning .board__canvas,
   &.is-dragging-token .board__canvas {
     cursor: grabbing;
@@ -63,6 +67,38 @@
 
 .hud--zoom {
   right: 16px;
+}
+
+.hud--upload {
+  top: 16px;
+  bottom: auto;
+  left: 50%;
+  margin-left: -90px;
+  justify-content: center;
+  width: 180px;
+  font-size: 12px;
+  pointer-events: none;
+  animation-delay: 0ms;
+}
+
+.board__drop {
+  position: absolute;
+  inset: 8px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--color-text-muted);
+  border-radius: var(--radius);
+  background: var(--grid-cell-hover);
+  pointer-events: none;
+}
+
+.board__drop-label {
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-float);
+  font-size: 13px;
 }
 
 .hud__key {

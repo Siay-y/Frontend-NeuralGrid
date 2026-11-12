@@ -23,6 +23,9 @@ import {
   type TableToken,
   type TokenDraft,
   type TokenPreview,
+  type AreaChanges,
+  type TableMap,
+  type TableScene,
 } from './table.protocol';
 
 export const CHAT_MEMORY_LIMIT = 200;
@@ -96,8 +99,12 @@ export class TableState {
   private readonly rulersBy = signal<ReadonlyMap<string, RemoteRuler>>(new Map());
   private readonly sheetsById = signal<ReadonlyMap<string, CharacterSheet>>(new Map());
   private readonly statsById = signal<ReadonlyMap<string, SheetStats>>(new Map());
+  private readonly mapsById = signal<ReadonlyMap<string, TableMap>>(new Map());
+  private readonly sceneState = signal<TableScene | null>(null);
 
   readonly tokens = computed(() => [...this.tokensById().values()]);
+  readonly maps = computed(() => [...this.mapsById().values()]);
+  readonly scene = this.sceneState.asReadonly();
   readonly previews = this.previewsById.asReadonly();
   readonly members = this.memberList.asReadonly();
   readonly onlineIds = this.online.asReadonly();
@@ -159,6 +166,12 @@ export class TableState {
       [TableServerEvent.SheetDeleted]: ({ id }: { id: string }) => this.removeSheet(id),
       [TableServerEvent.SheetStats]: ({ id, stats }: { id: string; stats: SheetStats | null }) =>
         this.statsById.update((all) => (stats ? withEntry(all, id, stats) : withoutEntry(all, id))),
+      [TableServerEvent.MapCreated]: (map: TableMap) => this.upsertMap(map),
+      [TableServerEvent.MapUpdated]: (map: TableMap) => this.upsertMap(map),
+      [TableServerEvent.MapDeleted]: ({ id }: { id: string }) =>
+        this.mapsById.update((maps) => withoutEntry(maps, id)),
+      [TableServerEvent.SceneChanged]: ({ scene }: { scene: TableScene | null }) =>
+        this.applyScene(scene),
     });
   }
 
@@ -237,6 +250,39 @@ export class TableState {
     const removed = await this.attempt(async () => {
       await this.connection.request(TableClientEvent.DeleteSheet, { id });
       this.removeSheet(id);
+      return true;
+    });
+    return removed ?? false;
+  }
+
+  addMap(map: TableMap): void {
+    this.upsertMap(map);
+  }
+
+  async renameMap(id: string, name: string): Promise<TableMap | null> {
+    return this.mapRequest(TableClientEvent.RenameMap, { id, name });
+  }
+
+  async updateArea(id: string, changes: AreaChanges): Promise<TableMap | null> {
+    return this.mapRequest(TableClientEvent.UpdateArea, { id, ...changes });
+  }
+
+  async deleteArea(id: string): Promise<TableMap | null> {
+    return this.mapRequest(TableClientEvent.DeleteArea, { id });
+  }
+
+  async activateMap(id: string | null): Promise<boolean> {
+    const done = await this.attempt(async () => {
+      await this.connection.request(TableClientEvent.ActivateMap, { id });
+      return true;
+    });
+    return done ?? false;
+  }
+
+  async deleteMap(id: string): Promise<boolean> {
+    const removed = await this.attempt(async () => {
+      await this.connection.request(TableClientEvent.DeleteMap, { id });
+      this.mapsById.update((maps) => withoutEntry(maps, id));
       return true;
     });
     return removed ?? false;
@@ -443,6 +489,8 @@ export class TableState {
     this.rulersBy.set(new Map());
     this.sheetsById.set(new Map((snapshot.sheets ?? []).map((sheet) => [sheet.id, sheet])));
     this.statsById.set(new Map((snapshot.sheetStats ?? []).map((stats) => [stats.id, stats])));
+    this.mapsById.set(new Map((snapshot.maps ?? []).map((map) => [map.id, map])));
+    this.applyScene(snapshot.scene ?? null);
     this.synced.set(true);
   }
 
@@ -498,6 +546,32 @@ export class TableState {
       return;
     }
     this.sheetsById.update((sheets) => withEntry(sheets, sheet.id, sheet));
+  }
+
+  private upsertMap(map: TableMap): void {
+    this.mapsById.update((maps) => withEntry(maps, map.id, map));
+  }
+
+  private async mapRequest(event: string, payload: object): Promise<TableMap | null> {
+    return this.attempt(async () => {
+      const map = await this.connection.request<TableMap>(event, payload);
+      this.upsertMap(map);
+      return map;
+    });
+  }
+
+  private applyScene(scene: TableScene | null): void {
+    this.sceneState.set(scene);
+    this.mapsById.update((maps) => {
+      let next = maps;
+      for (const map of maps.values()) {
+        const active = map.id === scene?.id;
+        if (map.active !== active) {
+          next = withEntry(next, map.id, { ...map, active });
+        }
+      }
+      return next;
+    });
   }
 
   private removeSheet(id: string): void {

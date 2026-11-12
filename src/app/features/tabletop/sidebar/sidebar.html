@@ -52,7 +52,7 @@
 
     <section class="group" aria-labelledby="group-table">
       <p id="group-table" class="eyebrow group__label">Mesa</p>
-      @for (panel of shortcuts; track panel.id) {
+      @for (panel of shortcuts(); track panel.id) {
         <button
           type="button"
           class="item"

@@ -55,7 +55,9 @@ export class Sidebar {
   protected readonly table = inject(TableState);
 
   protected readonly tools = MAP_TOOLS;
-  protected readonly shortcuts = SHORTCUT_PANELS;
+  protected readonly shortcuts = computed(() =>
+    SHORTCUT_PANELS.filter((panel) => panel.id !== 'maps' || this.table.isMaster()),
+  );
   protected readonly settings = TABLE_PANELS.settings;
   protected readonly updates = TABLE_PANELS.updates;
 

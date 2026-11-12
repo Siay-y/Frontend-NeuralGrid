@@ -12,12 +12,20 @@ import { TableState } from './realtime/table-state';
 import { Sidebar } from './sidebar/sidebar';
 import { MapToolbar } from './toolbar/map-toolbar';
 import { MAP_TOOLS, TABLE_PANELS } from './tabletop.models';
+import { MapApi } from './maps/map-api';
+import { MapScene } from './maps/map-scene';
+import { MapUploader } from './maps/map-uploader';
 import { TabletopStore } from './tabletop.store';
 
+const NON_TEXT_INPUTS = new Set(['checkbox', 'radio', 'range', 'button', 'submit', 'file']);
+
 function isEditableTarget(target: EventTarget | null): boolean {
+  if (target instanceof HTMLInputElement) {
+    return !NON_TEXT_INPUTS.has(target.type);
+  }
   return (
     target instanceof HTMLElement &&
-    (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+    (target.isContentEditable || ['TEXTAREA', 'SELECT'].includes(target.tagName))
   );
 }
 
@@ -37,8 +45,12 @@ function isEditableTarget(target: EventTarget | null): boolean {
   templateUrl: './tabletop.html',
   styleUrl: './tabletop.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [TabletopStore, TableConnection, RollFeed, TableState],
-  host: { '(document:keydown)': 'onKeydown($event)' },
+  providers: [TabletopStore, TableConnection, RollFeed, TableState, MapApi, MapScene, MapUploader],
+  host: {
+    '(document:keydown)': 'onKeydown($event)',
+    '(document:dragover)': 'keepFileOnPage($event)',
+    '(document:drop)': 'keepFileOnPage($event)',
+  },
 })
 export class TabletopPage {
   protected readonly store = inject(TabletopStore);
@@ -50,6 +62,12 @@ export class TabletopPage {
 
   constructor() {
     this.table.start();
+  }
+
+  protected keepFileOnPage(event: DragEvent): void {
+    if (event.dataTransfer?.types.includes('Files')) {
+      event.preventDefault();
+    }
   }
 
   protected onKeydown(event: KeyboardEvent): void {
@@ -68,7 +86,9 @@ export class TabletopPage {
     }
 
     if (event.key === 'Escape') {
-      if (this.store.selectedTokenId()) {
+      if (this.store.mapAdjusting()) {
+        this.store.setMapAdjusting(false);
+      } else if (this.store.selectedTokenId()) {
         this.store.clearSelection();
       } else {
         this.store.closePanel();

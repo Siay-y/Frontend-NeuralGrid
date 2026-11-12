@@ -21,6 +21,11 @@ export const TableClientEvent = {
   CreateSheet: 'sheet:create',
   UpdateSheet: 'sheet:update',
   DeleteSheet: 'sheet:delete',
+  RenameMap: 'map:rename',
+  ActivateMap: 'map:activate',
+  DeleteMap: 'map:delete',
+  UpdateArea: 'area:update',
+  DeleteArea: 'area:delete',
 } as const;
 
 export const TableServerEvent = {
@@ -40,6 +45,10 @@ export const TableServerEvent = {
   SheetUpdated: 'sheet:updated',
   SheetDeleted: 'sheet:deleted',
   SheetStats: 'sheet:stats',
+  MapCreated: 'map:created',
+  MapUpdated: 'map:updated',
+  MapDeleted: 'map:deleted',
+  SceneChanged: 'scene:changed',
   SessionExpired: 'session:expired',
   ConnectionLimit: 'session:limit',
 } as const;
@@ -94,6 +103,44 @@ export interface TableSnapshot {
   drawings: TableDrawing[];
   sheets: CharacterSheet[];
   sheetStats?: SheetStats[];
+  maps?: TableMap[];
+  scene?: TableScene | null;
+}
+
+export interface MapPlacement {
+  col: number;
+  row: number;
+  cell: number;
+}
+
+export interface SceneArea extends MapPlacement {
+  id: string;
+  width: number;
+  height: number;
+  hidden?: boolean;
+}
+
+export interface TableScene {
+  id: string;
+  areas: SceneArea[];
+}
+
+export interface MapArea extends SceneArea {
+  name: string;
+  bytes: number;
+  hidden: boolean;
+}
+
+export interface TableMap {
+  id: string;
+  name: string;
+  active: boolean;
+  areas: MapArea[];
+}
+
+export interface AreaChanges extends Partial<MapPlacement> {
+  name?: string;
+  hidden?: boolean;
 }
 
 export interface TokenPreview {
