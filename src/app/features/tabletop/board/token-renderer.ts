@@ -11,6 +11,7 @@ export interface TokenPalette {
   labelFill: string;
   labelBorder: string;
   ghost: string;
+  shadow: string;
 }
 
 export interface RenderedToken {
@@ -20,6 +21,7 @@ export interface RenderedToken {
   selected: boolean;
   remote: boolean;
   masked: boolean;
+  lifted?: boolean;
 }
 
 export interface RenderView {
@@ -75,6 +77,7 @@ export function readTokenPalette(styles: CSSStyleDeclaration): TokenPalette {
     labelFill: read('--color-surface'),
     labelBorder: read('--color-border'),
     ghost: read('--grid-origin'),
+    shadow: read('--token-shadow'),
   };
 }
 
@@ -130,7 +133,9 @@ export function drawTokens(
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.fillStyle = token.kind === 'agent' ? palette.agentFill : palette.surface;
+    castShadow(ctx, palette.shadow, radius, item.lifted ?? false);
     ctx.fill();
+    ctx.shadowColor = 'transparent';
 
     if (item.masked) {
       ctx.lineWidth = 2 * dpr;
@@ -164,6 +169,17 @@ export function drawTokens(
     }
     ctx.restore();
   }
+}
+
+function castShadow(
+  ctx: CanvasRenderingContext2D,
+  color: string,
+  radius: number,
+  lifted: boolean,
+): void {
+  ctx.shadowColor = color;
+  ctx.shadowBlur = radius * (lifted ? 0.8 : 0.45);
+  ctx.shadowOffsetY = radius * (lifted ? 0.32 : 0.14);
 }
 
 function drawLabel(

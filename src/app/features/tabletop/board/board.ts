@@ -20,6 +20,8 @@ import {
   type RulerSpan,
   type TableDrawing,
 } from '../realtime/table.protocol';
+import { areaAt, MapScene } from '../maps/map-scene';
+import { MapUploader } from '../maps/map-uploader';
 import { type FocusRequest, TabletopStore } from '../tabletop.store';
 import {
   type Camera,
@@ -65,6 +67,17 @@ interface PanDrag {
   startX: number;
   startY: number;
   origin: Camera;
+}
+
+interface MapDrag {
+  pointerId: number;
+  id: string;
+  startX: number;
+  startY: number;
+  originCol: number;
+  originRow: number;
+  cell: number;
+  moved: boolean;
 }
 
 interface TokenDrag {
@@ -115,6 +128,12 @@ const STROKE_TOLERANCE_PX = 0.6;
 const RULER_SEND_MS = 80;
 const COORDINATE_PRECISION = 100;
 const HOVER_TOOLS = new Set(['select', 'pan']);
+const HIDDEN_AREA_ALPHA = 0.4;
+
+function snapPoint(x: number, y: number): Point {
+  const { col, row } = snapToCell(x, y);
+  return { x: col, y: row };
+}
 
 function roundCoordinate(value: number): number {
   return Math.round(clampToGrid(value) * COORDINATE_PRECISION) / COORDINATE_PRECISION;
@@ -151,6 +170,14 @@ export class Board {
   private readonly destroyRef = inject(DestroyRef);
   private readonly table = inject(TableState);
   protected readonly store = inject(TabletopStore);
+  private readonly mapScene = inject(MapScene);
+  protected readonly uploader = inject(MapUploader);
+  protected readonly fileOver = signal(false);
+  protected readonly dropLabel = computed(() =>
+    this.table.maps().some((map) => map.active)
+      ? 'Solte para adicionar uma área ao mapa da mesa'
+      : 'Solte para colocar o mapa na mesa',
+  );
 
   protected readonly camera = signal<Camera>({ x: 0, y: 0, zoom: 1 });
   protected readonly hoveredCell = signal<Cell | null>(null);
@@ -196,6 +223,7 @@ export class Board {
   private context: CanvasRenderingContext2D | null = null;
   private panDrag: PanDrag | null = null;
   private tokenDrag: TokenDrag | null = null;
+  private mapDrag: MapDrag | null = null;
   private stroke: StrokeGesture | null = null;
   private erasing: EraseGesture | null = null;
   private measuring: MeasureGesture | null = null;
@@ -221,6 +249,9 @@ export class Board {
       this.table.rulers();
       this.table.members();
       this.ownRuler();
+      this.mapScene.layers();
+      this.store.mapAdjusting();
+      this.store.mapAreaId();
       this.scheduleDraw();
     });
 
@@ -253,10 +284,48 @@ export class Board {
     });
   }
 
+  protected onFileDrag(event: DragEvent): void {
+    if (!this.acceptsFiles(event)) {
+      return;
+    }
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy';
+    }
+    this.fileOver.set(true);
+  }
+
+  protected onFileLeave(event: DragEvent): void {
+    const next = event.relatedTarget;
+    if (!(next instanceof Node) || !this.host.nativeElement.contains(next)) {
+      this.fileOver.set(false);
+    }
+  }
+
+  protected onFileDrop(event: DragEvent): void {
+    if (!this.acceptsFiles(event)) {
+      return;
+    }
+    event.preventDefault();
+    this.fileOver.set(false);
+    const file = event.dataTransfer?.files[0];
+    if (file) {
+      void this.placeDroppedMap(file, this.toWorld(event));
+    }
+  }
+
+  protected uploadPercent(progress: number): string {
+    return `${Math.round(progress * 100)}%`;
+  }
+
   protected onPointerDown(event: PointerEvent): void {
     const tool = this.store.activeTool();
     if (tool === 'pan' || event.button === 1) {
       this.startPan(event);
+      return;
+    }
+    if (this.store.mapAdjusting() && event.button === 0) {
+      this.startMapDrag(event);
       return;
     }
     if (event.button !== 0 || this.stroke || this.erasing || this.measuring) {
@@ -290,6 +359,10 @@ export class Board {
     }
 
     const world = this.toWorld(event);
+    if (this.mapDrag?.pointerId === event.pointerId) {
+      this.dragMapTo(world);
+      return;
+    }
     if (this.tokenDrag?.pointerId === event.pointerId) {
       this.dragTokenTo(world);
       return;
@@ -329,7 +402,9 @@ export class Board {
       return;
     }
     const commit = event.type !== 'pointercancel';
-    if (this.tokenDrag?.pointerId === event.pointerId) {
+    if (this.mapDrag?.pointerId === event.pointerId) {
+      void this.dropMap(commit);
+    } else if (this.tokenDrag?.pointerId === event.pointerId) {
       this.dropToken(commit);
     } else if (this.stroke?.pointerId === event.pointerId) {
       this.finishStroke(commit);
@@ -395,6 +470,136 @@ export class Board {
       origin: this.camera(),
     };
     this.panning.set(true);
+  }
+
+  private acceptsFiles(event: DragEvent): boolean {
+    return (
+      this.table.isMaster() &&
+      !this.uploader.state() &&
+      (event.dataTransfer?.types.includes('Files') ?? false)
+    );
+  }
+
+  private async placeDroppedMap(file: File, world: Point): Promise<void> {
+    const active = this.table.maps().find((map) => map.active);
+    const center = { col: roundCoordinate(world.x), row: roundCoordinate(world.y) };
+    const map = await this.uploader.upload(file, { mapId: active?.id, center });
+    if (!map) {
+      const problem = this.uploader.error();
+      if (problem) {
+        this.store.notify(problem);
+      }
+      return;
+    }
+    if (active) {
+      this.store.selectMapArea(map.areas.at(-1)?.id ?? null);
+    } else if (await this.table.activateMap(map.id)) {
+      this.store.selectMapArea(map.areas[0]?.id ?? null);
+    }
+  }
+
+  private startMapDrag(event: PointerEvent): void {
+    const world = this.toWorld(event);
+    const area = areaAt(this.mapScene.areas(), world.x, world.y);
+    if (!area) {
+      this.startPan(event);
+      return;
+    }
+    event.preventDefault();
+    this.canvasRef().nativeElement.setPointerCapture(event.pointerId);
+    this.store.selectMapArea(area.id);
+    this.mapDrag = {
+      pointerId: event.pointerId,
+      id: area.id,
+      startX: world.x,
+      startY: world.y,
+      originCol: area.col,
+      originRow: area.row,
+      cell: area.cell,
+      moved: false,
+    };
+    this.panning.set(true);
+  }
+
+  private dragMapTo(world: Point): void {
+    const drag = this.mapDrag;
+    if (!drag) {
+      return;
+    }
+    drag.moved = true;
+    this.store.setMapDraft({
+      id: drag.id,
+      col: roundCoordinate(drag.originCol + world.x - drag.startX),
+      row: roundCoordinate(drag.originRow + world.y - drag.startY),
+      cell: drag.cell,
+    });
+  }
+
+  private async dropMap(commit: boolean): Promise<void> {
+    const drag = this.mapDrag;
+    this.mapDrag = null;
+    this.panning.set(false);
+    const draft = this.store.mapDraft();
+    if (!drag || !draft || !drag.moved || !commit) {
+      this.store.setMapDraft(null);
+      return;
+    }
+    await this.table.updateArea(drag.id, { col: draft.col, row: draft.row });
+    if (this.store.mapDraft() === draft) {
+      this.store.setMapDraft(null);
+    }
+  }
+
+  private drawMap(
+    ctx: CanvasRenderingContext2D,
+    originX: number,
+    originY: number,
+    cell: number,
+    dpr: number,
+    color: (token: string) => string,
+  ): void {
+    const layers = this.mapScene.layers();
+    if (layers.length === 0) {
+      return;
+    }
+    const adjusting = this.store.mapAdjusting();
+    const selectedId = this.store.mapAreaId();
+    const frames: { x: number; y: number; width: number; height: number; selected: boolean }[] = [];
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-over';
+    ctx.imageSmoothingQuality = 'high';
+    for (let index = layers.length - 1; index >= 0; index--) {
+      const { area, image } = layers[index];
+      const scale = cell / area.cell;
+      const x = originX + area.col * cell;
+      const y = originY + area.row * cell;
+      const width = area.width * scale;
+      const height = area.height * scale;
+      if (image) {
+        ctx.globalAlpha = area.hidden ? HIDDEN_AREA_ALPHA : 1;
+        ctx.drawImage(image, x, y, width, height);
+      }
+      if (adjusting) {
+        frames.push({ x, y, width, height, selected: area.id === selectedId });
+      }
+    }
+    ctx.restore();
+    if (frames.length === 0) {
+      return;
+    }
+    ctx.save();
+    ctx.strokeStyle = color('--color-text');
+    for (const frame of frames) {
+      ctx.lineWidth = (frame.selected ? 2 : 1) * dpr;
+      ctx.setLineDash(frame.selected ? [] : [6 * dpr, 4 * dpr]);
+      ctx.strokeRect(
+        Math.round(frame.x) + 0.5,
+        Math.round(frame.y) + 0.5,
+        Math.round(frame.width),
+        Math.round(frame.height),
+      );
+    }
+    ctx.restore();
   }
 
   private pickToken(event: PointerEvent): void {
@@ -721,7 +926,7 @@ export class Board {
       targets.set(
         token.id,
         drag
-          ? { x: drag.x, y: drag.y }
+          ? snapPoint(drag.x, drag.y)
           : preview
             ? { x: preview.col, y: preview.row }
             : { x: token.col, y: token.row },
@@ -738,9 +943,6 @@ export class Board {
 
     const targets = this.tokenTargets();
     const animating = this.motion.step(targets, elapsedMs);
-    if (this.tokenDrag) {
-      this.motion.jump(this.tokenDrag.id, { x: this.tokenDrag.x, y: this.tokenDrag.y });
-    }
 
     const canvas = ctx.canvas;
     const styles = getComputedStyle(this.host.nativeElement);
@@ -756,6 +958,7 @@ export class Board {
 
     this.drawGrid(ctx, originX, originY, cell, dpr, color);
     fadeGridEdges(ctx);
+    this.drawMap(ctx, originX, originY, cell, dpr, color);
 
     const tool = this.store.activeTool();
     const hovered = this.hoveredCell();
@@ -794,6 +997,7 @@ export class Board {
         y: position.y,
         selected: token.id === selectedId,
         remote: previews.has(token.id),
+        lifted: token.id === this.tokenDrag?.id,
         masked: this.table.isMasked(token),
       });
     }

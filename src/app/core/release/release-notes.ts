@@ -20,6 +20,37 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.5.0',
+    date: '2026-11-11',
+    title: 'Mapas na mesa',
+    changes: [
+      {
+        kind: 'new',
+        text: 'O mestre ganhou a aba Mapas: envie uma imagem PNG, JPEG ou WebP e ela vira o fundo do tabuleiro, com tokens e desenhos por cima. Dá para arrastar a imagem direto para o tabuleiro, e ela é comprimida no seu navegador antes de subir.',
+      },
+      {
+        kind: 'new',
+        text: 'Cada mapa pode ter várias áreas lado a lado, como a entrada e o fundo da caverna. Novas áreas chegam ocultas, e o olho ao lado de cada uma mostra ou esconde a área dos jogadores. No tabuleiro do mestre, as ocultas aparecem apagadas.',
+      },
+      {
+        kind: 'new',
+        text: 'A biblioteca guarda até 40 mapas, abre e fecha como um acordeão e troca de cena com Usar. Os mapas que ainda não estão na mesa continuam invisíveis para os jogadores.',
+      },
+      {
+        kind: 'new',
+        text: 'Alinhe cada área com a grade: ajuste quantos pixels da imagem cabem em um quadrado e ligue Arrastar as áreas no tabuleiro para encaixar as linhas. Esc termina o ajuste.',
+      },
+      {
+        kind: 'improved',
+        text: 'Os tokens ganharam sombra e agora andam de quadrado em quadrado enquanto você arrasta, o que facilita encaixar certinho.',
+      },
+      {
+        kind: 'improved',
+        text: 'Os atalhos do teclado, como Esc, agora funcionam mesmo com o foco numa chave ou num controle deslizante.',
+      },
+    ],
+  },
+  {
     version: '0.4.3',
     date: '2026-11-11',
     title: 'Personagens ocultos e aba Tokens',

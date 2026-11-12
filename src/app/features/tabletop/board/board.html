@@ -4,6 +4,11 @@
   [class.is-panning]="panning()"
   [class.is-over-token]="overMovableToken()"
   [class.is-dragging-token]="draggingToken()"
+  [class.is-adjusting-map]="store.mapAdjusting()"
+  (dragenter)="onFileDrag($event)"
+  (dragover)="onFileDrag($event)"
+  (dragleave)="onFileLeave($event)"
+  (drop)="onFileDrop($event)"
 >
   <canvas
     #canvas
@@ -28,6 +33,22 @@
       [style.left.px]="card.left"
       [style.top.px]="card.top"
     />
+  }
+
+  @if (fileOver()) {
+    <div class="board__drop" aria-hidden="true">
+      <span class="board__drop-label chrome-dark">{{ dropLabel() }}</span>
+    </div>
+  }
+
+  @if (uploader.state(); as upload) {
+    <div class="hud hud--upload chrome-dark" role="status">
+      {{
+        upload.phase === 'preparing'
+          ? 'Preparando a imagem'
+          : 'Enviando ' + (upload.area ? 'área' : 'mapa') + ' ' + uploadPercent(upload.progress)
+      }}
+    </div>
   }
 
   <div class="hud hud--status chrome-dark" aria-hidden="true">

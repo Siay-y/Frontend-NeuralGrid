@@ -3,6 +3,7 @@ import {
   LucideEraser,
   LucideHand,
   LucideHistory,
+  LucideMap,
   LucideMessageSquare,
   LucideMousePointer2,
   LucidePencil,
@@ -15,7 +16,7 @@ import {
 
 export type MapToolId = 'select' | 'pan' | 'measure' | 'draw' | 'erase';
 
-export type PanelId = 'tokens' | 'sheets' | 'dice' | 'chat' | 'updates' | 'settings';
+export type PanelId = 'tokens' | 'sheets' | 'maps' | 'dice' | 'chat' | 'updates' | 'settings';
 
 export interface MapTool {
   id: MapToolId;
@@ -52,6 +53,12 @@ export const TABLE_PANELS: Readonly<Record<PanelId, TablePanel>> = {
     description: 'Fichas dos agentes, NPCs e ameaças, sincronizadas em tempo real.',
     icon: LucideScrollText,
   },
+  maps: {
+    id: 'maps',
+    label: 'Mapas',
+    description: 'Imagens de mapa que viram o fundo do tabuleiro, uma cena por vez.',
+    icon: LucideMap,
+  },
   dice: {
     id: 'dice',
     label: 'Dados',
@@ -81,6 +88,7 @@ export const TABLE_PANELS: Readonly<Record<PanelId, TablePanel>> = {
 export const SHORTCUT_PANELS: readonly TablePanel[] = [
   TABLE_PANELS.tokens,
   TABLE_PANELS.sheets,
+  TABLE_PANELS.maps,
   TABLE_PANELS.dice,
   TABLE_PANELS.chat,
 ];

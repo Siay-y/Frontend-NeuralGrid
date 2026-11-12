@@ -1,0 +1,316 @@
+<div class="maps">
+  <label
+    class="drop"
+    [class.is-over]="dragOver()"
+    [class.is-busy]="!!uploader.state()"
+    [class.is-disabled]="uploader.full()"
+    (dragenter)="dragEnter($event)"
+    (dragover)="dragEnter($event)"
+    (dragleave)="dragOver.set(false)"
+    (drop)="drop($event)"
+  >
+    <input
+      type="file"
+      class="sr-only"
+      accept="image/png,image/jpeg,image/webp"
+      [disabled]="!!uploader.state() || uploader.full()"
+      (change)="pick($event)"
+    />
+    @if (uploader.state(); as state) {
+      <svg lucideLoaderCircle class="spin" [size]="18" />
+      <span class="drop__title" role="status">
+        {{ state.phase === 'preparing' ? 'Preparando a imagem' : 'Enviando ' + percent(state) }}
+      </span>
+      <span class="drop__bar" aria-hidden="true">
+        <span [style.transform]="'scaleX(' + state.progress + ')'"></span>
+      </span>
+    } @else {
+      <svg lucideImagePlus [size]="18" />
+      <span class="drop__title">Enviar mapa</span>
+      <span class="drop__hint">PNG, JPEG ou WebP. Arraste aqui ou direto no tabuleiro.</span>
+    }
+  </label>
+  <input
+    #areaInput
+    type="file"
+    class="sr-only"
+    tabindex="-1"
+    aria-hidden="true"
+    accept="image/png,image/jpeg,image/webp"
+    (change)="pickArea($event)"
+  />
+
+  @if (uploader.error(); as message) {
+    <p class="error" role="alert">{{ message }}</p>
+  }
+  <p class="usage">
+    {{ uploader.usage().count }} de {{ limits.maxMaps }} mapas ·
+    {{ formatBytes(uploader.usage().bytes) }} de {{ formatBytes(limits.maxTotalBytes) }}
+  </p>
+
+  @if (active(); as map) {
+    <section class="scene" aria-labelledby="scene-title">
+      <header class="scene__header">
+        <span class="scene__heading">
+          <h3 id="scene-title" class="eyebrow">Na mesa</h3>
+          <span class="item__name">{{ map.name }}</span>
+        </span>
+        <button type="button" class="button button--ghost scene__off" (click)="takeOff()">
+          Tirar da mesa
+        </button>
+      </header>
+
+      <ul class="areas" aria-label="Áreas do mapa">
+        @for (area of map.areas; track area.id) {
+          <li class="area" [class.is-selected]="selected()?.id === area.id">
+            <ng-template #areaThumb>
+              <span class="thumb" [class.is-hidden]="area.hidden">
+                @if (thumbnails().get(area.id); as url) {
+                  <img [src]="url" alt="" />
+                } @else {
+                  <svg lucideMap [size]="16" />
+                }
+              </span>
+            </ng-template>
+            @if (renamingId() === area.id) {
+              <span class="area__pick">
+                <ng-container [ngTemplateOutlet]="areaThumb" />
+                <span class="item__text">
+                  <input
+                    class="field__input item__rename"
+                    [attr.data-rename]="area.id"
+                    [value]="area.name"
+                    [attr.maxlength]="limits.nameLength"
+                    aria-label="Nome da área"
+                    (keydown.enter)="finishRename(area, $event)"
+                    (keydown.escape)="cancelRename(); $event.stopPropagation()"
+                    (blur)="finishRename(area, $event)"
+                  />
+                </span>
+              </span>
+            } @else {
+              <button
+                type="button"
+                class="area__pick"
+                [attr.aria-pressed]="selected()?.id === area.id"
+                (click)="selectArea(area)"
+              >
+                <ng-container [ngTemplateOutlet]="areaThumb" />
+                <span class="item__text">
+                  <span class="item__name">{{ area.name }}</span>
+                  <span class="item__meta">
+                    {{ area.hidden ? 'Oculta · ' : '' }}{{ cellsAcross(area) }}
+                  </span>
+                </span>
+              </button>
+            }
+            <button
+              type="button"
+              class="icon-button area__eye"
+              [attr.aria-pressed]="area.hidden"
+              [attr.aria-label]="
+                area.hidden
+                  ? 'Mostrar ' + area.name + ' aos jogadores'
+                  : 'Esconder ' + area.name + ' dos jogadores'
+              "
+              [title]="area.hidden ? 'Mostrar aos jogadores' : 'Esconder dos jogadores'"
+              (click)="toggleHidden(area)"
+            >
+              @if (area.hidden) {
+                <svg lucideEyeOff [size]="16" />
+              } @else {
+                <svg lucideEye [size]="16" />
+              }
+            </button>
+            <app-action-menu #areaMenu [label]="'Mais opções de ' + area.name">
+              <button
+                type="button"
+                role="menuitem"
+                class="action-menu__item"
+                (click)="areaMenu.close(); startRename(area.id)"
+              >
+                <svg lucideSquarePen [size]="15" />
+                Renomear
+              </button>
+              @if (map.areas.length > 1) {
+                <div class="action-menu__divider" role="separator"></div>
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="action-menu__item"
+                  [class.is-confirming]="confirmingDeleteId() === area.id"
+                  (click)="deleteArea(area)"
+                >
+                  <svg lucideTrash [size]="15" />
+                  {{
+                    confirmingDeleteId() === area.id ? 'Clique de novo para apagar' : 'Apagar área'
+                  }}
+                </button>
+              }
+            </app-action-menu>
+          </li>
+        }
+      </ul>
+
+      <div class="add-area">
+        <button
+          type="button"
+          class="button button--ghost"
+          [disabled]="!!uploader.state() || map.areas.length >= limits.maxAreas"
+          (click)="chooseArea(map)"
+        >
+          <svg lucidePlus [size]="14" />
+          Adicionar área
+        </button>
+        <p class="hint">Novas áreas chegam ocultas. Revele quando os jogadores chegarem lá.</p>
+      </div>
+
+      @if (selected(); as area) {
+        <div class="adjust">
+          <div class="field">
+            <label class="field__label" for="map-cell">
+              Tamanho do quadrado · {{ area.name }}
+            </label>
+            <div class="cell">
+              <input
+                id="map-cell"
+                class="cell__range"
+                type="range"
+                step="1"
+                [min]="slider.min"
+                [max]="slider.max"
+                [value]="area.cell"
+                aria-describedby="map-cell-hint"
+                (input)="setCell($event)"
+              />
+              <input
+                class="field__input cell__number"
+                type="number"
+                inputmode="numeric"
+                [min]="limits.cellMin"
+                [max]="limits.cellMax"
+                [value]="area.cell"
+                aria-label="Tamanho do quadrado em pixels"
+                (change)="setCell($event)"
+              />
+              <span class="cell__unit">px</span>
+            </div>
+            <p id="map-cell-hint" class="hint">
+              Quantos pixels da imagem cabem em um quadrado da grade.
+            </p>
+          </div>
+
+          <label class="switch" [class.is-on]="store.mapAdjusting()">
+            <input
+              type="checkbox"
+              class="sr-only"
+              [checked]="store.mapAdjusting()"
+              (change)="toggleAdjust()"
+            />
+            <span class="switch__track" aria-hidden="true"
+              ><span class="switch__thumb"></span
+            ></span>
+            <span class="switch__text">
+              <span class="switch__title">Arrastar as áreas no tabuleiro</span>
+              <span class="switch__hint">{{
+                store.mapAdjusting()
+                  ? 'Arraste uma área para alinhar com a grade. Esc termina.'
+                  : 'Ligue para alinhar os quadrados do mapa com a grade.'
+              }}</span>
+            </span>
+          </label>
+
+          <button
+            type="button"
+            class="button button--ghost adjust__center"
+            title="Centralizar a área na tela"
+            (click)="centerOnView()"
+          >
+            <svg lucideFocus [size]="14" />
+            Centralizar
+          </button>
+        </div>
+      }
+    </section>
+  }
+
+  <app-collapsible
+    class="library"
+    title="Biblioteca"
+    [count]="maps().length"
+    [open]="store.isSectionOpen(librarySection)"
+    (toggled)="store.toggleSection(librarySection)"
+  >
+    <ul class="library__items">
+      @for (map of maps(); track map.id) {
+        <li class="item" [class.is-active]="map.active">
+          <span class="thumb">
+            @if (thumbnails().get(map.areas[0]?.id ?? ''); as url) {
+              <img [src]="url" alt="" />
+            } @else {
+              <svg lucideMap [size]="16" />
+            }
+          </span>
+          <span class="item__text">
+            @if (renamingId() === map.id) {
+              <input
+                class="field__input item__rename"
+                [attr.data-rename]="map.id"
+                [value]="map.name"
+                [attr.maxlength]="limits.nameLength"
+                aria-label="Nome do mapa"
+                (keydown.enter)="finishRename(map, $event)"
+                (keydown.escape)="cancelRename(); $event.stopPropagation()"
+                (blur)="finishRename(map, $event)"
+              />
+            } @else {
+              <span class="item__name">{{ map.name }}</span>
+            }
+            <span class="item__meta">{{ areaCount(map) }} · {{ formatBytes(mapBytes(map)) }}</span>
+          </span>
+          @if (map.active) {
+            <span class="tag">na mesa</span>
+          } @else {
+            <button type="button" class="button button--ghost item__use" (click)="use(map)">
+              Usar
+            </button>
+          }
+          <app-action-menu #more [label]="'Mais opções de ' + map.name">
+            <button
+              type="button"
+              role="menuitem"
+              class="action-menu__item"
+              (click)="more.close(); startRename(map.id)"
+            >
+              <svg lucideSquarePen [size]="15" />
+              Renomear
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="action-menu__item"
+              [disabled]="!!uploader.state() || map.areas.length >= limits.maxAreas"
+              (click)="more.close(); chooseArea(map)"
+            >
+              <svg lucidePlus [size]="15" />
+              Adicionar área
+            </button>
+            <div class="action-menu__divider" role="separator"></div>
+            <button
+              type="button"
+              role="menuitem"
+              class="action-menu__item"
+              [class.is-confirming]="confirmingDeleteId() === map.id"
+              (click)="deleteMap(map)"
+            >
+              <svg lucideTrash [size]="15" />
+              {{ confirmingDeleteId() === map.id ? 'Clique de novo para apagar' : 'Apagar mapa' }}
+            </button>
+          </app-action-menu>
+        </li>
+      } @empty {
+        <li class="empty">Nenhum mapa ainda. Envie a primeira imagem acima.</li>
+      }
+    </ul>
+  </app-collapsible>
+</div>

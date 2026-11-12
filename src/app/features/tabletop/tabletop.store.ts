@@ -17,6 +17,13 @@ export interface Notice {
   message: string;
 }
 
+export interface MapDraft {
+  id: string;
+  col: number;
+  row: number;
+  cell: number;
+}
+
 export interface FocusRequest extends GridCell {
   size: number;
   seq: number;
@@ -73,6 +80,9 @@ export class TabletopStore {
   private readonly closedSections = signal<ReadonlySet<string>>(new Set([QUICK_TOKEN_SECTION]));
   private readonly style = signal<DrawingStyle>(readDrawingStyle());
   private readonly sheet = signal<string | null>(null);
+  private readonly draft = signal<MapDraft | null>(null);
+  private readonly adjusting = signal(false);
+  private readonly area = signal<string | null>(null);
   private noticeTimer: ReturnType<typeof setTimeout> | undefined;
 
   readonly activeTool = this.tool.asReadonly();
@@ -85,6 +95,9 @@ export class TabletopStore {
   readonly chatAudience = this.audience.asReadonly();
   readonly drawingStyle = this.style.asReadonly();
   readonly activeSheetId = this.sheet.asReadonly();
+  readonly mapDraft = this.draft.asReadonly();
+  readonly mapAdjusting = this.adjusting.asReadonly();
+  readonly mapAreaId = this.area.asReadonly();
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.noticeTimer));
@@ -118,6 +131,18 @@ export class TabletopStore {
     const next = { ...this.style(), ...changes };
     this.style.set(next);
     writeDrawingStyle(next);
+  }
+
+  setMapDraft(draft: MapDraft | null): void {
+    this.draft.set(draft);
+  }
+
+  setMapAdjusting(adjusting: boolean): void {
+    this.adjusting.set(adjusting);
+  }
+
+  selectMapArea(id: string | null): void {
+    this.area.set(id);
   }
 
   showSheet(id: string | null): void {
