@@ -1,3 +1,5 @@
+@use 'glass' as *;
+
 :host {
   display: block;
 }
@@ -10,7 +12,7 @@
   padding: 0 6px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  background: var(--color-surface);
+  @include floating-glass;
   box-shadow: var(--shadow-float);
   animation: presence-in var(--duration-slow) var(--ease-out) 200ms both;
 }

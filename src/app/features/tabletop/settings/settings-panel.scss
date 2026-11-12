@@ -7,19 +7,17 @@
 }
 
 .settings {
+  display: flex;
   flex: 1;
+  flex-direction: column;
   min-height: 0;
-  padding: 14px 16px 16px;
   overflow-y: auto;
 }
 
 .section {
   display: grid;
   gap: 12px;
-
-  h3 {
-    font-size: 10px;
-  }
+  padding: 2px 16px 16px;
 }
 
 .field__row {
@@ -29,7 +27,7 @@
   gap: 8px;
 }
 
-.reach {
+.value {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--color-text-muted);
@@ -38,10 +36,8 @@
 .range {
   width: 100%;
   accent-color: var(--color-text);
-}
 
-.hint {
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--color-text-muted);
+  &:disabled {
+    opacity: 0.4;
+  }
 }
