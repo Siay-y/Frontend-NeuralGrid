@@ -130,12 +130,6 @@
   }
 }
 
-.hint {
-  font-size: 11px;
-  line-height: 1.45;
-  color: var(--color-text-subtle);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .attribute__icon svg {
     transition: none;

@@ -5,6 +5,7 @@ import {
   Component,
   computed,
   DestroyRef,
+  DOCUMENT,
   effect,
   type ElementRef,
   inject,
@@ -37,6 +38,7 @@ import { MapUploader, type UploadState } from './map-uploader';
 const CELL_COMMIT_MS = 400;
 const DELETE_CONFIRM_MS = 3_000;
 const LIBRARY_SECTION = 'maps-library';
+const PANEL_COVERS_BOARD = '(max-width: 860px)';
 
 export const CELL_SLIDER = { min: 20, max: 300 } as const;
 
@@ -102,6 +104,7 @@ export class MapsPanel {
   protected readonly store = inject(TabletopStore);
   protected readonly uploader = inject(MapUploader);
   private readonly api = inject(MapApi);
+  private readonly document = inject(DOCUMENT);
   private readonly scene = inject(MapScene);
   private readonly injector = inject(Injector);
   private readonly areaInput = viewChild.required<ElementRef<HTMLInputElement>>('areaInput');
@@ -165,7 +168,6 @@ export class MapsPanel {
     inject(DestroyRef).onDestroy(() => {
       clearTimeout(this.confirmTimer);
       this.flushCell();
-      this.store.setMapAdjusting(false);
     });
   }
 
@@ -234,7 +236,11 @@ export class MapsPanel {
   }
 
   protected toggleAdjust(): void {
-    this.store.setMapAdjusting(!this.store.mapAdjusting());
+    const adjusting = !this.store.mapAdjusting();
+    this.store.setMapAdjusting(adjusting);
+    if (adjusting && this.document.defaultView?.matchMedia?.(PANEL_COVERS_BOARD).matches) {
+      this.store.closePanel();
+    }
   }
 
   protected setCell(event: Event): void {

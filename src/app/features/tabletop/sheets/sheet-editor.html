@@ -158,11 +158,9 @@
               ></span>
               <span class="switch__text">
                 <span class="switch__title">Esconder dos jogadores</span>
-                <span class="switch__hint">{{
-                  sheet().hidden
-                    ? 'O token desta ficha só aparece para o mestre.'
-                    : 'Todos na mesa veem o token desta ficha.'
-                }}</span>
+                @if (sheet().hidden) {
+                  <span class="switch__hint">Só o mestre vê.</span>
+                }
               </span>
             </label>
             <label class="switch" [class.is-on]="sheet().nameHidden">
@@ -177,11 +175,9 @@
               ></span>
               <span class="switch__text">
                 <span class="switch__title">Esconder o nome</span>
-                <span class="switch__hint">{{
-                  sheet().nameHidden
-                    ? 'Os jogadores veem ??? no token até você desligar.'
-                    : 'Todos veem o nome do token.'
-                }}</span>
+                @if (sheet().nameHidden) {
+                  <span class="switch__hint">Jogadores veem ???.</span>
+                }
               </span>
             </label>
             @let statsLocked = sheet().hidden || sheet().nameHidden;
@@ -204,10 +200,10 @@
                 <span class="switch__title">Esconder vida e armadura</span>
                 <span class="switch__hint">{{
                   statsLocked
-                    ? 'Enquanto o token ou o nome estiverem escondidos, HP e Defesa também ficam ???.'
+                    ? 'Já escondidos junto com o token.'
                     : sheet().statsHidden
-                      ? 'Os jogadores veem o personagem, mas HP e Defesa ficam ???.'
-                      : 'Os jogadores veem o HP e a Defesa ao passar o mouse no token.'
+                      ? 'Jogadores veem ???.'
+                      : 'Jogadores veem HP e Defesa.'
                 }}</span>
               </span>
             </label>

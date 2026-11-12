@@ -20,6 +20,25 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.6.2',
+    date: '2026-11-12',
+    title: 'Memória da névoa',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Memória da névoa, em Configurações: os lugares por onde os personagens passaram ficam à meia luz para todos. Inimigos nesses lugares continuam escondidos até a luz chegar neles. O mestre pode desligar a memória ou esquecer a exploração do mapa.',
+      },
+      {
+        kind: 'improved',
+        text: 'Mover áreas funciona no celular: o painel sai da frente e um aviso com Concluir encerra o ajuste.',
+      },
+      {
+        kind: 'improved',
+        text: 'Textos mais curtos em Tokens, Fichas, Dados e Mapas.',
+      },
+    ],
+  },
+  {
     version: '0.6.1',
     date: '2026-11-12',
     title: 'Aparência',

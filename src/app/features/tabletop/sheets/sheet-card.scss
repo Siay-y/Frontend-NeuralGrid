@@ -299,12 +299,6 @@
   color: var(--color-text-muted);
 }
 
-.hint {
-  font-size: 11px;
-  color: var(--color-text-subtle);
-  text-align: center;
-}
-
 .card-enter {
   animation: card-in var(--duration) var(--ease-out) both;
 }

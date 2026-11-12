@@ -99,12 +99,15 @@ Configurações. `fog:update` vai ao servidor e `fog:changed` chega a todos.
 | Mestre | vê tudo, com a escuridão a 50% |
 | Tokens no escuro | somem do tabuleiro, da lista de tokens e da ficha rápida do jogador (`TableState.inDarkness`) |
 | Sem luz | "Iluminar na névoa" desligado no editor deixa o token no escuro, para emboscadas |
+| Memória | com "Memória da névoa" ligada, o caminho das luzes fica à meia luz (`fog:memory`); tokens dos outros fora da luz não são desenhados para o jogador, nem na meia luz |
 
 `LightFog` (`fog-renderer.ts`) desenha a névoa em 1/4 da resolução e amplia,
 porque tudo nela é suave. A neblina vem de duas texturas de ruído fractal com
 distorção, de tamanhos e velocidades diferentes, multiplicadas por uma máscara
 grande e lenta, para não repetir o desenho. As três texturas são geradas uma por
-quadro, na primeira vez que a névoa aparece.
+quadro, na primeira vez que a névoa aparece. A memória vira uma máscara presa ao
+mapa, redesenhada só quando chegam pontos novos ou o alcance muda; a cada quadro
+ela só é copiada para a névoa.
 
 | Movimento | Detalhe |
 | --- | --- |

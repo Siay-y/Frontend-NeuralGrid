@@ -259,6 +259,7 @@ export class Board {
       this.table.members();
       this.ownRuler();
       this.table.fog();
+      this.table.explored();
       this.mapScene.layers();
       this.store.mapAdjusting();
       this.store.mapAreaId();
@@ -322,6 +323,11 @@ export class Board {
     if (file) {
       void this.placeDroppedMap(file, this.toWorld(event));
     }
+  }
+
+  protected finishAdjust(): void {
+    this.mapDrag = null;
+    this.store.setMapAdjusting(false);
   }
 
   protected uploadPercent(progress: number): string {
@@ -1042,6 +1048,8 @@ export class Board {
           x: originX + (item.x + item.token.size / 2) * cell,
           y: originY + (item.y + item.token.size / 2) * cell,
         }));
+      const fog = this.table.fog();
+      const memory = fog.memory ? { spots: this.table.explored(), radius: fog.radius } : null;
       const darken = () =>
         this.lightFog.draw(
           ctx,
@@ -1049,6 +1057,7 @@ export class Board {
           { originX, originY, cell },
           { fog: color('--fog'), mist: color('--fog-mist') },
           this.table.isMaster() ? MASTER_FOG_ALPHA : 1,
+          memory,
         );
       if (this.table.isMaster()) {
         darken();
@@ -1057,7 +1066,7 @@ export class Board {
         const own = rendered.filter((item) => this.table.canMove(item.token));
         drawTokens(
           ctx,
-          rendered.filter((item) => !own.includes(item)),
+          rendered.filter((item) => !own.includes(item) && !this.table.inDarkness(item.token)),
           view,
           palette,
         );

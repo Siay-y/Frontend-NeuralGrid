@@ -9,10 +9,6 @@
         (toggled)="store.toggleSection(quickSection)"
       >
         <form class="editor" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-          <p class="editor__hint">
-            Para figurantes, portas e marcadores. Personagens entram pela aba Fichas.
-          </p>
-
           <div class="field" [class.is-invalid]="showLabelError()">
             <label class="field__label" for="quick-token-label">Nome</label>
             <input
@@ -69,11 +65,9 @@
             ></span>
             <span class="switch__text">
               <span class="switch__title">Esconder dos jogadores</span>
-              <span class="switch__hint">{{
-                form.controls.hidden.value
-                  ? 'Entra escondido. Revele quando entrar em cena.'
-                  : 'Todos na mesa veem o token na hora.'
-              }}</span>
+              @if (form.controls.hidden.value) {
+                <span class="switch__hint">Só o mestre vê.</span>
+              }
             </span>
           </label>
 
@@ -254,8 +248,8 @@
             <p class="list__empty">
               {{
                 table.isMaster()
-                  ? 'Nenhum token ainda. Coloque os personagens pela aba Fichas ou crie um token rápido acima.'
-                  : 'Nenhum token na mesa. O mestre vai posicionar os agentes em breve.'
+                  ? 'Nenhum token. Use Fichas ou o token rápido.'
+                  : 'Nenhum token na mesa.'
               }}
             </p>
           }

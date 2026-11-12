@@ -1,4 +1,4 @@
-import { describeReach, emitsLight, isLit, lightOf } from './fog-light';
+import { describeReach, emitsLight, exploredSpots, isLit, lightOf } from './fog-light';
 
 describe('fog light', () => {
   it('shines from the center of the token', () => {
@@ -18,6 +18,14 @@ describe('fog light', () => {
     expect(emitsLight({ ownerId: 'ana' })).toBe(true);
     expect(emitsLight({ ownerId: 'mestre', emitsLight: false })).toBe(false);
     expect(emitsLight({ ownerId: null, emitsLight: true })).toBe(false);
+  });
+
+  it('turns the explored points, sent in half squares, into spots', () => {
+    expect(exploredSpots([1, 1, 4, 7])).toEqual([
+      { x: 0.5, y: 0.5 },
+      { x: 2, y: 3.5 },
+    ]);
+    expect(exploredSpots([])).toEqual([]);
   });
 
   it('describes the reach in squares and meters', () => {

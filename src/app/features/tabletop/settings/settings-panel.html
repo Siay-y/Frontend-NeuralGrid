@@ -31,6 +31,31 @@
             (input)="setRadius($event)"
           />
         </div>
+
+        <label class="switch" [class.is-on]="fog().memory">
+          <input
+            type="checkbox"
+            class="sr-only"
+            [checked]="fog().memory"
+            (change)="toggleMemory()"
+          />
+          <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+          <span class="switch__text">
+            <span class="switch__title">Memória da névoa</span>
+            <span class="switch__hint">Lugares visitados ficam à meia luz.</span>
+          </span>
+        </label>
+
+        @if (fog().memory) {
+          <button
+            type="button"
+            class="button button--ghost forget"
+            [class.is-confirming]="confirmingForget()"
+            (click)="forget()"
+          >
+            {{ confirmingForget() ? 'Confirmar' : 'Esquecer exploração' }}
+          </button>
+        }
       </div>
     </app-collapsible>
   }

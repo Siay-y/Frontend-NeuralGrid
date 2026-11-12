@@ -51,6 +51,13 @@
     </div>
   }
 
+  @if (store.mapAdjusting()) {
+    <div class="hud hud--adjust chrome-dark" role="status">
+      <span class="hud__key">Movendo áreas</span>
+      <button type="button" class="hud__done" (click)="finishAdjust()">Concluir</button>
+    </div>
+  }
+
   <div class="hud hud--status chrome-dark" aria-hidden="true">
     <span class="hud__key">Célula</span>
     <span class="hud__value">{{ cellLabel() || '·' }}</span>
