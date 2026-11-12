@@ -74,15 +74,18 @@ export async function prepareMapUpload(file: File): Promise<PreparedMap> {
     throw new MapImageError(problem);
   }
   const source = await loadImage(file);
-  if (source.naturalWidth * source.naturalHeight > MAP_UPLOAD.maxInputPixels) {
+  if (source.width * source.height > MAP_UPLOAD.maxInputPixels) {
+    source.close();
     throw new MapImageError('A imagem é grande demais. Use uma de até 64 megapixels.');
   }
 
-  let size = fitWithin(
-    { width: source.naturalWidth, height: source.naturalHeight },
-    MAP_UPLOAD.maxSide,
-  );
-  let canvas = draw(source, size);
+  let size = fitWithin({ width: source.width, height: source.height }, MAP_UPLOAD.maxSide);
+  let canvas: HTMLCanvasElement;
+  try {
+    canvas = draw(source, size);
+  } finally {
+    source.close();
+  }
   let image = await encode(canvas, QUALITY_STEPS[0]);
   for (const quality of QUALITY_STEPS.slice(1)) {
     if (image.size <= MAP_UPLOAD.targetBytes) {
@@ -103,14 +106,14 @@ export async function prepareMapUpload(file: File): Promise<PreparedMap> {
   return { name: mapNameFromFile(file.name), image, thumbnail, ...size };
 }
 
-function loadImage(file: File): Promise<HTMLImageElement> {
-  const url = URL.createObjectURL(file);
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new MapImageError('Não foi possível ler essa imagem.'));
-    image.src = url;
-  }).finally(() => URL.revokeObjectURL(url));
+// Decoding straight from the file keeps the page CSP strict: an <img> would
+// need a blob: URL, which production blocks in img-src.
+async function loadImage(file: File): Promise<ImageBitmap> {
+  try {
+    return await createImageBitmap(file);
+  } catch {
+    throw new MapImageError('Não foi possível ler essa imagem.');
+  }
 }
 
 function draw(source: CanvasImageSource, size: Size): HTMLCanvasElement {

@@ -5,6 +5,7 @@ import { TabletopStore } from '../tabletop.store';
 import type { CharacterSheet, SheetAssignment, SheetData, SheetStats } from '../sheets/sheet-model';
 import { CHAT_COOLDOWN, Cooldown, DICE_COOLDOWN } from './cooldown';
 import { TableConnection } from './table-connection';
+import { FOG_RADIUS, isLit, lightOf } from '../maps/fog-light';
 import {
   type ChatMessage,
   COOLDOWN_ERROR,
@@ -25,10 +26,13 @@ import {
   type TokenPreview,
   type AreaChanges,
   type TableMap,
+  type TableFog,
   type TableScene,
 } from './table.protocol';
 
 export const CHAT_MEMORY_LIMIT = 200;
+
+const DEFAULT_FOG: TableFog = { enabled: false, radius: FOG_RADIUS.default };
 
 const CLEARED_KEY_PREFIX = 'neuralgrid.chat-cleared.';
 
@@ -101,10 +105,17 @@ export class TableState {
   private readonly statsById = signal<ReadonlyMap<string, SheetStats>>(new Map());
   private readonly mapsById = signal<ReadonlyMap<string, TableMap>>(new Map());
   private readonly sceneState = signal<TableScene | null>(null);
+  private readonly fogState = signal<TableFog>(DEFAULT_FOG);
 
   readonly tokens = computed(() => [...this.tokensById().values()]);
   readonly maps = computed(() => [...this.mapsById().values()]);
   readonly scene = this.sceneState.asReadonly();
+  readonly fog = this.fogState.asReadonly();
+  readonly lights = computed(() =>
+    this.tokens()
+      .filter((token) => token.ownerId !== null)
+      .map(lightOf),
+  );
   readonly previews = this.previewsById.asReadonly();
   readonly members = this.memberList.asReadonly();
   readonly onlineIds = this.online.asReadonly();
@@ -170,6 +181,7 @@ export class TableState {
       [TableServerEvent.MapUpdated]: (map: TableMap) => this.upsertMap(map),
       [TableServerEvent.MapDeleted]: ({ id }: { id: string }) =>
         this.mapsById.update((maps) => withoutEntry(maps, id)),
+      [TableServerEvent.FogChanged]: ({ fog }: { fog: TableFog }) => this.fogState.set(fog),
       [TableServerEvent.SceneChanged]: ({ scene }: { scene: TableScene | null }) =>
         this.applyScene(scene),
     });
@@ -286,6 +298,31 @@ export class TableState {
       return true;
     });
     return removed ?? false;
+  }
+
+  previewFog(changes: Partial<TableFog>): void {
+    this.fogState.update((fog) => ({ ...fog, ...changes }));
+  }
+
+  async updateFog(changes: Partial<TableFog>): Promise<void> {
+    const before = this.fogState();
+    this.previewFog(changes);
+    const fog = await this.attempt(() =>
+      this.connection.request<TableFog>(TableClientEvent.UpdateFog, changes),
+    );
+    this.fogState.set(fog ?? before);
+  }
+
+  // Fog only hides what the browser draws. Tokens in the dark still arrive here;
+  // the master uses a hidden token or a hidden area for anything secret.
+  inDarkness(token: TableToken): boolean {
+    const fog = this.fogState();
+    return (
+      fog.enabled &&
+      !this.isMaster() &&
+      !this.canMove(token) &&
+      !isLit(this.lights(), token, fog.radius)
+    );
   }
 
   isMasked(token: TableToken): boolean {
@@ -491,6 +528,7 @@ export class TableState {
     this.statsById.set(new Map((snapshot.sheetStats ?? []).map((stats) => [stats.id, stats])));
     this.mapsById.set(new Map((snapshot.maps ?? []).map((map) => [map.id, map])));
     this.applyScene(snapshot.scene ?? null);
+    this.fogState.set(snapshot.fog ?? DEFAULT_FOG);
     this.synced.set(true);
   }
 

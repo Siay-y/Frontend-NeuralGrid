@@ -1,0 +1,47 @@
+@use '../panel/forms';
+
+:host {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.settings {
+  flex: 1;
+  min-height: 0;
+  padding: 14px 16px 16px;
+  overflow-y: auto;
+}
+
+.section {
+  display: grid;
+  gap: 12px;
+
+  h3 {
+    font-size: 10px;
+  }
+}
+
+.field__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.reach {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.range {
+  width: 100%;
+  accent-color: var(--color-text);
+}
+
+.hint {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
