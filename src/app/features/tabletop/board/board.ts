@@ -51,6 +51,8 @@ import {
   readDrawPalette,
   readOverlayPalette,
 } from './drawing-renderer';
+import { prefersReducedMotion } from '../dice/dice-env';
+import { emitsLight } from '../maps/fog-light';
 import { LightFog } from './fog-renderer';
 import { clampToGrid, hitTest, type PlacedToken, snapToCell } from './token-geometry';
 import { TokenHoverCard } from './token-hover-card';
@@ -131,6 +133,7 @@ const COORDINATE_PRECISION = 100;
 const HOVER_TOOLS = new Set(['select', 'pan']);
 const HIDDEN_AREA_ALPHA = 0.4;
 const MASTER_FOG_ALPHA = 0.5;
+const MIST_FRAME_MS = 33;
 
 function snapPoint(x: number, y: number): Point {
   const { col, row } = snapToCell(x, y);
@@ -238,6 +241,8 @@ export class Board {
   private placed: PlacedToken[] = [];
   private frame = 0;
   private lastFrameAt = 0;
+  private dirty = false;
+  private fogSettled = false;
   private tween = 0;
   private initialized = false;
 
@@ -906,16 +911,28 @@ export class Board {
   }
 
   private scheduleDraw(): void {
+    this.dirty = true;
+    this.requestFrame();
+  }
+
+  private requestFrame(): void {
     if (this.frame) {
       return;
     }
     this.lastFrameAt = this.lastFrameAt || performance.now();
     this.frame = requestAnimationFrame((now) => {
       this.frame = 0;
+      if (!this.dirty && now - this.lastFrameAt < MIST_FRAME_MS) {
+        this.requestFrame();
+        return;
+      }
+      this.dirty = false;
       const elapsed = now - this.lastFrameAt;
       this.lastFrameAt = now;
       if (this.draw(elapsed)) {
         this.scheduleDraw();
+      } else if (this.lightFog.drifting || this.lightFog.preparing) {
+        this.requestFrame();
       } else {
         this.lastFrameAt = 0;
       }
@@ -1008,12 +1025,19 @@ export class Board {
     }
     const draggedId = this.tokenDrag?.id;
     rendered.sort((a, b) => Number(a.token.id === draggedId) - Number(b.token.id === draggedId));
-    const fog = this.table.fog();
-    if (!fog.enabled) {
+    const settle = !this.fogSettled;
+    this.fogSettled = this.table.ready();
+    const fogChanging = this.lightFog.step(
+      this.table.fog(),
+      elapsedMs,
+      settle,
+      prefersReducedMotion(),
+    );
+    if (!this.lightFog.visible) {
       drawTokens(ctx, rendered, view, palette);
     } else {
       const lights = rendered
-        .filter((item) => item.token.ownerId !== null)
+        .filter((item) => emitsLight(item.token))
         .map((item) => ({
           x: originX + (item.x + item.token.size / 2) * cell,
           y: originY + (item.y + item.token.size / 2) * cell,
@@ -1022,8 +1046,8 @@ export class Board {
         this.lightFog.draw(
           ctx,
           lights,
-          fog.radius * cell,
-          color('--fog'),
+          { originX, originY, cell },
+          { fog: color('--fog'), mist: color('--fog-mist') },
           this.table.isMaster() ? MASTER_FOG_ALPHA : 1,
         );
       if (this.table.isMaster()) {
@@ -1061,7 +1085,7 @@ export class Board {
       );
     }
 
-    return animating;
+    return animating || fogChanging;
   }
 
   private drawGrid(

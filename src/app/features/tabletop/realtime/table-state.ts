@@ -5,7 +5,7 @@ import { TabletopStore } from '../tabletop.store';
 import type { CharacterSheet, SheetAssignment, SheetData, SheetStats } from '../sheets/sheet-model';
 import { CHAT_COOLDOWN, Cooldown, DICE_COOLDOWN } from './cooldown';
 import { TableConnection } from './table-connection';
-import { FOG_RADIUS, isLit, lightOf } from '../maps/fog-light';
+import { emitsLight, FOG_RADIUS, isLit, lightOf } from '../maps/fog-light';
 import {
   type ChatMessage,
   COOLDOWN_ERROR,
@@ -111,11 +111,7 @@ export class TableState {
   readonly maps = computed(() => [...this.mapsById().values()]);
   readonly scene = this.sceneState.asReadonly();
   readonly fog = this.fogState.asReadonly();
-  readonly lights = computed(() =>
-    this.tokens()
-      .filter((token) => token.ownerId !== null)
-      .map(lightOf),
-  );
+  readonly lights = computed(() => this.tokens().filter(emitsLight).map(lightOf));
   readonly previews = this.previewsById.asReadonly();
   readonly members = this.memberList.asReadonly();
   readonly onlineIds = this.online.asReadonly();

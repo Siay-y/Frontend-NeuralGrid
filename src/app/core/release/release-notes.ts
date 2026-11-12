@@ -33,6 +33,14 @@ export const RELEASES: readonly Release[] = [
         text: 'Em Configurações, o mestre também escolhe o alcance da luz, de 2 a 20 quadrados. A luz acompanha o token enquanto ele anda, e todos veem a mudança na hora.',
       },
       {
+        kind: 'new',
+        text: 'Nova opção Iluminar na névoa ao editar um token que tem dono. Desligada, o token fica no escuro e os jogadores só o veem quando chega perto da luz deles, bom para esconder uma emboscada.',
+      },
+      {
+        kind: 'new',
+        text: 'Uma neblina baixa passa devagar pelas áreas escuras, onde a luz não chega: mais clara no tema escuro e mais escura no tema claro. Quando o mestre liga ou desliga a névoa, a escuridão surge e some aos poucos, e o círculo de luz cresce ou encolhe suavemente quando o alcance muda. Se o sistema pede menos movimento, a neblina fica parada e as mudanças são imediatas.',
+      },
+      {
         kind: 'improved',
         text: 'Cada jogador continua vendo os próprios tokens, e os tokens no escuro somem também da lista de tokens. O mestre vê o mapa inteiro, com a escuridão mais fraca por cima.',
       },

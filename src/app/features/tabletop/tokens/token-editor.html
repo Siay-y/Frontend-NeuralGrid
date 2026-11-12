@@ -132,33 +132,56 @@
       </div>
     </fieldset>
 
-    @if (!linkedSheet()) {
+    @if (!linkedSheet() || ownerId() !== null) {
       <div class="editor__switches">
-        <label class="switch" [class.is-on]="current.hidden">
-          <input type="checkbox" class="sr-only" formControlName="hidden" />
-          <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
-          <span class="switch__text">
-            <span class="switch__title">Esconder dos jogadores</span>
-            <span class="switch__hint">{{
-              current.hidden
-                ? 'Só o mestre vê. Revele quando entrar em cena.'
-                : 'Todos na mesa veem este token.'
-            }}</span>
-          </span>
-        </label>
+        @if (!linkedSheet()) {
+          <label class="switch" [class.is-on]="current.hidden">
+            <input type="checkbox" class="sr-only" formControlName="hidden" />
+            <span class="switch__track" aria-hidden="true"
+              ><span class="switch__thumb"></span
+            ></span>
+            <span class="switch__text">
+              <span class="switch__title">Esconder dos jogadores</span>
+              <span class="switch__hint">{{
+                current.hidden
+                  ? 'Só o mestre vê. Revele quando entrar em cena.'
+                  : 'Todos na mesa veem este token.'
+              }}</span>
+            </span>
+          </label>
 
-        <label class="switch" [class.is-on]="current.nameHidden">
-          <input type="checkbox" class="sr-only" formControlName="nameHidden" />
-          <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
-          <span class="switch__text">
-            <span class="switch__title">Esconder o nome</span>
-            <span class="switch__hint">{{
-              current.nameHidden
-                ? 'Os jogadores veem ??? até você desligar.'
-                : 'Todos veem o nome do token.'
-            }}</span>
-          </span>
-        </label>
+          <label class="switch" [class.is-on]="current.nameHidden">
+            <input type="checkbox" class="sr-only" formControlName="nameHidden" />
+            <span class="switch__track" aria-hidden="true"
+              ><span class="switch__thumb"></span
+            ></span>
+            <span class="switch__text">
+              <span class="switch__title">Esconder o nome</span>
+              <span class="switch__hint">{{
+                current.nameHidden
+                  ? 'Os jogadores veem ??? até você desligar.'
+                  : 'Todos veem o nome do token.'
+              }}</span>
+            </span>
+          </label>
+        }
+
+        @if (ownerId() !== null) {
+          <label class="switch" [class.is-on]="current.emitsLight">
+            <input type="checkbox" class="sr-only" formControlName="emitsLight" />
+            <span class="switch__track" aria-hidden="true"
+              ><span class="switch__thumb"></span
+            ></span>
+            <span class="switch__text">
+              <span class="switch__title">Iluminar na névoa</span>
+              <span class="switch__hint">{{
+                current.emitsLight
+                  ? 'Com a névoa ligada, este token ilumina ao redor.'
+                  : 'Fica no escuro. Os jogadores só o veem perto da luz deles.'
+              }}</span>
+            </span>
+          </label>
+        }
       </div>
     }
 

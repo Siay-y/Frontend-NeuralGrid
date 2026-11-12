@@ -82,6 +82,7 @@ export interface TableToken {
   sex: TokenSex | null;
   hidden: boolean;
   nameHidden: boolean;
+  emitsLight: boolean;
   ownerId: string | null;
   sheetId: string | null;
   col: number;
@@ -165,6 +166,7 @@ export interface TokenDraft {
   sex: TokenSex | null;
   hidden: boolean;
   nameHidden: boolean;
+  emitsLight?: boolean;
   ownerId: string | null;
   size: number;
   sheetId?: string | null;

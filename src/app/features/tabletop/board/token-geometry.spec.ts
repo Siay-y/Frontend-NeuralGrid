@@ -9,6 +9,7 @@ const token = (overrides: Partial<TableToken>): TableToken => ({
   sex: null,
   hidden: false,
   nameHidden: false,
+  emitsLight: true,
   ownerId: null,
   sheetId: null,
   col: 0,
