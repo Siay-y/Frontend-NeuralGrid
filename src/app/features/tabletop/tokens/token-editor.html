@@ -40,9 +40,7 @@
     @if (linkedSheet(); as sheet) {
       <div class="linked">
         <svg lucideScrollText class="linked__icon" [size]="16" />
-        <p class="linked__text">
-          Nome, tipo, sexo, dono e visibilidade vêm da ficha. Mude lá e o token acompanha.
-        </p>
+        <p class="linked__text">Nome, tipo, dono e visibilidade vêm da ficha.</p>
         <button type="button" class="button button--ghost" (click)="openSheet(sheet.id)">
           Abrir ficha
         </button>
@@ -142,11 +140,9 @@
             ></span>
             <span class="switch__text">
               <span class="switch__title">Esconder dos jogadores</span>
-              <span class="switch__hint">{{
-                current.hidden
-                  ? 'Só o mestre vê. Revele quando entrar em cena.'
-                  : 'Todos na mesa veem este token.'
-              }}</span>
+              @if (current.hidden) {
+                <span class="switch__hint">Só o mestre vê.</span>
+              }
             </span>
           </label>
 
@@ -157,11 +153,9 @@
             ></span>
             <span class="switch__text">
               <span class="switch__title">Esconder o nome</span>
-              <span class="switch__hint">{{
-                current.nameHidden
-                  ? 'Os jogadores veem ??? até você desligar.'
-                  : 'Todos veem o nome do token.'
-              }}</span>
+              @if (current.nameHidden) {
+                <span class="switch__hint">Jogadores veem ???.</span>
+              }
             </span>
           </label>
         }
@@ -174,11 +168,9 @@
             ></span>
             <span class="switch__text">
               <span class="switch__title">Iluminar na névoa</span>
-              <span class="switch__hint">{{
-                current.emitsLight
-                  ? 'Com a névoa ligada, este token ilumina ao redor.'
-                  : 'Fica no escuro. Os jogadores só o veem perto da luz deles.'
-              }}</span>
+              @if (!current.emitsLight) {
+                <span class="switch__hint">Fica no escuro na névoa.</span>
+              }
             </span>
           </label>
         }

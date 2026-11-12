@@ -71,6 +71,45 @@
   right: 16px;
 }
 
+.hud--adjust {
+  top: 16px;
+  bottom: auto;
+  left: 0;
+  right: 0;
+  gap: 10px;
+  width: max-content;
+  margin: 0 auto;
+  padding: 0 4px 0 12px;
+  animation-delay: 0ms;
+
+  @media (max-width: 480px) {
+    top: 64px;
+  }
+}
+
+.hud__done {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) - 2px);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--color-surface-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
 .hud--upload {
   top: 16px;
   bottom: auto;

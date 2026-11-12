@@ -6,6 +6,14 @@ export interface LightSource {
   y: number;
 }
 
+export function exploredSpots(points: readonly number[]): LightSource[] {
+  const spots: LightSource[] = [];
+  for (let index = 0; index + 1 < points.length; index += 2) {
+    spots.push({ x: points[index] / 2, y: points[index + 1] / 2 });
+  }
+  return spots;
+}
+
 interface Placed {
   col: number;
   row: number;

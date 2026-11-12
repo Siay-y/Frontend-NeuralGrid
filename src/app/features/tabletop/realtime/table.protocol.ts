@@ -27,6 +27,7 @@ export const TableClientEvent = {
   UpdateArea: 'area:update',
   DeleteArea: 'area:delete',
   UpdateFog: 'fog:update',
+  ForgetFog: 'fog:forget',
 } as const;
 
 export const TableServerEvent = {
@@ -51,6 +52,7 @@ export const TableServerEvent = {
   MapDeleted: 'map:deleted',
   SceneChanged: 'scene:changed',
   FogChanged: 'fog:changed',
+  FogMemory: 'fog:memory',
   SessionExpired: 'session:expired',
   ConnectionLimit: 'session:limit',
 } as const;
@@ -109,11 +111,24 @@ export interface TableSnapshot {
   maps?: TableMap[];
   scene?: TableScene | null;
   fog?: TableFog;
+  fogMemory?: FogMemorySnapshot | null;
 }
 
 export interface TableFog {
   enabled: boolean;
   radius: number;
+  memory: boolean;
+}
+
+export interface FogMemorySnapshot {
+  mapId: string;
+  points: number[];
+}
+
+export interface FogMemoryEvent {
+  mapId: string | null;
+  points: number[];
+  reset: boolean;
 }
 
 export interface MapPlacement {

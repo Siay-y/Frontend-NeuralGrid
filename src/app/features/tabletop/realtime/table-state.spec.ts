@@ -487,4 +487,32 @@ describe('TableState', () => {
     connection.emit(TableServerEvent.Snapshot, snapshot('master', 'mestre'));
     expect(state.isMasked(hiddenName)).toBe(false);
   });
+
+  it('keeps the explored places of the map on the table', () => {
+    connection.emit(TableServerEvent.Snapshot, {
+      ...snapshot('player'),
+      fogMemory: { mapId: 'floresta', points: [1, 1] },
+    });
+    expect(state.explored()).toEqual([{ x: 0.5, y: 0.5 }]);
+
+    connection.emit(TableServerEvent.FogMemory, {
+      mapId: 'floresta',
+      points: [5, 1],
+      reset: false,
+    });
+    expect(state.explored()).toEqual([
+      { x: 0.5, y: 0.5 },
+      { x: 2.5, y: 0.5 },
+    ]);
+
+    connection.emit(TableServerEvent.FogMemory, { mapId: 'caverna', points: [], reset: true });
+    expect(state.explored()).toEqual([]);
+
+    connection.emit(TableServerEvent.FogMemory, {
+      mapId: 'floresta',
+      points: [9, 9],
+      reset: false,
+    });
+    expect(state.explored()).toEqual([{ x: 4.5, y: 4.5 }]);
+  });
 });

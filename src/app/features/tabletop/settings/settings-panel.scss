@@ -33,6 +33,16 @@
   color: var(--color-text-muted);
 }
 
+.forget {
+  justify-self: start;
+
+  &.is-confirming {
+    border-color: var(--color-inverse);
+    color: var(--color-inverse-text);
+    background: var(--color-inverse);
+  }
+}
+
 .range {
   width: 100%;
   accent-color: var(--color-text);

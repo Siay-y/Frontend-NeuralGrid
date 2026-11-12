@@ -18,7 +18,7 @@
     </header>
 
     @if (atLimit()) {
-      <p class="note">Você chegou a {{ perPlayer }} fichas. Apague uma para criar outra.</p>
+      <p class="note">Limite de {{ perPlayer }} fichas.</p>
     }
 
     @if (!table.ready()) {
@@ -85,11 +85,7 @@
           </li>
         } @empty {
           <li class="empty">
-            {{
-              table.isMaster()
-                ? 'Nenhuma ficha ainda. Crie NPCs e ameaças aqui, ou espere os jogadores criarem os agentes.'
-                : 'Você ainda não tem personagem. Crie a sua ficha e o mestre coloca o seu agente na mesa.'
-            }}
+            {{ table.isMaster() ? 'Nenhuma ficha.' : 'Crie sua ficha para entrar na mesa.' }}
           </li>
         }
       </ul>

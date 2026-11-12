@@ -11,6 +11,14 @@ const FOG_SCALE = 0.25;
 const FADE_MS = 500;
 const RADIUS_EASE_MS = 140;
 const MIST_STRENGTH = 0.7;
+const MEMORY_REVEAL = 0.4;
+const MEMORY_CELL_PX = 8;
+const MEMORY_MAX_SIDE = 2048;
+const MEMORY_STOPS: readonly [number, number][] = [
+  [0, 1],
+  [0.55, 0.85],
+  [1, 0],
+];
 
 interface NoiseSheet {
   seed: number;
@@ -91,10 +99,24 @@ export interface FogColors {
   mist: string;
 }
 
+export interface FogMemory {
+  spots: readonly LightSource[];
+  radius: number;
+}
+
+interface MemoryFrame {
+  left: number;
+  top: number;
+  scale: number;
+}
+
 export class LightFog {
   private readonly scratch = document.createElement('canvas');
   private readonly mist = document.createElement('canvas');
   private readonly tiles: (HTMLCanvasElement | null)[] = [];
+  private readonly memoryMask = document.createElement('canvas');
+  private memoryFor: FogMemory | null = null;
+  private memoryFrame: MemoryFrame | null = null;
   private level = 0;
   private radius = 0;
   private seconds = 0;
@@ -147,6 +169,7 @@ export class LightFog {
     view: FogView,
     colors: FogColors,
     alpha: number,
+    memory: FogMemory | null = null,
   ): void {
     if (this.level === 0) {
       return;
@@ -168,8 +191,21 @@ export class LightFog {
       fog.drawImage(this.mist, 0, 0);
     }
 
-    fog.globalAlpha = 1;
     fog.globalCompositeOperation = 'destination-out';
+    const frame = memory ? this.paintMemory(memory) : null;
+    if (frame) {
+      const unit = view.cell * FOG_SCALE;
+      fog.globalAlpha = MEMORY_REVEAL;
+      fog.drawImage(
+        this.memoryMask,
+        (view.originX + frame.left * view.cell) * FOG_SCALE,
+        (view.originY + frame.top * view.cell) * FOG_SCALE,
+        (this.memoryMask.width / frame.scale) * unit,
+        (this.memoryMask.height / frame.scale) * unit,
+      );
+    }
+
+    fog.globalAlpha = 1;
     const radius = this.radius * view.cell;
     const reach = radius * FOG_SCALE;
     for (const light of lights) {
@@ -199,6 +235,46 @@ export class LightFog {
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(this.scratch, 0, 0, width, height);
     ctx.restore();
+  }
+
+  private paintMemory(memory: FogMemory): MemoryFrame | null {
+    if (memory.spots.length === 0) {
+      return null;
+    }
+    const cached = this.memoryFor;
+    if (cached && cached.spots === memory.spots && cached.radius === memory.radius) {
+      return this.memoryFrame;
+    }
+    const xs = memory.spots.map((spot) => spot.x);
+    const ys = memory.spots.map((spot) => spot.y);
+    const left = Math.min(...xs) - memory.radius;
+    const top = Math.min(...ys) - memory.radius;
+    const spanX = Math.max(...xs) + memory.radius - left;
+    const spanY = Math.max(...ys) + memory.radius - top;
+    const scale = Math.min(MEMORY_CELL_PX, MEMORY_MAX_SIDE / Math.max(spanX, spanY, 1));
+    const mask = this.layer(
+      this.memoryMask,
+      Math.max(1, Math.ceil(spanX * scale)),
+      Math.max(1, Math.ceil(spanY * scale)),
+    );
+    if (!mask) {
+      return null;
+    }
+    mask.clearRect(0, 0, this.memoryMask.width, this.memoryMask.height);
+    const reach = memory.radius * scale;
+    for (const spot of memory.spots) {
+      const x = (spot.x - left) * scale;
+      const y = (spot.y - top) * scale;
+      const glow = mask.createRadialGradient(x, y, 0, x, y, reach);
+      for (const [offset, strength] of MEMORY_STOPS) {
+        glow.addColorStop(offset, `rgba(255, 255, 255, ${strength})`);
+      }
+      mask.fillStyle = glow;
+      mask.fillRect(x - reach, y - reach, reach * 2, reach * 2);
+    }
+    this.memoryFor = memory;
+    this.memoryFrame = { left, top, scale };
+    return this.memoryFrame;
   }
 
   private layer(
