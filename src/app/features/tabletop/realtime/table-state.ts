@@ -35,6 +35,9 @@ import {
   type TableMap,
   type FogMemoryEvent,
   type TableFog,
+  type CombatantChanges,
+  IDLE_COMBAT,
+  type TableCombat,
   type TableScene,
 } from './table.protocol';
 
@@ -114,6 +117,8 @@ export class TableState {
   private readonly mapsById = signal<ReadonlyMap<string, TableMap>>(new Map());
   private readonly sceneState = signal<TableScene | null>(null);
   private readonly fogState = signal<TableFog>(DEFAULT_FOG);
+  private readonly combatState = signal<TableCombat>(IDLE_COMBAT);
+  private readonly combatStartCount = signal(0);
   private readonly memoryState = signal<{ mapId: string | null; spots: readonly LightSource[] }>({
     mapId: null,
     spots: [],
@@ -123,6 +128,14 @@ export class TableState {
   readonly maps = computed(() => [...this.mapsById().values()]);
   readonly scene = this.sceneState.asReadonly();
   readonly fog = this.fogState.asReadonly();
+  readonly combat = this.combatState.asReadonly();
+  readonly combatStarts = this.combatStartCount.asReadonly();
+  readonly myTurn = computed(() => {
+    const { round, turnId } = this.combatState();
+    const me = this.self();
+    const token = turnId ? this.tokensById().get(turnId) : undefined;
+    return round > 0 && !!me && me.role !== 'master' && token?.ownerId === me.id;
+  });
   readonly explored = computed(() => this.memoryState().spots);
   readonly lights = computed(() => this.tokens().filter(emitsLight).map(lightOf));
   readonly previews = this.previewsById.asReadonly();
@@ -192,6 +205,8 @@ export class TableState {
         this.mapsById.update((maps) => withoutEntry(maps, id)),
       [TableServerEvent.FogChanged]: ({ fog }: { fog: TableFog }) => this.fogState.set(fog),
       [TableServerEvent.FogMemory]: (event: FogMemoryEvent) => this.applyMemory(event),
+      [TableServerEvent.CombatChanged]: ({ combat }: { combat: TableCombat }) =>
+        this.applyCombat(combat),
       [TableServerEvent.SceneChanged]: ({ scene }: { scene: TableScene | null }) =>
         this.applyScene(scene),
     });
@@ -325,6 +340,55 @@ export class TableState {
 
   async forgetExplored(): Promise<void> {
     await this.attempt(() => this.connection.request(TableClientEvent.ForgetFog, {}));
+  }
+
+  joinCombat(tokenIds: readonly string[]): Promise<boolean> {
+    return this.combatRequest(TableClientEvent.JoinCombat, { tokenIds });
+  }
+
+  leaveCombat(tokenId: string): Promise<boolean> {
+    return this.combatRequest(TableClientEvent.LeaveCombat, { tokenId });
+  }
+
+  updateCombatant(tokenId: string, changes: CombatantChanges): Promise<boolean> {
+    return this.combatRequest(TableClientEvent.UpdateCombatant, { tokenId, ...changes });
+  }
+
+  rollInitiative(tokenIds?: readonly string[]): Promise<boolean> {
+    return this.combatRequest(TableClientEvent.RollInitiative, tokenIds ? { tokenIds } : {});
+  }
+
+  startCombat(): Promise<boolean> {
+    return this.combatRequest(TableClientEvent.StartCombat, {});
+  }
+
+  stepTurn(step: 1 | -1): Promise<boolean> {
+    const { round, turnId } = this.combatState();
+    return this.combatRequest(TableClientEvent.StepTurn, { step, round, turnId });
+  }
+
+  passTurn(tokenId: string): Promise<boolean> {
+    return this.combatRequest(TableClientEvent.PassTurn, { tokenId });
+  }
+
+  endCombat(): Promise<boolean> {
+    return this.combatRequest(TableClientEvent.EndCombat, {});
+  }
+
+  private async combatRequest(event: string, payload: object): Promise<boolean> {
+    const combat = await this.attempt(() => this.connection.request<TableCombat>(event, payload));
+    if (combat) {
+      this.applyCombat(combat);
+    }
+    return combat !== null;
+  }
+
+  private applyCombat(combat: TableCombat): void {
+    const began = this.combatState().round === 0 && combat.round > 0;
+    this.combatState.set(combat);
+    if (began && !this.isMaster()) {
+      this.combatStartCount.update((count) => count + 1);
+    }
   }
 
   private applyMemory({ mapId, points, reset }: FogMemoryEvent): void {
@@ -554,6 +618,7 @@ export class TableState {
     this.mapsById.set(new Map((snapshot.maps ?? []).map((map) => [map.id, map])));
     this.applyScene(snapshot.scene ?? null);
     this.fogState.set(snapshot.fog ?? DEFAULT_FOG);
+    this.combatState.set(snapshot.combat ?? IDLE_COMBAT);
     this.applyMemory({
       mapId: snapshot.fogMemory?.mapId ?? null,
       points: snapshot.fogMemory?.points ?? [],

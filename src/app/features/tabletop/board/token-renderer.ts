@@ -19,6 +19,7 @@ export interface RenderedToken {
   x: number;
   y: number;
   selected: boolean;
+  turnAge?: number;
   remote: boolean;
   masked: boolean;
   lifted?: boolean;
@@ -33,6 +34,11 @@ export interface RenderView {
 }
 
 const HIDDEN_ALPHA = 0.5;
+const TURN_HALO_ALPHA = 0.22;
+export const TURN_PING_MS = 2_400;
+const TURN_RIPPLES = 3;
+const TURN_RIPPLE_GAP_MS = 380;
+const TURN_RIPPLE_MS = 1_000;
 const ICON_SCALE = 1.2;
 const iconPaths = new Map<string, Path2D[]>();
 
@@ -122,6 +128,10 @@ export function drawTokens(
     ctx.save();
     ctx.globalAlpha = (item.remote ? 0.65 : 1) * (token.hidden ? HIDDEN_ALPHA : 1);
 
+    if (item.turnAge !== undefined) {
+      drawTurnMarker(ctx, cx, cy, radius, dpr, palette, item.turnAge, item.selected);
+    }
+
     if (item.selected) {
       ctx.beginPath();
       ctx.arc(cx, cy, radius + 4 * dpr, 0, Math.PI * 2);
@@ -169,6 +179,58 @@ export function drawTokens(
     }
     ctx.restore();
   }
+}
+
+function drawTurnMarker(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  radius: number,
+  dpr: number,
+  palette: TokenPalette,
+  age: number,
+  selected: boolean,
+): void {
+  const ring = radius + (selected ? 8 : 6) * dpr;
+  ctx.save();
+  ctx.fillStyle = palette.text;
+  ctx.strokeStyle = palette.text;
+
+  ctx.globalAlpha *= TURN_HALO_ALPHA;
+  ctx.beginPath();
+  ctx.arc(cx, cy, ring + 4 * dpr, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha /= TURN_HALO_ALPHA;
+
+  ctx.lineWidth = 2 * dpr;
+  ctx.beginPath();
+  ctx.arc(cx, cy, ring, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const base = ctx.globalAlpha;
+  for (let index = 0; index < TURN_RIPPLES; index++) {
+    const progress = (age - index * TURN_RIPPLE_GAP_MS) / TURN_RIPPLE_MS;
+    if (progress <= 0 || progress >= 1) {
+      continue;
+    }
+    ctx.globalAlpha = base * (1 - progress) * 0.7;
+    ctx.beginPath();
+    ctx.arc(cx, cy, ring + progress * radius * 1.8, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = base;
+
+  const settle = Math.max(0, 1 - age / TURN_PING_MS);
+  const bob = Math.abs(Math.sin(age / 170)) * 7 * dpr * settle;
+  const tip = cy - ring - 7 * dpr - bob;
+  const half = 6 * dpr;
+  ctx.beginPath();
+  ctx.moveTo(cx - half, tip - 8 * dpr);
+  ctx.lineTo(cx + half, tip - 8 * dpr);
+  ctx.lineTo(cx, tip);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 function castShadow(

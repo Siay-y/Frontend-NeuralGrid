@@ -10,13 +10,15 @@ import {
   LucideRuler,
   LucideScrollText,
   LucideSettings,
+  LucideSwords,
   LucideUsers,
   type LucideIconInput,
 } from '@lucide/angular';
 
 export type MapToolId = 'select' | 'pan' | 'measure' | 'draw' | 'erase';
 
-export type PanelId = 'tokens' | 'sheets' | 'maps' | 'dice' | 'chat' | 'updates' | 'settings';
+export type PanelId =
+  'tokens' | 'sheets' | 'maps' | 'initiative' | 'dice' | 'chat' | 'updates' | 'settings';
 
 export interface MapTool {
   id: MapToolId;
@@ -59,6 +61,12 @@ export const TABLE_PANELS: Readonly<Record<PanelId, TablePanel>> = {
     description: 'Imagens de mapa que viram o fundo do tabuleiro, uma cena por vez.',
     icon: LucideMap,
   },
+  initiative: {
+    id: 'initiative',
+    label: 'Iniciativa',
+    description: 'Ordem dos turnos no combate.',
+    icon: LucideSwords,
+  },
   dice: {
     id: 'dice',
     label: 'Dados',
@@ -89,6 +97,7 @@ export const SHORTCUT_PANELS: readonly TablePanel[] = [
   TABLE_PANELS.tokens,
   TABLE_PANELS.sheets,
   TABLE_PANELS.maps,
+  TABLE_PANELS.initiative,
   TABLE_PANELS.dice,
   TABLE_PANELS.chat,
 ];

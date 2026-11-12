@@ -1,0 +1,201 @@
+<div class="initiative">
+  @if (!table.ready()) {
+    <p class="empty">Sincronizando com a mesa.</p>
+  } @else {
+    @if (rows().length > 0) {
+      <header class="status">
+        <span class="status__round">
+          @if (started()) {
+            Rodada <strong>{{ table.combat().round }}</strong>
+          } @else {
+            Preparando
+          }
+        </span>
+
+        @if (table.isMaster()) {
+          <div class="status__actions">
+            @if (started()) {
+              <button
+                type="button"
+                class="icon-button status__back"
+                aria-label="Voltar turno"
+                title="Voltar turno"
+                [disabled]="busy()"
+                (click)="step(-1)"
+              >
+                <svg lucideChevronLeft [size]="16" />
+              </button>
+              <button
+                type="button"
+                class="button button--primary"
+                [disabled]="busy()"
+                (click)="step(1)"
+              >
+                Próximo turno
+                <svg lucideChevronRight [size]="14" />
+              </button>
+            } @else {
+              <button
+                type="button"
+                class="button button--ghost"
+                [disabled]="busy() || !canRoll()"
+                (click)="rollAll()"
+              >
+                <svg lucideDices [size]="14" />
+                Rolar
+              </button>
+              <button
+                type="button"
+                class="button button--primary"
+                [disabled]="busy()"
+                (click)="start()"
+              >
+                Começar
+              </button>
+            }
+          </div>
+        }
+      </header>
+    }
+
+    <ol class="order" aria-label="Ordem de iniciativa">
+      @for (row of rows(); track row.tokenId) {
+        <li
+          class="row"
+          [class.is-turn]="isTurn(row)"
+          [class.is-hidden]="row.hidden || row.token.hidden"
+          [attr.aria-current]="isTurn(row) ? 'step' : null"
+          animate.enter="row-enter"
+        >
+          @if (table.isMaster()) {
+            <input
+              class="row__score"
+              type="number"
+              inputmode="numeric"
+              placeholder="?"
+              [min]="limits.min"
+              [max]="limits.max"
+              [value]="row.initiative ?? ''"
+              [attr.aria-label]="'Iniciativa de ' + row.token.label"
+              (change)="setInitiative(row, $event)"
+              (keydown.enter)="$any($event.target).blur()"
+            />
+          } @else {
+            <span class="row__score" [attr.aria-label]="'Iniciativa ' + (row.initiative ?? '?')">{{
+              row.initiative ?? '?'
+            }}</span>
+          }
+
+          <button type="button" class="row__main" (click)="locate(row.token)">
+            <app-token-glyph
+              [kind]="row.token.kind"
+              [label]="row.token.label"
+              [icon]="row.token.icon"
+              [hidden]="row.token.hidden"
+              [masked]="table.isMasked(row.token)"
+            />
+            <span class="row__name">{{ row.token.label }}</span>
+            @if (isMine(row.token)) {
+              <span class="tag">seu</span>
+            }
+            @if (table.isMaster() && (row.hidden || row.token.hidden)) {
+              <span class="tag tag--hidden">oculto</span>
+            }
+          </button>
+
+          @if (table.isMaster()) {
+            <app-action-menu #more class="row__more" [label]="'Mais opções de ' + row.token.label">
+              @if (row.rollable) {
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="action-menu__item"
+                  (click)="more.close(); rollOne(row)"
+                >
+                  <svg lucideDices [size]="15" />
+                  Rolar d20 + Agilidade
+                </button>
+              }
+              <button
+                type="button"
+                role="menuitem"
+                class="action-menu__item"
+                (click)="more.close(); toggleHidden(row)"
+              >
+                @if (row.hidden) {
+                  <svg lucideEye [size]="15" />
+                  Revelar aos jogadores
+                } @else {
+                  <svg lucideEyeOff [size]="15" />
+                  Esconder dos jogadores
+                }
+              </button>
+              <div class="action-menu__divider" role="separator"></div>
+              <button
+                type="button"
+                role="menuitem"
+                class="action-menu__item"
+                (click)="more.close(); remove(row)"
+              >
+                <svg lucideX [size]="15" />
+                Tirar do combate
+              </button>
+            </app-action-menu>
+          }
+        </li>
+      } @empty {
+        <li class="empty">
+          {{ table.isMaster() ? 'Ninguém no combate.' : 'Nenhum combate.' }}
+        </li>
+      }
+    </ol>
+
+    @if (table.isMaster()) {
+      @if (rows().length > 0) {
+        <div class="end">
+          <button
+            type="button"
+            class="button button--ghost end__button"
+            [class.is-confirming]="confirmingEnd()"
+            [disabled]="busy()"
+            (click)="end()"
+          >
+            {{ confirmingEnd() ? 'Confirmar' : 'Encerrar combate' }}
+          </button>
+        </div>
+      }
+
+      <app-collapsible
+        title="Adicionar"
+        [count]="outside().length"
+        [open]="store.isSectionOpen(addSection)"
+        (toggled)="store.toggleSection(addSection)"
+      >
+        <ul class="pool">
+          @for (token of outside(); track token.id) {
+            <li>
+              <button
+                type="button"
+                class="pool__item"
+                [attr.aria-label]="'Adicionar ' + token.label + ' ao combate'"
+                (click)="add(token)"
+              >
+                <app-token-glyph
+                  [kind]="token.kind"
+                  [label]="token.label"
+                  [icon]="token.icon"
+                  [hidden]="token.hidden"
+                  [masked]="table.isMasked(token)"
+                />
+                <span class="row__name">{{ token.label }}</span>
+                <svg lucidePlus class="pool__plus" [size]="15" />
+              </button>
+            </li>
+          } @empty {
+            <li class="empty empty--small">Todos os tokens estão no combate.</li>
+          }
+        </ul>
+      </app-collapsible>
+    }
+  }
+</div>

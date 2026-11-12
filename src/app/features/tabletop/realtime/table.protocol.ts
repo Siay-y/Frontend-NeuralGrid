@@ -28,6 +28,14 @@ export const TableClientEvent = {
   DeleteArea: 'area:delete',
   UpdateFog: 'fog:update',
   ForgetFog: 'fog:forget',
+  JoinCombat: 'combat:join',
+  LeaveCombat: 'combat:leave',
+  UpdateCombatant: 'combat:update',
+  RollInitiative: 'combat:roll',
+  StartCombat: 'combat:start',
+  StepTurn: 'combat:step',
+  PassTurn: 'combat:pass',
+  EndCombat: 'combat:end',
 } as const;
 
 export const TableServerEvent = {
@@ -53,6 +61,7 @@ export const TableServerEvent = {
   SceneChanged: 'scene:changed',
   FogChanged: 'fog:changed',
   FogMemory: 'fog:memory',
+  CombatChanged: 'combat:changed',
   SessionExpired: 'session:expired',
   ConnectionLimit: 'session:limit',
 } as const;
@@ -112,7 +121,26 @@ export interface TableSnapshot {
   scene?: TableScene | null;
   fog?: TableFog;
   fogMemory?: FogMemorySnapshot | null;
+  combat?: TableCombat;
 }
+
+export interface TableCombatant {
+  tokenId: string;
+  initiative: number | null;
+  hidden: boolean;
+}
+
+export interface TableCombat {
+  round: number;
+  turnId: string | null;
+  combatants: TableCombatant[];
+}
+
+export type CombatantChanges = Partial<Pick<TableCombatant, 'initiative' | 'hidden'>>;
+
+export const IDLE_COMBAT: TableCombat = { round: 0, turnId: null, combatants: [] };
+
+export const INITIATIVE_LIMITS = { min: -99, max: 999 } as const;
 
 export interface TableFog {
   enabled: boolean;

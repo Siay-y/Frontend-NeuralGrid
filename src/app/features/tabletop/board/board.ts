@@ -63,6 +63,7 @@ import {
   readTokenPalette,
   type RenderedToken,
   type RenderView,
+  TURN_PING_MS,
 } from './token-renderer';
 
 interface PanDrag {
@@ -245,6 +246,8 @@ export class Board {
   private fogSettled = false;
   private tween = 0;
   private initialized = false;
+  private turnKey = '';
+  private turnStartedAt = 0;
 
   constructor() {
     effect(() => {
@@ -260,6 +263,7 @@ export class Board {
       this.ownRuler();
       this.table.fog();
       this.table.explored();
+      this.table.combat();
       this.mapScene.layers();
       this.store.mapAdjusting();
       this.store.mapAreaId();
@@ -269,6 +273,17 @@ export class Board {
     effect(() => {
       this.camera();
       untracked(() => this.syncViewCenter());
+    });
+
+    effect(() => {
+      const { round, turnId } = this.table.combat();
+      const key = round > 0 && turnId ? `${round}:${turnId}` : '';
+      if (key !== this.turnKey) {
+        this.turnKey = key;
+        if (turnId && key) {
+          untracked(() => this.focusTurn(turnId));
+        }
+      }
     });
 
     effect(() => {
@@ -852,6 +867,18 @@ export class Board {
     this.scheduleDraw();
   }
 
+  private focusTurn(tokenId: string): void {
+    const token = this.table.token(tokenId);
+    if (!token || this.table.inDarkness(token)) {
+      return;
+    }
+    this.turnStartedAt = performance.now();
+    if (!this.table.isMaster() && !this.tokenDrag && !this.panDrag) {
+      this.focus({ col: token.col, row: token.row, size: token.size, seq: 0 });
+    }
+    this.scheduleDraw();
+  }
+
   private focus(request: FocusRequest): void {
     const { width, height } = this.viewport;
     const { zoom } = this.camera();
@@ -1007,6 +1034,10 @@ export class Board {
     const palette = readTokenPalette(styles);
     const previews = this.table.previews();
     const selectedId = this.store.selectedTokenId();
+    const { round, turnId } = this.table.combat();
+    const turnTokenId = round > 0 ? turnId : null;
+    const turnAge = this.turnStartedAt ? performance.now() - this.turnStartedAt : TURN_PING_MS;
+    const pinging = !!turnTokenId && turnAge < TURN_PING_MS && !prefersReducedMotion();
 
     if (this.tokenDrag) {
       const token = this.table.token(this.tokenDrag.id);
@@ -1024,6 +1055,7 @@ export class Board {
         x: position.x,
         y: position.y,
         selected: token.id === selectedId,
+        turnAge: token.id === turnTokenId ? turnAge : undefined,
         remote: previews.has(token.id),
         lifted: token.id === this.tokenDrag?.id,
         masked: this.table.isMasked(token),
@@ -1094,7 +1126,7 @@ export class Board {
       );
     }
 
-    return animating || fogChanging;
+    return animating || fogChanging || pinging;
   }
 
   private drawGrid(

@@ -116,6 +116,12 @@
   bottom: 116px;
 }
 
+@media (max-width: 860px) {
+  .tabletop__stage:has(.turn__button) .tabletop__rolls {
+    bottom: 164px;
+  }
+}
+
 @media (min-width: 861px) {
   .tabletop__stage:has(.sheet-card__panel) .tabletop__rolls {
     right: 328px;
