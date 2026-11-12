@@ -46,6 +46,7 @@ interface TokenForm {
   sex: FormControl<TokenSex | null>;
   hidden: FormControl<boolean>;
   nameHidden: FormControl<boolean>;
+  emitsLight: FormControl<boolean>;
   ownerId: FormControl<string | null>;
   sheetId: FormControl<string | null>;
   size: FormControl<number>;
@@ -93,6 +94,7 @@ export class TokenEditor implements OnInit {
     sex: this.fb.control<TokenSex | null>(null),
     hidden: this.fb.control(false),
     nameHidden: this.fb.control(false),
+    emitsLight: this.fb.control(true),
     ownerId: this.fb.control<string | null>(null),
     sheetId: this.fb.control<string | null>(null),
     size: this.fb.control(1),
@@ -112,12 +114,14 @@ export class TokenEditor implements OnInit {
       ? { label: sheetTokenLabel(sheet.data), kind: sheet.kind }
       : { label: value.label.trim(), kind: value.kind };
   });
+  protected readonly ownerId = computed(() => {
+    const sheet = this.linkedSheet();
+    return sheet ? sheet.ownerId : this.value().ownerId;
+  });
   protected readonly meta = computed(() => {
     const sheet = this.linkedSheet();
-    const value = this.value();
-    const kind = sheet?.kind ?? value.kind;
-    const ownerId = sheet ? sheet.ownerId : value.ownerId;
-    const owner = this.table.member(ownerId)?.displayName ?? 'Sem dono';
+    const kind = sheet?.kind ?? this.value().kind;
+    const owner = this.table.member(this.ownerId())?.displayName ?? 'Sem dono';
     return [this.kindLabel[kind], owner, sheet ? 'Com ficha' : 'Sem ficha'].join(' · ');
   });
 
@@ -130,6 +134,7 @@ export class TokenEditor implements OnInit {
       sex: token.sex,
       hidden: token.hidden,
       nameHidden: token.nameHidden,
+      emitsLight: token.emitsLight !== false,
       ownerId: token.ownerId,
       sheetId: this.table.sheet(token.sheetId) ? token.sheetId : null,
       size: token.size,

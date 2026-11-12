@@ -38,6 +38,8 @@ valores de cor soltos.
 | `--grid-line` | branco a 5,5% | preto a 6% |
 | `--grid-line-strong` | branco a 11% | preto a 12% |
 | `--color-critical` | `#E5484D` | `#DC2626` |
+| `--fog` | `#111113` | `#D4D4D8` |
+| `--fog-mist` | `#A1A1AA` | `#52525B` |
 
 O botão principal usa o par `--color-inverse` e `--color-inverse-text`: branco
 sobre preto no tema escuro, preto sobre branco no claro.
@@ -93,6 +95,7 @@ O script de boot é um arquivo externo, e não inline, para a CSP continuar sem
 | Painel lateral | entra deslizando 12px, sai em 220ms |
 | Tabuleiro | zoom pelos botões interpola em 420ms com `easeOutExpo` |
 | Tema | cross-fade por View Transition |
+| Névoa | entra e sai em 500 ms, neblina andando devagar sobre o escuro |
 
 Com `prefers-reduced-motion: reduce`, transições e animações caem para 0,01ms e
 as View Transitions são desligadas.

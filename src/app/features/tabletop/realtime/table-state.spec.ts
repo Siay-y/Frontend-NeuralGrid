@@ -37,6 +37,7 @@ const dante: TableToken = {
   sex: null,
   hidden: false,
   nameHidden: false,
+  emitsLight: true,
   ownerId: 'ana',
   sheetId: null,
   col: 0,

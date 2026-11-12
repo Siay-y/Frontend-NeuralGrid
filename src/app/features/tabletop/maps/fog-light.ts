@@ -12,6 +12,15 @@ interface Placed {
   size: number;
 }
 
+interface LightCarrier {
+  ownerId: string | null;
+  emitsLight?: boolean;
+}
+
+export function emitsLight(token: LightCarrier): boolean {
+  return token.ownerId !== null && token.emitsLight !== false;
+}
+
 export function lightOf(token: Placed): LightSource {
   return { x: token.col + token.size / 2, y: token.row + token.size / 2 };
 }

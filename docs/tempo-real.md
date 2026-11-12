@@ -80,12 +80,43 @@ quando chega a posição definitiva, quando a prévia coincide com a posição a
   com decaimento exponencial de 70 ms. Movimentos remotos, prévias e o encaixe
   ao soltar ficam suaves sem tween manual.
 - O laço de `requestAnimationFrame` só roda enquanto algo se move. Com a mesa
-  parada, nenhum quadro é desenhado.
+  parada e a névoa desligada, nenhum quadro é desenhado.
 - Visual por tipo, sem cor: Agente em círculo cheio, NPC com contorno sólido,
   Ameaça com contorno tracejado. Iniciais em Geist Mono e nome numa etiqueta
   abaixo, a partir de 70% de zoom.
 - O alvo do clique é o círculo do token, não a célula, e o token desenhado por
   cima ganha a disputa.
+
+### Névoa de guerra
+
+O mestre liga a névoa e escolhe o alcance da luz (2 a 20 quadrados) no painel
+Configurações. `fog:update` vai ao servidor e `fog:changed` chega a todos.
+
+| Regra | Como funciona |
+| --- | --- |
+| Luz | cada token com dono e `emitsLight` acende um círculo suave no centro dele |
+| Jogador | vê a escuridão opaca por cima do mapa, dos desenhos e dos tokens dos outros; os próprios tokens ficam sempre visíveis |
+| Mestre | vê tudo, com a escuridão a 50% |
+| Tokens no escuro | somem do tabuleiro, da lista de tokens e da ficha rápida do jogador (`TableState.inDarkness`) |
+| Sem luz | "Iluminar na névoa" desligado no editor deixa o token no escuro, para emboscadas |
+
+`LightFog` (`fog-renderer.ts`) desenha a névoa em 1/4 da resolução e amplia,
+porque tudo nela é suave. A neblina vem de duas texturas de ruído fractal com
+distorção, de tamanhos e velocidades diferentes, multiplicadas por uma máscara
+grande e lenta, para não repetir o desenho. As três texturas são geradas uma por
+quadro, na primeira vez que a névoa aparece.
+
+| Movimento | Detalhe |
+| --- | --- |
+| Ligar e desligar | a escuridão entra e sai em 500 ms |
+| Alcance | o raio da luz se aproxima do novo valor com decaimento de 140 ms |
+| Neblina | anda devagar, presa ao mapa, redesenhada a cerca de 30 quadros por segundo só enquanto a névoa está visível |
+| Ao entrar na mesa | a névoa já aparece pronta, para o mapa não piscar |
+| `prefers-reduced-motion` | sem transições e com a neblina parada |
+
+A névoa esconde o que o navegador desenha, não os dados: os tokens no escuro
+continuam chegando ao jogador. Para um segredo de verdade, o mestre usa um token
+oculto ou uma área oculta.
 
 ---
 
