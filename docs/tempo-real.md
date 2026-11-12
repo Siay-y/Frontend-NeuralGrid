@@ -158,6 +158,33 @@ clicar em editar um token abre o formulário de novo.
 - **Todos:** clicar numa linha seleciona o token e centraliza a câmera nele. O
   ponto ao lado do dono indica se ele está na mesa.
 
+## Iniciativa
+
+`InitiativePanel` mostra a ordem que vem em `TableState.combat()`, já ordenada
+pelo servidor. Clicar numa linha centraliza a câmera no token.
+
+| Quem | O que faz |
+| --- | --- |
+| Mestre | adiciona tokens da mesa, digita ou rola a iniciativa (d20 + Agilidade, para tokens com ficha), esconde ou revela cada um, começa, passa ou volta o turno e encerra com dois cliques |
+| Jogador | vê a rodada e a ordem, com a vez destacada e o selo "seu" |
+
+No tabuleiro, o token da vez ganha halo, anel sólido e uma seta acima dele.
+Quando a vez muda, a câmera dos jogadores desliza até ele (menos durante um arraste; a do mestre fica parada) e três
+ondas saem do anel por 2,4 s, com a seta balançando; depois o destaque fica
+parado e o canvas para de redesenhar. O jogador só vê isso quando o
+participante da vez está visível para ele. As linhas do mestre têm um menu de mais opções (rolar, esconder ou
+revelar, tirar do combate), para caber na largura do celular.
+
+`CombatCues` cuida do que só o jogador vê:
+
+| Peça | Comportamento |
+| --- | --- |
+| Início | quando a rodada sai de 0 por um `combat:changed`, `CombatIntroBand` mostra uma faixa no centro da tela, com duas espadas se cruzando e um flash rápido, mostra a rodada, a posição de cada personagem do jogador e quem começa. Só aparece para quem tem personagem na luta, não bloqueia cliques e some em 3,6 s (ou com Esc), com saída animada: as espadas se afastam, o título se abre e a faixa se fecha. Recarregar no meio da luta não repete |
+| Finalizar turno | botão no rodapé do tabuleiro, só para quem tem personagem na luta. Mostra "Aguarde sua vez" desabilitado até a vez dele e então "Finalizar turno", que envia `combat:pass`. No celular, os cartões de rolagem sobem para não cobrir o botão |
+| Sua vez | uma luz fraca pulsa nas bordas da tela enquanto a vez é de um token do jogador |
+
+Com movimento reduzido, não há flash nem pulso: a luz fica fixa.
+
 ---
 
 ## Chat e dados

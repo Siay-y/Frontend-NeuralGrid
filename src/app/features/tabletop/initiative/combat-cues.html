@@ -1,0 +1,24 @@
+@if (table.myTurn()) {
+  <div class="glow" aria-hidden="true" animate.enter="glow-enter" animate.leave="glow-leave"></div>
+}
+<p class="sr-only" aria-live="polite">{{ table.myTurn() ? 'Sua vez.' : '' }}</p>
+
+@if (inFight()) {
+  <div class="turn chrome-dark" animate.enter="turn-enter" animate.leave="turn-leave">
+    <button
+      type="button"
+      class="turn__button"
+      [class.is-ready]="table.myTurn()"
+      [disabled]="!table.myTurn() || passing()"
+      (click)="pass()"
+    >
+      {{ table.myTurn() ? 'Finalizar turno' : 'Aguarde sua vez' }}
+    </button>
+  </div>
+}
+
+@if (intro(); as current) {
+  @for (item of [current]; track item.seq) {
+    <app-combat-intro-band [intro]="item" animate.leave="intro-leave" />
+  }
+}

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { LucideX } from '@lucide/angular';
 import { Board } from './board/board';
 import { DiceTray } from './dice/dice-tray';
+import { CombatCues } from './initiative/combat-cues';
 import { RollFeed } from './dice/roll-feed';
 import { RollPreviews } from './dice/roll-previews';
 import { TablePanelView } from './panel/panel';
@@ -34,6 +35,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
   selector: 'app-tabletop',
   imports: [
     Board,
+    CombatCues,
     DiceTray,
     MapToolbar,
     RollPreviews,

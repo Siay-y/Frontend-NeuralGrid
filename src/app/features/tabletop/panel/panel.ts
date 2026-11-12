@@ -4,6 +4,7 @@ import type { TablePanel } from '../tabletop.models';
 import { TabletopStore } from '../tabletop.store';
 import { ChatPanel } from '../chat/chat-panel';
 import { DicePanel } from '../dice/dice-panel';
+import { InitiativePanel } from '../initiative/initiative-panel';
 import { MapsPanel } from '../maps/maps-panel';
 import { SettingsPanel } from '../settings/settings-panel';
 import { SheetsPanel } from '../sheets/sheets-panel';
@@ -17,6 +18,7 @@ import { UpdatesPanel } from '../updates/updates-panel';
     LucideX,
     ChatPanel,
     DicePanel,
+    InitiativePanel,
     MapsPanel,
     SettingsPanel,
     SheetsPanel,

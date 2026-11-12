@@ -20,6 +20,33 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.7.0',
+    date: '2026-11-12',
+    title: 'Iniciativa',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Aba Iniciativa: o mestre monta o combate com os tokens da mesa, rola d20 + Agilidade de quem tem ficha ou digita o valor, e passa os turnos. A rolagem aparece no chat. Todos veem a ordem, a rodada e de quem é a vez.',
+      },
+      {
+        kind: 'new',
+        text: 'A cada turno, a câmera dos jogadores vai até o personagem da vez, que ganha um anel, ondas e uma seta no tabuleiro. Clicar num nome da lista também leva a câmera até ele.',
+      },
+      {
+        kind: 'new',
+        text: 'Inimigos escondidos ou no escuro da névoa ficam fora da lista dos jogadores até o mestre revelar.',
+      },
+      {
+        kind: 'new',
+        text: 'Quando o combate começa, quem está na luta vê as espadas se cruzarem, a posição dos seus personagens e quem começa.',
+      },
+      {
+        kind: 'new',
+        text: 'Na sua vez, a borda da tela pulsa e o botão Finalizar turno passa a vez para o próximo.',
+      },
+    ],
+  },
+  {
     version: '0.6.2',
     date: '2026-11-12',
     title: 'Memória da névoa',

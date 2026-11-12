@@ -515,4 +515,58 @@ describe('TableState', () => {
     });
     expect(state.explored()).toEqual([{ x: 4.5, y: 4.5 }]);
   });
+
+  it('follows the fight and keeps the order the master confirms', async () => {
+    connection.emit(TableServerEvent.Snapshot, {
+      ...snapshot('master', 'mestre'),
+      combat: { round: 0, turnId: null, combatants: [] },
+    });
+    expect(state.combat().combatants).toEqual([]);
+
+    const started = {
+      round: 1,
+      turnId: 'dante',
+      combatants: [{ tokenId: 'dante', initiative: 14, hidden: false }],
+    };
+    connection.request.mockResolvedValueOnce(started);
+    expect(await state.startCombat()).toBe(true);
+    expect(connection.request).toHaveBeenCalledWith('combat:start', {});
+    expect(state.combat()).toEqual(started);
+
+    connection.emit(TableServerEvent.CombatChanged, {
+      combat: { ...started, round: 2 },
+    });
+    expect(state.combat().round).toBe(2);
+
+    connection.request.mockRejectedValueOnce(
+      new TableActionError('COMBAT_FORBIDDEN', 'Só o mestre conduz o combate'),
+    );
+    expect(await state.stepTurn(1)).toBe(false);
+    expect(connection.request).toHaveBeenLastCalledWith('combat:step', {
+      step: 1,
+      round: 2,
+      turnId: 'dante',
+    });
+    expect(state.combat().round).toBe(2);
+    expect(state.combatStarts()).toBe(0);
+  });
+
+  it('counts each new fight for players and knows when it is their turn', () => {
+    connection.emit(TableServerEvent.Snapshot, snapshot('player'));
+    const fight = {
+      round: 1,
+      turnId: 'dante',
+      combatants: [{ tokenId: 'dante', initiative: 9, hidden: false }],
+    };
+
+    connection.emit(TableServerEvent.CombatChanged, { combat: fight });
+    expect(state.combatStarts()).toBe(1);
+    expect(state.myTurn()).toBe(true);
+
+    connection.emit(TableServerEvent.CombatChanged, { combat: { ...fight, round: 2 } });
+    expect(state.combatStarts()).toBe(1);
+
+    connection.emit(TableServerEvent.CombatChanged, { combat: { ...fight, turnId: null } });
+    expect(state.myTurn()).toBe(false);
+  });
 });
