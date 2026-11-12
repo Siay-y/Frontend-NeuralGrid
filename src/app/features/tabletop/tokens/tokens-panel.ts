@@ -116,7 +116,10 @@ export class TokensPanel {
     return id ? this.table.token(id) : undefined;
   });
   protected readonly tokens = computed(() =>
-    [...this.table.tokens()].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR')),
+    this.table
+      .tokens()
+      .filter((token) => !this.table.inDarkness(token))
+      .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR')),
   );
   protected readonly groups = computed<TokenGroup[]>(() => {
     const buckets = new Map<TokenGroupId, TableToken[]>();

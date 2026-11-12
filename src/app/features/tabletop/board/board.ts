@@ -51,6 +51,7 @@ import {
   readDrawPalette,
   readOverlayPalette,
 } from './drawing-renderer';
+import { LightFog } from './fog-renderer';
 import { clampToGrid, hitTest, type PlacedToken, snapToCell } from './token-geometry';
 import { TokenHoverCard } from './token-hover-card';
 import { type Point, TokenMotion } from './token-motion';
@@ -129,6 +130,7 @@ const RULER_SEND_MS = 80;
 const COORDINATE_PRECISION = 100;
 const HOVER_TOOLS = new Set(['select', 'pan']);
 const HIDDEN_AREA_ALPHA = 0.4;
+const MASTER_FOG_ALPHA = 0.5;
 
 function snapPoint(x: number, y: number): Point {
   const { col, row } = snapToCell(x, y);
@@ -193,6 +195,7 @@ export class Board {
     const tool = this.store.activeTool();
     if (
       !token ||
+      this.table.inDarkness(token) ||
       this.panning() ||
       this.draggingToken() ||
       this.gesturing() ||
@@ -231,6 +234,7 @@ export class Board {
   private pointer: Point | null = null;
   private readonly bounds = new WeakMap<TableDrawing, Bounds>();
   private readonly motion = new TokenMotion();
+  private readonly lightFog = new LightFog();
   private placed: PlacedToken[] = [];
   private frame = 0;
   private lastFrameAt = 0;
@@ -249,6 +253,7 @@ export class Board {
       this.table.rulers();
       this.table.members();
       this.ownRuler();
+      this.table.fog();
       this.mapScene.layers();
       this.store.mapAdjusting();
       this.store.mapAreaId();
@@ -1003,7 +1008,39 @@ export class Board {
     }
     const draggedId = this.tokenDrag?.id;
     rendered.sort((a, b) => Number(a.token.id === draggedId) - Number(b.token.id === draggedId));
-    drawTokens(ctx, rendered, view, palette);
+    const fog = this.table.fog();
+    if (!fog.enabled) {
+      drawTokens(ctx, rendered, view, palette);
+    } else {
+      const lights = rendered
+        .filter((item) => item.token.ownerId !== null)
+        .map((item) => ({
+          x: originX + (item.x + item.token.size / 2) * cell,
+          y: originY + (item.y + item.token.size / 2) * cell,
+        }));
+      const darken = () =>
+        this.lightFog.draw(
+          ctx,
+          lights,
+          fog.radius * cell,
+          color('--fog'),
+          this.table.isMaster() ? MASTER_FOG_ALPHA : 1,
+        );
+      if (this.table.isMaster()) {
+        darken();
+        drawTokens(ctx, rendered, view, palette);
+      } else {
+        const own = rendered.filter((item) => this.table.canMove(item.token));
+        drawTokens(
+          ctx,
+          rendered.filter((item) => !own.includes(item)),
+          view,
+          palette,
+        );
+        darken();
+        drawTokens(ctx, own, view, palette);
+      }
+    }
 
     const overlay = readOverlayPalette(styles);
     for (const ruler of this.table.rulers()) {

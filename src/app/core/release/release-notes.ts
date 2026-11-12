@@ -20,6 +20,29 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.6.0',
+    date: '2026-11-12',
+    title: 'Névoa de guerra',
+    changes: [
+      {
+        kind: 'new',
+        text: 'O mestre pode ligar a névoa de guerra em Configurações. Com ela ligada, cada token que tem dono carrega uma luz, como um lampião: o centro é mais claro e a luz some aos poucos. Fora da luz, o tabuleiro fica escuro para os jogadores, inclusive os tokens que estão lá.',
+      },
+      {
+        kind: 'new',
+        text: 'Em Configurações, o mestre também escolhe o alcance da luz, de 2 a 20 quadrados. A luz acompanha o token enquanto ele anda, e todos veem a mudança na hora.',
+      },
+      {
+        kind: 'improved',
+        text: 'Cada jogador continua vendo os próprios tokens, e os tokens no escuro somem também da lista de tokens. O mestre vê o mapa inteiro, com a escuridão mais fraca por cima.',
+      },
+      {
+        kind: 'fixed',
+        text: 'O envio de mapas voltou a funcionar no site publicado. A imagem agora é lida direto do arquivo, sem esbarrar na proteção de segurança do navegador.',
+      },
+    ],
+  },
+  {
     version: '0.5.0',
     date: '2026-11-11',
     title: 'Mapas na mesa',

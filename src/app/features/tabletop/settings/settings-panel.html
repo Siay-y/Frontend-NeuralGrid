@@ -1,0 +1,35 @@
+<div class="settings">
+  <section class="section" aria-labelledby="fog-title">
+    <h3 id="fog-title" class="eyebrow">Névoa de guerra</h3>
+
+    <label class="switch" [class.is-on]="fog().enabled">
+      <input type="checkbox" class="sr-only" [checked]="fog().enabled" (change)="toggleFog()" />
+      <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+      <span class="switch__text">
+        <span class="switch__title">Ligar a névoa</span>
+        <span class="switch__hint">Os jogadores só enxergam perto dos tokens que têm dono.</span>
+      </span>
+    </label>
+
+    <div class="field">
+      <div class="field__row">
+        <label class="field__label" for="fog-radius">Alcance da luz</label>
+        <span class="reach">{{ describeReach(fog().radius) }}</span>
+      </div>
+      <input
+        id="fog-radius"
+        class="range"
+        type="range"
+        step="1"
+        [min]="limits.min"
+        [max]="limits.max"
+        [value]="fog().radius"
+        aria-describedby="fog-radius-hint"
+        (input)="setRadius($event)"
+      />
+      <p id="fog-radius-hint" class="hint">
+        A luz é mais forte no centro do token e some aos poucos até o alcance.
+      </p>
+    </div>
+  </section>
+</div>
