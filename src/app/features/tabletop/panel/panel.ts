@@ -5,7 +5,6 @@ import { TabletopStore } from '../tabletop.store';
 import { ChatPanel } from '../chat/chat-panel';
 import { DicePanel } from '../dice/dice-panel';
 import { MapsPanel } from '../maps/maps-panel';
-import { TableState } from '../realtime/table-state';
 import { SettingsPanel } from '../settings/settings-panel';
 import { SheetsPanel } from '../sheets/sheets-panel';
 import { TokensPanel } from '../tokens/tokens-panel';
@@ -30,6 +29,5 @@ import { UpdatesPanel } from '../updates/updates-panel';
 })
 export class TablePanelView {
   protected readonly store = inject(TabletopStore);
-  protected readonly table = inject(TableState);
   readonly panel = input.required<TablePanel>();
 }

@@ -1,0 +1,10 @@
+@mixin floating-glass($floor: --glass-floor) {
+  background: var(--color-surface);
+  background: color-mix(
+    in srgb,
+    var(--color-surface) max(var(--glass-surface, 100%), var(#{$floor}, 0%)),
+    transparent
+  );
+  -webkit-backdrop-filter: var(--glass-filter, none);
+  backdrop-filter: var(--glass-filter, none);
+}

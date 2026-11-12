@@ -113,6 +113,22 @@ as View Transitions são desligadas.
   cruz na origem, célula sob o cursor realçada. Zoom de 25% a 300%.
 - **HUD**: coordenada da célula à esquerda e controles de zoom à direita, ambos
   flutuando sobre o tabuleiro.
+- **Vidro**: barra lateral, painéis, HUD e participantes usam o mixin
+  `floating-glass` (`styles/_glass.scss`), que lê `--glass-surface` e
+  `--glass-filter`. O `AppearanceService` define essas variáveis a partir do
+  controle Transparência, em Configurações > Aparência: de 0 (sólida, sem
+  `backdrop-filter`) a 100 (superfície a 40% com `blur(20px)`). A escolha fica
+  no `localStorage`. Cada tema tem um piso de opacidade, para o texto não perder
+  contraste:
+
+  | Piso | Escuro | Claro |
+  | --- | --- | --- |
+  | `--glass-floor` (barra, HUD, participantes) | 0% | 82% |
+  | `--glass-panel-floor` (painéis) | 62% | 86% |
+
+  No tema claro, os flutuantes são grafite sobre fundo claro, e sem piso o
+  grafite viraria cinza. Sem suporte a `backdrop-filter`, o controle fica
+  desligado.
 
 ---
 

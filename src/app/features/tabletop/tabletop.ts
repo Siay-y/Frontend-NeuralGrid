@@ -8,6 +8,7 @@ import { TablePanelView } from './panel/panel';
 import { Presence } from './presence/presence';
 import { SheetCard } from './sheets/sheet-card';
 import { TableConnection } from './realtime/table-connection';
+import { AppearanceService } from '../../core/appearance/appearance.service';
 import { TableState } from './realtime/table-state';
 import { Sidebar } from './sidebar/sidebar';
 import { MapToolbar } from './toolbar/map-toolbar';
@@ -61,6 +62,7 @@ export class TabletopPage {
   });
 
   constructor() {
+    inject(AppearanceService);
     this.table.start();
   }
 

@@ -27,7 +27,7 @@
     } @else {
       <svg lucideImagePlus [size]="18" />
       <span class="drop__title">Enviar mapa</span>
-      <span class="drop__hint">PNG, JPEG ou WebP. Arraste aqui ou direto no tabuleiro.</span>
+      <span class="drop__hint">PNG, JPEG ou WebP</span>
     }
   </label>
   <input
@@ -162,15 +162,12 @@
           <svg lucidePlus [size]="14" />
           Adicionar área
         </button>
-        <p class="hint">Novas áreas chegam ocultas. Revele quando os jogadores chegarem lá.</p>
       </div>
 
       @if (selected(); as area) {
         <div class="adjust">
           <div class="field">
-            <label class="field__label" for="map-cell">
-              Tamanho do quadrado · {{ area.name }}
-            </label>
+            <label class="field__label" for="map-cell">Tamanho do quadrado</label>
             <div class="cell">
               <input
                 id="map-cell"
@@ -180,7 +177,6 @@
                 [min]="slider.min"
                 [max]="slider.max"
                 [value]="area.cell"
-                aria-describedby="map-cell-hint"
                 (input)="setCell($event)"
               />
               <input
@@ -195,9 +191,6 @@
               />
               <span class="cell__unit">px</span>
             </div>
-            <p id="map-cell-hint" class="hint">
-              Quantos pixels da imagem cabem em um quadrado da grade.
-            </p>
           </div>
 
           <label class="switch" [class.is-on]="store.mapAdjusting()">
@@ -211,12 +204,10 @@
               ><span class="switch__thumb"></span
             ></span>
             <span class="switch__text">
-              <span class="switch__title">Arrastar as áreas no tabuleiro</span>
-              <span class="switch__hint">{{
-                store.mapAdjusting()
-                  ? 'Arraste uma área para alinhar com a grade. Esc termina.'
-                  : 'Ligue para alinhar os quadrados do mapa com a grade.'
-              }}</span>
+              <span class="switch__title">Mover áreas</span>
+              @if (store.mapAdjusting()) {
+                <span class="switch__hint">Arraste no tabuleiro. Esc termina.</span>
+              }
             </span>
           </label>
 

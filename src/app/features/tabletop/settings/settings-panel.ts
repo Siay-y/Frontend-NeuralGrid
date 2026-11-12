@@ -1,19 +1,31 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core';
+import {
+  AppearanceService,
+  GLASS_RANGE,
+  glassLabel,
+} from '../../../core/appearance/appearance.service';
 import { describeReach, FOG_RADIUS } from '../maps/fog-light';
+import { Collapsible } from '../panel/collapsible';
 import { TableState } from '../realtime/table-state';
+import { TabletopStore } from '../tabletop.store';
 
 const RADIUS_COMMIT_MS = 300;
 
 @Component({
   selector: 'app-settings-panel',
+  imports: [Collapsible],
   templateUrl: './settings-panel.html',
   styleUrl: './settings-panel.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SettingsPanel {
   protected readonly table = inject(TableState);
+  protected readonly store = inject(TabletopStore);
+  protected readonly appearance = inject(AppearanceService);
   protected readonly fog = this.table.fog;
   protected readonly limits = FOG_RADIUS;
+  protected readonly glassRange = GLASS_RANGE;
+  protected readonly glassLabel = glassLabel;
   protected readonly describeReach = describeReach;
   private radiusTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -23,6 +35,10 @@ export class SettingsPanel {
 
   protected toggleFog(): void {
     void this.table.updateFog({ enabled: !this.fog().enabled });
+  }
+
+  protected setGlass(event: Event): void {
+    this.appearance.setGlass(Number((event.target as HTMLInputElement).value));
   }
 
   protected setRadius(event: Event): void {

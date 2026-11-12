@@ -20,6 +20,21 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.6.1',
+    date: '2026-11-12',
+    title: 'Aparência',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Nova seção Aparência em Configurações, para todos. A Transparência deixa a barra lateral, os painéis, o zoom e os participantes translúcidos, com o mapa desfocado por trás. Começa sólida e vale só para você, neste navegador.',
+      },
+      {
+        kind: 'improved',
+        text: 'Configurações separa o que muda a mesa para todos do que muda só a sua tela, e os painéis de Configurações e Mapas ficaram com menos texto.',
+      },
+    ],
+  },
+  {
     version: '0.6.0',
     date: '2026-11-12',
     title: 'Névoa de guerra',
