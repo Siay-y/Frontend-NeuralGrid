@@ -1,0 +1,72 @@
+@if (round() > 0 && turns().length > 0) {
+  <section
+    class="hud"
+    aria-label="Próximos turnos"
+    animate.enter="hud-enter"
+    animate.leave="hud-leave"
+  >
+    <button
+      type="button"
+      class="hud__head"
+      [attr.aria-expanded]="open()"
+      aria-controls="turn-hud-list"
+      (click)="toggle()"
+    >
+      <span class="hud__round">Rodada {{ round() }}</span>
+      @if (!open() && now(); as current) {
+        <span class="hud__now">{{ current.token.label }}</span>
+      }
+      <svg lucideChevronDown class="hud__chevron" [size]="14" />
+    </button>
+
+    @if (open()) {
+      <ol
+        id="turn-hud-list"
+        class="hud__list"
+        animate.enter="list-enter"
+        animate.leave="list-leave"
+      >
+        @for (turn of turns(); track turn.key) {
+          <li
+            class="hud__item"
+            [class.is-current]="turn.current"
+            [class.is-fallen]="fallen(turn.token)"
+            [attr.aria-current]="turn.current ? 'step' : null"
+          >
+            <app-token-glyph
+              [kind]="turn.token.kind"
+              [label]="turn.token.label"
+              [icon]="turn.token.icon"
+              [hidden]="turn.token.hidden"
+              [masked]="table.isMasked(turn.token)"
+            />
+            <span class="hud__name">{{ turn.token.label }}</span>
+            @if (turn.current) {
+              <span class="hud__meta">vez</span>
+            } @else if (fallen(turn.token); as fall) {
+              <span class="hud__meta">{{ fall }}</span>
+            } @else if (turn.nextRound) {
+              <span class="hud__meta">R{{ round() + 1 }}</span>
+            } @else if (isMine(turn.token)) {
+              <span class="hud__meta">seu</span>
+            }
+          </li>
+        }
+      </ol>
+    }
+
+    @if (inFight()) {
+      <div class="hud__foot">
+        <button
+          type="button"
+          class="hud__pass"
+          [class.is-ready]="table.myTurn()"
+          [disabled]="!table.myTurn() || passing()"
+          (click)="pass()"
+        >
+          {{ table.myTurn() ? 'Finalizar turno' : 'Aguarde sua vez' }}
+        </button>
+      </div>
+    }
+  </section>
+}

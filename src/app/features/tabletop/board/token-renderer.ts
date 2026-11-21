@@ -22,6 +22,7 @@ export interface RenderedToken {
   turnAge?: number;
   remote: boolean;
   masked: boolean;
+  fallen?: boolean;
   lifted?: boolean;
 }
 
@@ -34,6 +35,7 @@ export interface RenderView {
 }
 
 const HIDDEN_ALPHA = 0.5;
+const FALLEN_ALPHA = 0.45;
 const TURN_HALO_ALPHA = 0.22;
 export const TURN_PING_MS = 2_400;
 const TURN_RIPPLES = 3;
@@ -126,7 +128,10 @@ export function drawTokens(
     const radius = half * TOKEN_BODY_RATIO;
 
     ctx.save();
-    ctx.globalAlpha = (item.remote ? 0.65 : 1) * (token.hidden ? HIDDEN_ALPHA : 1);
+    ctx.globalAlpha =
+      (item.remote ? 0.65 : 1) *
+      (token.hidden ? HIDDEN_ALPHA : 1) *
+      (item.fallen ? FALLEN_ALPHA : 1);
 
     if (item.turnAge !== undefined) {
       drawTurnMarker(ctx, cx, cy, radius, dpr, palette, item.turnAge, item.selected);

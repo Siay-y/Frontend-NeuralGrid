@@ -101,6 +101,11 @@
             @if (table.isMaster() && (row.hidden || row.token.hidden)) {
               <span class="tag tag--hidden">oculto</span>
             }
+            @if (table.statusesOf(row.tokenId); as statuses) {
+              @if (statuses.length > 0) {
+                <app-status-badges class="row__statuses" [statuses]="statuses" />
+              }
+            }
           </button>
 
           @if (table.isMaster()) {
@@ -116,6 +121,15 @@
                   Rolar d20 + Agilidade
                 </button>
               }
+              <button
+                type="button"
+                role="menuitem"
+                class="action-menu__item"
+                (click)="more.close(); locate(row.token); store.openStatusMenu(row.tokenId)"
+              >
+                <svg lucideSparkles [size]="15" />
+                Status
+              </button>
               <button
                 type="button"
                 role="menuitem"

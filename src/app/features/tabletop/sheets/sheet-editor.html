@@ -39,7 +39,33 @@
     </div>
   }
 
-  <div class="scroll">
+  @if (death(); as death) {
+    <div class="dead" role="status">
+      <app-status-icon class="dead__icon" kind="death" [size]="18" />
+      <div class="dead__text">
+        <strong>Morto</strong>
+        <span>
+          {{
+            death.turns === null
+              ? 'Só o mestre pode trazer de volta'
+              : death.turns + (death.turns === 1 ? ' chance' : ' chances') + ' no teste de morte'
+          }}
+        </span>
+      </div>
+      @if (table.isMaster()) {
+        <button
+          type="button"
+          class="button button--primary"
+          [disabled]="reviving()"
+          (click)="revive()"
+        >
+          Reviver
+        </button>
+      }
+    </div>
+  }
+
+  <fieldset class="scroll" [disabled]="locked()">
     <app-collapsible title="Identidade" [open]="section('identity')" (toggled)="toggle('identity')">
       <div class="form">
         <div class="row">
@@ -266,5 +292,5 @@
         {{ confirmingDelete() ? 'Confirmar exclusão' : 'Apagar ficha' }}
       </button>
     </div>
-  </div>
+  </fieldset>
 </div>

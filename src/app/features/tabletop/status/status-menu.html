@@ -1,0 +1,106 @@
+<section #panel popover="manual" class="menu" role="dialog" aria-labelledby="status-menu-title">
+  @if (token(); as token) {
+    <header class="head">
+      @if (view().step === 'home') {
+        <app-token-glyph
+          class="head__glyph"
+          [kind]="token.kind"
+          [label]="token.label"
+          [icon]="token.icon"
+          [hidden]="token.hidden"
+        />
+      } @else {
+        <button type="button" class="icon-button head__button" aria-label="Voltar" (click)="back()">
+          <svg lucideChevronLeft [size]="15" />
+        </button>
+      }
+      <div class="head__text">
+        <p class="head__title" id="status-menu-title">{{ title() }}</p>
+        <p class="head__hint">{{ view().step === 'home' ? 'Status' : token.label }}</p>
+      </div>
+      <button type="button" class="icon-button head__button" aria-label="Fechar" (click)="close()">
+        <svg lucideX [size]="15" />
+      </button>
+    </header>
+
+    @switch (view().step) {
+      @case ('home') {
+        <div class="list" animate.enter="step-enter">
+          @if (active().get('death'); as death) {
+            <button type="button" class="item is-on" (click)="revive(token.id)">
+              <app-status-icon kind="regeneration" [size]="15" />
+              <span class="item__label">Reviver</span>
+              <span class="item__meta">{{ death.turns === null ? 'morto' : 'caído' }}</span>
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="item"
+              [class.is-confirming]="confirmingKill()"
+              (click)="kill(token.id)"
+            >
+              <app-status-icon kind="death" [size]="15" />
+              <span class="item__label">{{ confirmingKill() ? 'Confirmar morte' : 'Matar' }}</span>
+            </button>
+          }
+          @for (group of groups; track group.id) {
+            <button type="button" class="item" (click)="openGroup(group)">
+              <app-status-icon [custom]="group.paths" [size]="15" />
+              <span class="item__label">{{ group.label }}</span>
+              @if (countIn(group); as count) {
+                <span class="item__meta">{{ count }} {{ count === 1 ? 'ativo' : 'ativos' }}</span>
+              }
+              <svg lucideChevronRight class="item__chevron" [size]="14" />
+            </button>
+          }
+        </div>
+
+        @if (statuses().length > 0) {
+          <div class="list list--active" animate.enter="step-enter">
+            <p class="list__label">Ativos</p>
+            @for (status of statuses(); track status.kind) {
+              <button type="button" class="item is-on" (click)="edit(status.kind)">
+                <app-status-icon [kind]="status.kind" [size]="15" />
+                <span class="item__label">{{ info[status.kind].label }}</span>
+                <span class="item__meta">{{ turnsLabel(status.turns) }}</span>
+              </button>
+            }
+          </div>
+        }
+      }
+      @case ('list') {
+        @if (group(); as group) {
+          <div class="list" animate.enter="step-enter">
+            @for (item of group.items; track item.kind) {
+              @let status = active().get(item.kind);
+              <button
+                type="button"
+                class="item"
+                [class.is-on]="!!status"
+                [attr.aria-label]="item.label + (status ? ', ativo' : '')"
+                (click)="edit(item.kind)"
+              >
+                <app-status-icon [kind]="item.kind" [size]="15" />
+                <span class="item__label">{{ item.label }}</span>
+                @if (status) {
+                  <span class="item__meta">{{ detail(status) }}</span>
+                }
+              </button>
+            }
+          </div>
+        }
+      }
+      @case ('form') {
+        @if (formKind(); as kind) {
+          <app-status-form
+            animate.enter="step-enter"
+            [tokenId]="token.id"
+            [kind]="kind"
+            [current]="active().get(kind)"
+            (done)="back()"
+          />
+        }
+      }
+    }
+  }
+</section>

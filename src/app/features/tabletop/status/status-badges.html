@@ -1,0 +1,10 @@
+<span class="badges" role="list" [attr.aria-label]="'Status: ' + summary()">
+  @for (badge of badges(); track badge.status.kind) {
+    <span class="badge" role="listitem" [title]="badge.title" animate.enter="badge-enter">
+      <app-status-icon [kind]="badge.status.kind" [size]="13" />
+      @if (badge.status.turns !== null) {
+        <span class="badge__turns">{{ badge.status.turns }}</span>
+      }
+    </span>
+  }
+</span>

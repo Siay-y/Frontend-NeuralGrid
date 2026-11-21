@@ -22,7 +22,7 @@
     (pointerleave)="onPointerLeave()"
     (dblclick)="onDoubleClick($event)"
     (wheel)="onWheel($event)"
-    (contextmenu)="$event.preventDefault()"
+    (contextmenu)="onContextMenu($event)"
   ></canvas>
 
   @if (hoverCard(); as card) {
@@ -33,6 +33,10 @@
       [style.left.px]="card.left"
       [style.top.px]="card.top"
     />
+  }
+
+  @if (isMaster()) {
+    <app-status-menu class="chrome-dark" [anchor]="statusAnchor()" />
   }
 
   @if (fileOver()) {

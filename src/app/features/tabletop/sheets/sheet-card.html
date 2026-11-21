@@ -40,6 +40,9 @@
       }
 
       <div class="identity">
+        @if (fallen(sheet)) {
+          <p class="identity__dead">Morto</p>
+        }
         <p class="identity__title">{{ title(sheet) }}</p>
         @if (subtitle(sheet); as line) {
           <p class="identity__meta">{{ line }}</p>
@@ -88,7 +91,7 @@
             class="attribute"
             [attr.aria-label]="'Rolar ' + attribute.label + ', 1d20 ' + signed(mod)"
             [attr.title]="attribute.label + ' · d20 ' + signed(mod)"
-            [disabled]="cooldown.waiting()"
+            [disabled]="cooldown.waiting() || fallen(sheet)"
             (click)="test(sheet, attribute)"
           >
             <span class="attribute__head">

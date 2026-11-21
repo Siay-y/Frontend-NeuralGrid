@@ -91,6 +91,13 @@
   z-index: 5;
 }
 
+.tabletop__turns {
+  position: absolute;
+  top: 60px;
+  right: 16px;
+  z-index: 5;
+}
+
 .tabletop__tray {
   position: absolute;
   inset: 0;
@@ -114,12 +121,6 @@
 
 .tabletop__stage:has(.sheet-card__trigger) .tabletop__rolls {
   bottom: 116px;
-}
-
-@media (max-width: 860px) {
-  .tabletop__stage:has(.turn__button) .tabletop__rolls {
-    bottom: 164px;
-  }
 }
 
 @media (min-width: 861px) {
@@ -204,4 +205,8 @@
     opacity: 0;
     transform: translateX(-8px) scale(0.99);
   }
+}
+
+.tabletop__stage:has(app-death-band) .tabletop__tray {
+  z-index: 46;
 }

@@ -175,15 +175,62 @@ parado e o canvas para de redesenhar. O jogador só vê isso quando o
 participante da vez está visível para ele. As linhas do mestre têm um menu de mais opções (rolar, esconder ou
 revelar, tirar do combate), para caber na largura do celular.
 
+`TurnHud` fica no canto superior direito, abaixo da presença, enquanto há
+combate: a rodada e os próximos 5 turnos a partir da vez, com "vez", "seu" e
+"R" mais o número para quem já é da rodada seguinte. Caídos e mortos aparecem
+apagados, com "caído" ou "morto".
+Abre ou fecha pelo cabeçalho; fechado mostra só a rodada e o nome da vez. Abre
+sozinho a cada rodada nova.
+
+As faixas de tela cheia (início de combate em `CombatCues` e as de morte em
+`DeathCues`) passam pela `CinematicQueue`: uma de cada vez, e a próxima só
+entra 700 ms depois de a anterior sair. Esc pula a atual. O d20 do teste de
+morte cai quando a faixa "Teste de morte" entra, não quando o evento chega.
+
 `CombatCues` cuida do que só o jogador vê:
 
 | Peça | Comportamento |
 | --- | --- |
 | Início | quando a rodada sai de 0 por um `combat:changed`, `CombatIntroBand` mostra uma faixa no centro da tela, com duas espadas se cruzando e um flash rápido, mostra a rodada, a posição de cada personagem do jogador e quem começa. Só aparece para quem tem personagem na luta, não bloqueia cliques e some em 3,6 s (ou com Esc), com saída animada: as espadas se afastam, o título se abre e a faixa se fecha. Recarregar no meio da luta não repete |
-| Finalizar turno | botão no rodapé do tabuleiro, só para quem tem personagem na luta. Mostra "Aguarde sua vez" desabilitado até a vez dele e então "Finalizar turno", que envia `combat:pass`. No celular, os cartões de rolagem sobem para não cobrir o botão |
+| Finalizar turno | botão no rodapé do `TurnHud`, visível mesmo com ele fechado, só para quem tem personagem na luta. Mostra "Aguarde sua vez" desabilitado até a vez dele e então "Finalizar turno", que envia `combat:pass` |
 | Sua vez | uma luz fraca pulsa nas bordas da tela enquanto a vez é de um token do jogador |
 
 Com movimento reduzido, não há flash nem pulso: a luz fica fixa.
+
+## Status
+
+`TableState.statuses()` guarda os buffs e debuffs por token, vindos do snapshot
+e de `status:changed`. Cada status tem nome, grupo, valor e ícone em
+`status-catalog.ts`; os ícones são caminhos SVG desenhados por `StatusIcon`,
+todos monocromáticos como o resto da interface.
+
+| Peça | Comportamento |
+| --- | --- |
+| `StatusMenu` | só do mestre. Abre com o botão direito num token do tabuleiro, ou pela opção Status no menu do token na aba Tokens e na Iniciativa, que também leva a câmera até ele. Vive dentro do `Board` e fica preso ao lado do token, acompanhando arraste e zoom. Tem três passos: Debuff ou Buff (com os status ativos logo abaixo), a lista do grupo e o formulário, com Voltar no cabeçalho. Fecha com Esc, no X ou com um clique fora; arrastar o tabuleiro com o botão do meio ou com a mão não fecha. No celular vira uma folha no rodapé |
+| `StatusForm` | turnos (vazio é sem limite), dano, cura ou valor quando o status usa, e os debuffs da imunidade. Aplicar, Salvar ou Remover voltam para a lista |
+| Card do token | o hover lista os status com a duração e o valor |
+| Iniciativa | cada linha mostra os ícones dos status com os turnos restantes |
+
+Enquanto o menu está aberto, os atalhos do teclado ficam desligados, para Delete
+não apagar o token selecionado.
+
+### Morte
+
+`TableState.deaths()` recebe cada `death:event` e `deathOf(tokenId)` diz se o
+token está caído (status `death` com turnos) ou morto (sem turnos).
+`DeathCues` cuida do que aparece:
+
+| Quem | O que vê |
+| --- | --- |
+| Dono do personagem | `DeathBand`, uma faixa como a de início de combate, com uma caveira com dentes e ossos cruzados atrás: os ossos giram até formar o X, a mandíbula abre e treme com os ossos, e na morte final uma rachadura corta o crânio. "Você morreu" ao cair, com as 3 chances (Agente e NPC; Ameaça vai direto para "Você morreu" de vez); no teste, "Teste de morte" no alto enquanto o d20 3D cai na tela dele e, depois, "Não foi dessa vez" com as tentativas marcadas, "Você está consciente" ou "Você morreu" de vez; "Você voltou" quando o mestre revive. Enquanto está caído, a tela fica em preto e branco com uma vinheta que pulsa como batimento, e um selo no alto mostra "Inconsciente · N chances" ou "Morto" |
+| Os outros | um aviso no alto ("Kael caiu", "Kael falhou no teste de morte", "Kael morreu") e o card da rolagem no canto inferior direito |
+| Mestre | Reviver ou Matar (com confirmação) no menu de status do token, e Reviver na ficha |
+
+O token caído fica apagado no tabuleiro e o jogador não consegue arrastá-lo. A
+ficha mostra "Morto" e fica desabilitada para o jogador, junto com os testes do
+cartão da ficha. Com movimento reduzido, o resultado aparece direto, sem o
+dado. As rolagens do início do turno chegam como
+qualquer rolagem do mestre, com os dados 3D para os jogadores.
 
 ---
 

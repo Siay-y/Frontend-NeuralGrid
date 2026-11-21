@@ -1,13 +1,12 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  computed,
-  DestroyRef,
   effect,
   inject,
   signal,
   untracked,
 } from '@angular/core';
+import { CinematicQueue } from '../cinematic-queue';
 import { TableState } from '../realtime/table-state';
 import { CombatIntroBand } from './combat-intro-band';
 import type { TableCombat, TableToken } from '../realtime/table.protocol';
@@ -61,23 +60,11 @@ export function combatIntro(
 })
 export class CombatCues {
   protected readonly table = inject(TableState);
-  private introTimer: ReturnType<typeof setTimeout> | undefined;
+  private readonly queue = inject(CinematicQueue);
 
   protected readonly intro = signal<CombatIntro | null>(null);
-  protected readonly passing = signal(false);
-  protected readonly inFight = computed(() => {
-    const me = this.table.me();
-    const combat = this.table.combat();
-    return (
-      !!me &&
-      me.role !== 'master' &&
-      combat.round > 0 &&
-      combat.combatants.some(({ tokenId }) => this.table.token(tokenId)?.ownerId === me.id)
-    );
-  });
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => clearTimeout(this.introTimer));
     effect(() => {
       const seq = this.table.combatStarts();
       if (seq > 0) {
@@ -87,25 +74,12 @@ export class CombatCues {
   }
 
   protected closeIntro(): void {
-    clearTimeout(this.introTimer);
-    this.intro.set(null);
-  }
-
-  protected async pass(): Promise<void> {
-    const turnId = this.table.combat().turnId;
-    if (!turnId || this.passing() || !this.table.myTurn()) {
-      return;
-    }
-    this.passing.set(true);
-    try {
-      await this.table.passTurn(turnId);
-    } finally {
-      this.passing.set(false);
+    if (this.intro()) {
+      this.queue.skip();
     }
   }
 
   private showIntro(seq: number): void {
-    clearTimeout(this.introTimer);
     const intro = combatIntro(
       seq,
       this.table.combat(),
@@ -113,10 +87,12 @@ export class CombatCues {
       this.table.me()?.id ?? null,
     );
     if (intro.places.length === 0) {
-      this.intro.set(null);
       return;
     }
-    this.intro.set(intro);
-    this.introTimer = setTimeout(() => this.intro.set(null), INTRO_MS);
+    this.queue.play({
+      duration: INTRO_MS,
+      show: () => this.intro.set(intro),
+      hide: () => this.intro.set(null),
+    });
   }
 }

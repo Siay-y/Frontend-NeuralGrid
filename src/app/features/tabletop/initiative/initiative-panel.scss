@@ -147,6 +147,12 @@ input.row__score {
   white-space: nowrap;
 }
 
+.row__statuses {
+  flex-shrink: 0;
+  max-width: 96px;
+  margin-left: auto;
+}
+
 .row__more {
   flex-shrink: 0;
   padding-right: 4px;

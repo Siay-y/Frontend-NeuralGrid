@@ -1,0 +1,183 @@
+@use 'glass' as *;
+
+:host {
+  display: contents;
+}
+
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 38;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 45%,
+    color-mix(in srgb, #000 55%, transparent)
+  );
+  backdrop-filter: grayscale(1);
+  pointer-events: none;
+
+  &.is-dying {
+    animation: heartbeat 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes heartbeat {
+  0%,
+  45%,
+  100% {
+    opacity: 0.75;
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  26% {
+    opacity: 0.88;
+  }
+}
+
+.veil-enter {
+  animation: fade-in 1.2s ease-out both;
+}
+
+.veil-leave {
+  animation: fade-out 800ms ease-out both;
+}
+
+.tag {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 41;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  @include floating-glass;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text);
+  transform: translateX(-50%);
+}
+
+.tag-enter,
+.notice-enter {
+  animation: drop-in var(--duration-slow) var(--ease-out) both;
+}
+
+.tag-leave,
+.notice-leave {
+  animation: fade-out var(--duration) var(--ease-out) both;
+}
+
+.notices {
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  z-index: 41;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: min(360px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 8px 6px 8px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  @include floating-glass;
+  box-shadow: var(--shadow-float);
+  color: var(--color-text);
+  pointer-events: auto;
+}
+
+.notice__icon {
+  color: var(--color-text-muted);
+}
+
+.notice__text {
+  display: grid;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.3;
+
+  strong {
+    overflow: hidden;
+    font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+.notice__detail {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.notice__close {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+
+  svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.tag.tag-enter {
+  animation-name: tag-in;
+}
+
+@keyframes tag-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .veil.is-dying {
+    animation: none;
+    opacity: 0.85;
+  }
+
+  .tag-enter,
+  .notice-enter,
+  .veil-enter {
+    animation: fade-in var(--duration) linear both;
+  }
+}

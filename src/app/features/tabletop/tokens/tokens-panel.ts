@@ -20,6 +20,7 @@ import {
   LucideLoaderCircle,
   LucidePlus,
   LucideScrollText,
+  LucideSparkles,
   LucideSquarePen,
   LucideTrash,
 } from '@lucide/angular';
@@ -79,6 +80,7 @@ const GROUP_ORDER: readonly TokenGroupId[] = [...KINDS, 'unknown'];
     LucideLoaderCircle,
     LucidePlus,
     LucideScrollText,
+    LucideSparkles,
     LucideSquarePen,
     LucideTrash,
   ],

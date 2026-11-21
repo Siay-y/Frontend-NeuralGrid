@@ -20,6 +20,45 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.8.0',
+    date: '2026-11-13',
+    title: 'Status',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Buffs e debuffs: clique com o botão direito num token para aplicar Veneno, Sangramento, Haste, Imunidade e outros 11 status, cada um com seu ícone. Só o mestre aplica.',
+      },
+      {
+        kind: 'new',
+        text: 'Cada status pode durar alguns turnos e causar dano ou cura por turno, escrito como no chat (1d6).',
+      },
+      {
+        kind: 'new',
+        text: 'No início do turno, o dano e a cura são rolados com os dados 3D e aplicados ao HP da ficha.',
+      },
+      {
+        kind: 'new',
+        text: 'O card do token e a lista da Iniciativa mostram os status de cada personagem.',
+      },
+      {
+        kind: 'new',
+        text: 'Morte: com o HP abaixo de -(Resistência + Mod), Ameaças morrem na hora. Agentes e NPCs caem e têm 3 testes de morte no d20, um por turno: com 15 ou mais acordam; se falharem nos 3, morrem de vez. Só o mestre traz de volta.',
+      },
+      {
+        kind: 'new',
+        text: 'Quem cai vê a tela em preto e branco, a caveira com ossos cruzados e o dado rolando; os aliados recebem um aviso. Caído, o jogador não move o token nem edita a ficha.',
+      },
+      {
+        kind: 'new',
+        text: 'Durante o combate, o canto superior direito mostra a rodada e os próximos turnos, com o botão Finalizar turno logo abaixo. Dá para fechar; abre de novo a cada rodada.',
+      },
+      {
+        kind: 'improved',
+        text: 'As faixas de início de combate e de morte aparecem uma de cada vez: a próxima só entra quando a anterior sai.',
+      },
+    ],
+  },
+  {
     version: '0.7.0',
     date: '2026-11-12',
     title: 'Iniciativa',
