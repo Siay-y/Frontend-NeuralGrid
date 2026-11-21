@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { SPEECH_MIN_MS } from '../chat/speech';
 import { RollFeed } from '../dice/roll-feed';
 import { TabletopStore } from '../tabletop.store';
 import { type CharacterSheet, newSheetData } from '../sheets/sheet-model';
@@ -260,6 +261,32 @@ describe('TableState', () => {
       connection.emit(TableServerEvent.MessageCreated, message('m1', 'mestre'));
 
       expect(state.unread()).toBe(1);
+    });
+
+    it('shows the latest public text of each author for a while', () => {
+      vi.useFakeTimers();
+      try {
+        connection.emit(TableServerEvent.MessageCreated, message('m1', 'bruno'));
+        connection.emit(TableServerEvent.MessageCreated, message('m2', 'bruno'));
+        connection.emit(TableServerEvent.MessageCreated, {
+          ...message('m3', 'ana'),
+          visibility: 'gm',
+        });
+        expect(state.speeches()).toEqual([{ id: 'm2', authorId: 'bruno', text: 'mensagem m2' }]);
+
+        vi.advanceTimersByTime(SPEECH_MIN_MS);
+        expect(state.speeches()).toEqual([]);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('stops the speeches when the chat is cleared', () => {
+      connection.emit(TableServerEvent.MessageCreated, message('m1', 'bruno'));
+      expect(state.speeches()).toHaveLength(1);
+      connection.emit(TableServerEvent.ChatCleared, { by: 'mestre' });
+
+      expect(state.speeches()).toEqual([]);
     });
   });
 

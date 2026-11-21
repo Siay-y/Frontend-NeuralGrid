@@ -174,6 +174,62 @@
   background: var(--color-border);
 }
 
+.speech {
+  position: absolute;
+  z-index: 7;
+  width: max-content;
+  max-width: 220px;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-float);
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    border-right: 1px solid var(--color-border-strong);
+    border-bottom: 1px solid var(--color-border-strong);
+    background: var(--color-surface);
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+}
+
+.speech__text {
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+.speech-enter {
+  animation: speech-in var(--duration) var(--ease-out) both;
+}
+
+.speech-leave {
+  animation: speech-in var(--duration) var(--ease-out) reverse both;
+}
+
+@keyframes speech-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-100% + 6px));
+  }
+}
+
 @keyframes canvas-in {
   from {
     opacity: 0;
@@ -191,5 +247,12 @@
 @media (max-width: 480px) {
   .hud--status {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speech-enter,
+  .speech-leave {
+    animation: none;
   }
 }
