@@ -17,57 +17,25 @@
   <img src="https://img.shields.io/badge/Prettier-3.9-F7B93E?style=for-the-badge&logo=prettier&logoColor=white" alt="Prettier 3.9" />
 </p>
 
-Cliente web do NeuralGrid, um Virtual Tabletop privado para uma mesa de quatro
-pessoas, inspirado no Roll20 mas desenhado para ser rápido, enxuto e silencioso.
-Angular 22 sem zone.js, publicado como SPA estática no Firebase Hosting.
-
-Já tem login seguro, a mesa ao vivo e os dados: tabuleiro em canvas com tokens
-de Agentes, NPCs e Ameaças sincronizados por WebSocket, dados 3D que caem na
-mesa e um chat com sussurros e rolagem oculta. As fichas chegam na próxima
-etapa.
-
-A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid).
+Cliente web do NeuralGrid, um Virtual Tabletop privado para o mestre e três
+jogadores, inspirado no Roll20. Angular 22 sem zone.js, publicado no Firebase
+Hosting. A API fica em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid).
 
 ---
 
-## Visão geral
+## Em resumo
 
-- **Monocromático de verdade.** Preto, branco e cinza, sem gradiente decorativo.
-  As únicas exceções são o vermelho da falha crítica e o azul do crítico. Até o
-  autofill do navegador foi domado para não pintar os campos de amarelo.
-- **Tema escuro e claro por tokens.** Uma troca de `data-theme` no `<html>`
-  redefine todas as variáveis CSS. Um script de 260 bytes aplica o tema salvo
-  antes da primeira pintura, sem piscar.
-- **Movimento com intenção.** Entradas com `cubic-bezier(0.16, 1, 0.3, 1)`,
-  troca de tema por View Transition, zoom do tabuleiro com interpolação
-  logarítmica. Tudo desliga com `prefers-reduced-motion`.
-- **Sessão reativa.** O estado de autenticação é um `signal`; guard,
-  interceptor, login e barra lateral leem a mesma fonte. A sessão expira sozinha
-  no horário do token e o login avisa o motivo.
-- **Mesa ao vivo.** Enquanto um jogador arrasta o próprio token, os outros veem
-  o movimento célula a célula. Ao soltar, o token encaixa na grade na hora e o
-  servidor confirma; se recusar, ele volta para onde estava e a tela explica o
-  motivo.
-- **Presença.** Quem está na mesa aparece no canto do tabuleiro. O estado da
-  conexão só aparece quando ela cai, junto com a reconexão automática.
-- **Dados 3D.** Escolha a quantidade e o bônus e clique no dado, do d4 ao d100
-  (um dado só, de 100 faces). Os dados
-  caem na mesa com gravidade, quicam e param com a face sorteada pelo servidor
-  virada para cima. Ao mesmo tempo, toda a mesa vê uma caixinha no canto inferior
-  direito com os mesmos dados girando até parar no resultado.
-- **Chat da mesa.** Balões com avatar, mensagens agrupadas e separador por dia.
-  Rolagens entram no mesmo histórico, `/r 1d20+5 Luta` rola sem sair da
-  conversa, e há rolagem oculta do mestre e sussurros. Cada um limpa o chat na
-  própria tela; o mestre limpa para todos.
-- **Crítico em azul, falha em vermelho.** O maior número do dado pinta ele de
-  azul; um 1 pinta de vermelho, do d4 ao d100. São as únicas cores do projeto.
-- **Notas de versão.** A aba Atualizações mostra o que mudou em cada versão, e
-  um ponto no ícone avisa quem ainda não viu a mais recente.
-- **Token que não vaza.** O interceptor só anexa o `Authorization` a URLs da
-  própria API, e a CSP servida pelo Firebase restringe para onde o app pode
-  conectar.
-- **Leve.** Pacote inicial em torno de 79 kB transferidos; login e mesa são
-  carregados sob demanda.
+| Recurso | O que faz |
+| --- | --- |
+| Mesa ao vivo | tabuleiro em canvas com tokens, mapas, desenhos e régua sincronizados por WebSocket |
+| Dados 3D | o servidor sorteia; o navegador só encena a queda com three.js |
+| Chat | sussurros, rolagem oculta, `/r 1d20+5` e balão de fala sobre o personagem |
+| Fichas | fichas de Ordem Paranormal com testes rolados direto do card |
+| Combate | iniciativa, turnos, HUD dos próximos turnos, buffs, debuffs e testes de morte |
+| Névoa de guerra | luz por token, memória do caminho e áreas ocultas pelo mestre |
+| Visual | monocromático, tema escuro e claro, movimento que respeita `prefers-reduced-motion` |
+| Atualizações | aba com as notas de cada versão e aviso de versão nova |
+| Peso | cerca de 86 kB transferidos no carregamento inicial; o resto vem sob demanda |
 
 ---
 
@@ -75,96 +43,42 @@ A API vive em [Backend-NeuralGrid](https://github.com/Siay-y/Backend-NeuralGrid)
 
 | Camada | Tecnologia |
 | --- | --- |
-| Framework | Angular 22 (standalone, zoneless, sem NgModules) |
-| Estado | Angular Signals (`signal`, `computed`, `effect`) |
+| Framework | Angular 22: standalone, zoneless, `OnPush`, sem NgModules |
+| Estado | Signals (`signal`, `computed`, `effect`) |
 | Formulários | Reactive Forms estritamente tipados |
 | Linguagem | TypeScript 6 com `strict` e `strictTemplates` |
-| Estilo | SCSS modular sobre variáveis CSS nativas |
-| Ícones | `@lucide/angular`, traço de 1.75px |
-| Tipografia | Geist e Geist Mono, auto-hospedadas |
+| Estilo | SCSS sobre variáveis CSS, fontes Geist auto-hospedadas, ícones Lucide |
 | Tabuleiro | Canvas 2D com câmera própria (pan, zoom, DPR) |
 | Tempo real | `socket.io-client` com ack, reconexão e estado em signals |
-| Dados | Sorteio na API; animação em three.js, carregada só na primeira rolagem |
+| Dados 3D | three.js, baixado só na primeira rolagem |
 | Testes | Vitest com jsdom |
 | Hospedagem | Firebase Hosting |
 
 ---
 
-## Arquitetura
+## Pastas
 
 ```text
 src/
-├── environments/                   URL da API por ambiente
-├── styles/
-│   ├── _tokens.scss                cores, tipografia, movimento e medidas
-│   └── _primitives.scss            icon-button, kbd, eyebrow, sr-only
-├── styles.scss                     reset e base
+├── environments/          URL da API por ambiente
+├── styles/                tokens de design, vidro e primitivos
 └── app/
-    ├── core/
-    │   ├── auth/                   AuthService, guards, interceptor, persistência
-    │   ├── release/                notas de versão, versão atual e créditos
-    │   └── theme/                  ThemeService
-    ├── shared/ui/                  BrandMark, ThemeToggle
-    ├── features/
-    │   ├── auth/login/             página de login e tradução de erros
-    │   └── tabletop/
-    │       ├── board/              canvas, câmera, tokens e HUD de zoom
-    │       ├── chat/               chat, histórico, cartão de rolagem e quem vê
-    │       ├── dice/               painel de dados, cena 3D e cartões de rolagem
-    │       ├── realtime/           protocolo, conexão Socket.io e estado da mesa
-    │       ├── tokens/             painel de tokens: criação, edição e lista
-    │       ├── presence/           quem está online e estado da conexão
-    │       ├── updates/            aba Atualizações com as notas de versão
-    │       ├── sidebar/            ferramentas, atalhos e conta
-    │       ├── panel/              painel lateral que hospeda cada seção
-    │       ├── tabletop.store.ts   estado de interface da mesa em signals
-    │       └── tabletop.ts         página que compõe tudo
-    ├── app.config.ts               HttpClient, roteador e Lucide
-    └── app.routes.ts               /login, /tabletop e redirecionamentos
+    ├── core/              sessão, tema, aparência e notas de versão
+    ├── shared/ui/         marca e troca de tema
+    └── features/
+        ├── auth/login/    página de login
+        └── tabletop/      a mesa: board, chat, dice, sheets, maps, tokens,
+                           initiative, status, death, realtime, panel e sidebar
 ```
 
-Todos os componentes são standalone e usam `ChangeDetectionStrategy.OnPush`. Os
-templates usam apenas o fluxo de controle nativo (`@if`, `@for`) e as animações
-de entrada e saída usam `animate.enter` e `animate.leave`, sem
-`@angular/animations`.
-
-O detalhe de cada parte está em [docs/arquitetura.md](docs/arquitetura.md).
-
-### Fluxo de acesso
-
-1. `/tabletop` passa pelo `authGuard`. Sem sessão, o guard devolve um
-   `UrlTree` para `/login`.
-2. O login valida os campos, chama `POST /api/auth/login` e mostra o estado de
-   carregamento. Se o servidor demora mais de 4 segundos, explica que ele está
-   acordando.
-3. A resposta vira uma sessão em `sessionStorage` com o horário de expiração, e
-   o roteador segue para `/tabletop`.
-4. A partir daí, o `authInterceptor` anexa `Authorization: Bearer <token>` a toda
-   chamada da API. Um `401` encerra a sessão e volta ao login.
+Uma feature nunca importa outra. Detalhes em [docs/arquitetura.md](docs/arquitetura.md).
 
 ---
 
-## Variáveis de ambiente
+## Rodar local
 
-O Angular não lê `process.env` em tempo de execução, então a configuração mora
-em arquivos substituídos no build:
-
-| Arquivo | Usado em | `apiUrl` | `socketUrl` |
-| --- | --- | --- | --- |
-| `src/environments/environment.development.ts` | `npm start` | `http://localhost:3000/api` | `http://localhost:3000` |
-| `src/environments/environment.ts` | `npm run build` (produção) | `https://neuralgrid-api.onrender.com/api` | `https://neuralgrid-api.onrender.com` |
-
-Ao publicar a API com outro nome, atualize `apiUrl`, `socketUrl` e o
-`connect-src` da CSP em [`firebase.json`](firebase.json), que lista o host em
-`https://` e em `wss://`. Os três precisam apontar para o mesmo servidor, senão
-o navegador bloqueia o login ou a mesa ao vivo.
-
----
-
-## Execução local
-
-Requer Node.js 24.18 ou superior e a [API](https://github.com/Siay-y/Backend-NeuralGrid)
-rodando em `localhost:3000` com `CORS_ORIGINS=http://localhost:4200`.
+Requer Node.js 24.18+ e a [API](https://github.com/Siay-y/Backend-NeuralGrid)
+em `localhost:3000` com `CORS_ORIGINS=http://localhost:4200`.
 
 ```bash
 git clone https://github.com/Siay-y/Frontend-NeuralGrid.git
@@ -173,108 +87,83 @@ npm ci
 npm start
 ```
 
-A aplicação sobe em `http://localhost:4200/` com recarga automática. Entre com
-uma das contas criadas pelo seed da API.
+Abra `http://localhost:4200/` e entre com uma conta criada pelo seed da API.
 
-> **No Windows**, encerre o `ng serve` com `Ctrl+C` antes de rodar `npm ci`. Um
-> processo ativo mantém trava sobre `node_modules/@esbuild/win32-x64/esbuild.exe`
-> e a reinstalação falha com `EPERM`.
+> **Windows:** pare o `ng serve` antes de `npm ci`, senão o `esbuild.exe` fica
+> travado e a instalação falha com `EPERM`.
 
-### Scripts
-
-| Comando | Descrição |
+| Comando | O que faz |
 | --- | --- |
-| `npm start` | Servidor de desenvolvimento em `localhost:4200` |
-| `npm run build` | Build de produção em `dist/Frontend-NeuralGrid/browser` |
-| `npm run watch` | Build de desenvolvimento em modo observador |
-| `npm test` | Suíte de testes com Vitest |
-| `npm run deploy` | Build de produção e publicação no Firebase Hosting |
+| `npm start` | servidor de desenvolvimento em `localhost:4200` |
+| `npm run build` | build de produção em `dist/Frontend-NeuralGrid/browser` |
+| `npm run watch` | build de desenvolvimento em modo observador |
+| `npm test` | testes com Vitest |
+| `npm run deploy` | build de produção e publicação no Firebase Hosting |
 
-### Atalhos da mesa
+### Configuração
 
-| Tecla | Ação |
-| --- | --- |
-| `V` | Selecionar |
-| `H` | Mover mapa (arrastar) |
-| `R` | Régua |
-| `D` | Desenhar |
-| `E` | Borracha |
-| `Esc` | Tirar a seleção do token, ou fechar o painel |
-| `Del` | Remover o token selecionado (só o mestre) |
-| `Enter` no chat | Enviar; `Shift` + `Enter` quebra a linha |
-| `/r 2d6+3 Nome` no chat | Rolar dados direto da conversa |
-| Arrastar um token | Mover, com a ferramenta Selecionar |
-| Roda do mouse | Zoom em torno do cursor |
-| Botão do meio | Mover mapa com qualquer ferramenta |
+O Angular não lê `process.env`; a URL da API fica nos arquivos de ambiente.
+
+| Arquivo | Usado em | API |
+| --- | --- | --- |
+| `environment.development.ts` | `npm start` | `http://localhost:3000` |
+| `environment.ts` | `npm run build` | `https://neuralgrid-api.onrender.com` |
+
+Ao trocar a API de lugar, mude três coisas juntas: `apiUrl`, `socketUrl` e o
+`connect-src` da CSP em [`firebase.json`](firebase.json) (`https://` e `wss://`).
 
 ---
 
-## Deploy no Firebase Hosting
+## Atalhos da mesa
 
-1. Instale a CLI e entre na sua conta:
-
-   ```bash
-   npm install -g firebase-tools
-   firebase login
-   ```
-
-2. Crie um projeto no [console do Firebase](https://console.firebase.google.com)
-   e associe-o a esta pasta. O comando gera o `.firebaserc`; o
-   [`.firebaserc.example`](.firebaserc.example) mostra o formato.
-
-   ```bash
-   firebase use --add
-   ```
-
-3. Confira o `apiUrl` de produção e o `connect-src` do `firebase.json`.
-4. Publique:
-
-   ```bash
-   npm run deploy
-   ```
-
-5. Adicione as URLs `https://<projeto>.web.app` e
-   `https://<projeto>.firebaseapp.com` ao `CORS_ORIGINS` da API no Render.
-
-| Configuração | Valor |
+| Tecla | Ação |
 | --- | --- |
-| Diretório publicado | `dist/Frontend-NeuralGrid/browser` |
-| Rewrite | toda rota cai em `/index.html` |
-| Cache | `immutable` por um ano para `js`, `css` e `woff2`; `no-cache` no `index.html` |
-| Cabeçalhos | CSP, HSTS, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Permissions-Policy` |
+| `V` / `H` / `R` / `D` / `E` | Selecionar, mover mapa, régua, desenhar, borracha |
+| `Esc` | tirar a seleção ou fechar o painel |
+| `Del` | remover o token selecionado (mestre) |
+| `Enter` / `Shift` + `Enter` | enviar no chat / quebrar a linha |
+| `/r 2d6+3 Nome` | rolar dados pelo chat |
+| Roda do mouse | zoom em torno do cursor |
+| Botão do meio | mover o mapa com qualquer ferramenta |
 
-O detalhe de cada cabeçalho e o porquê da escolha do `sessionStorage` estão em
+---
+
+## Deploy
+
+1. `npm install -g firebase-tools` e `firebase login`.
+2. `firebase use --add` para ligar a pasta ao projeto (gera o `.firebaserc`,
+   veja o [exemplo](.firebaserc.example)).
+3. Confira a URL da API e o `connect-src`, e rode `npm run deploy`.
+4. Adicione `https://<projeto>.web.app` e `https://<projeto>.firebaseapp.com`
+   ao `CORS_ORIGINS` da API.
+
+O `firebase.json` reescreve toda rota para `/index.html`, deixa `js` e `css` em
+cache imutável por um ano e envia CSP, HSTS e os demais cabeçalhos descritos em
 [docs/seguranca.md](docs/seguranca.md).
 
 ---
 
 ## Documentação
 
-- [Arquitetura](docs/arquitetura.md): pastas, signals, sessão, tabuleiro e convenções de código.
-- [Tempo real](docs/tempo-real.md): conexão, tokens, movimento otimista, prévias, presença, chat e dados.
-- [Design](docs/design.md): tokens, temas, tipografia, movimento e acessibilidade.
-- [Segurança](docs/seguranca.md): armazenamento do token, interceptor, CSP e cabeçalhos.
+| Doc | Conteúdo |
+| --- | --- |
+| [Arquitetura](docs/arquitetura.md) | camadas, signals, sessão, tabuleiro e testes |
+| [Tempo real](docs/tempo-real.md) | socket, tokens, névoa, combate, status, morte, dados e chat |
+| [Design](docs/design.md) | tokens, temas, movimento e acessibilidade |
+| [Segurança](docs/seguranca.md) | onde o token fica, interceptor, CSP e cabeçalhos |
 
 ---
 
 ## Versionamento
 
-O projeto segue [SemVer](https://semver.org/lang/pt-BR/) enquanto está em `0.x`:
+SemVer em `0.x`: o número do meio sobe a cada etapa do roadmap (`0.8.0`) e o
+último a cada correção ou melhoria (`0.8.1`).
 
-| Parte | Quando sobe | Exemplo |
-| --- | --- | --- |
-| Menor | uma etapa nova do roadmap | `0.2.0`, mesa ao vivo |
-| Patch | melhorias e correções dentro da etapa | `0.2.1`, notas de versão |
-
-A versão mora em dois lugares que andam juntos: o `version` do
-[`package.json`](package.json) e a primeira entrada de
+A versão vive no `package.json` e na primeira entrada de
 [`release-notes.ts`](src/app/core/release/release-notes.ts), que alimenta a aba
-Atualizações e o rodapé do login. Um teste falha se os dois divergirem.
+Atualizações. Um teste falha se os dois divergirem. Para publicar:
 
-Para publicar uma versão:
-
-1. Adicione a entrada nova no topo de `RELEASES`, com data e as mudanças
-   classificadas como `new`, `improved` ou `fixed`.
+1. Adicione a entrada no topo de `RELEASES` (`new`, `improved` ou `fixed`).
 2. Rode `npm version <versão> --no-git-tag-version`.
 3. Rode `npm test` e `npm run deploy`.
 
@@ -282,11 +171,9 @@ Para publicar uma versão:
 
 ## Licença
 
-Distribuído sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE).
-
-Os ícones dos tokens vêm do [game-icons.net](https://game-icons.net), de Lorc,
-Delapouite e colaboradores, sob a licença
-[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+MIT. Veja [LICENSE](LICENSE). Ícones dos tokens do
+[game-icons.net](https://game-icons.net) (Lorc, Delapouite e colaboradores),
+sob [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
 
 Copyright © 2026 Luiz Henrique Porfírio Santos.
 

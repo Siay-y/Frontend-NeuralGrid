@@ -1,374 +1,175 @@
 # Tempo real
 
-Como a mesa se mantém igual na tela de todo mundo. O protocolo completo, do lado
-do servidor, está no
+Como a mesa fica igual na tela de todos. O protocolo do servidor está no
 [backend](https://github.com/Siay-y/Backend-NeuralGrid/blob/main/docs/tempo-real.md).
-Para a apresentação do projeto, volte ao [README](../README.md).
+Voltar ao [README](../README.md).
+
+**Em resumo:** o servidor decide tudo; o cliente aplica o resultado na hora
+(otimista), desfaz se o servidor recusar e só encena dados e animações que o
+servidor já resolveu.
 
 ---
 
 ## Peças
 
-| Peça | Responsabilidade |
+| Peça | Papel |
 | --- | --- |
-| `TableConnection` | abre o socket, mantém o status em signal, envia com ack e timeout |
-| `TableState` | tokens, membros, presença e prévias; aplica eventos e comandos |
+| `TableConnection` | abre o socket, guarda o status, envia com ack e timeout de 8 s |
+| `TableState` | estado da mesa: aplica eventos do servidor e envia comandos |
 | `TabletopStore` | interface: ferramenta, painel, seleção, foco da câmera e avisos |
-| `Board` | desenha e anima os tokens, transforma ponteiro em comando |
-| `TokensPanel` | formulário do mestre e lista de tokens para todos |
-| `Presence` | quem está na mesa, e o estado da conexão quando ela cai |
-| `ChatPanel` | histórico completo e campo de mensagem com o comando `/r` |
-| `DicePanel` | teste de atributo, dano, dados rápidos e histórico só de rolagens |
+| `Board` | desenha e anima no canvas; transforma ponteiro em comando |
+| `CinematicQueue` | toca as faixas de tela cheia uma de cada vez |
 
-As três primeiras são providas pela página `/tabletop`, e não pela raiz. Entrar
-na mesa abre o socket, sair fecha. Um logout nunca deixa uma conexão viva para
-trás.
-
----
+Todas vivem na página `/tabletop`: entrar abre o socket, sair fecha.
 
 ## Conexão
 
-- O token vai no `auth` do handshake, por função: a cada reconexão o Socket.io
-  pede o token de novo e usa o atual.
-- `connect_error` com `UNAUTHORIZED` ou o evento `session:expired` encerram a
-  sessão e levam ao login com o aviso de sessão expirada.
-- Queda de rede vira `reconnecting`; o Socket.io tenta de novo entre 1 e 8
-  segundos e, ao voltar, o servidor manda um snapshot novo que substitui o
-  estado inteiro.
-- Enquanto a mesa está aberta, um `GET /api/health` a cada 10 minutos mantém o
-  servidor do plano gratuito do Render acordado.
-
----
-
-## Comandos
-
-`TableConnection.request` envia com `emitWithAck` e 8 segundos de timeout. O
-servidor sempre responde `{ ok, data }` ou `{ ok, error }`; um erro vira
-`TableActionError`, e a mensagem do servidor aparece no aviso flutuante no pé do
-tabuleiro.
-
-### Mover um token
-
-1. Com a ferramenta Selecionar, o jogador arrasta um token que pode mover. O
-   token segue o ponteiro livremente e uma moldura tracejada mostra a célula
-   onde ele vai cair.
-2. A cada troca de célula sai um `token:drag`, sem ack e marcado como `volatile`:
-   se a rede engasgar, a prévia é descartada em vez de acumular.
-3. Ao soltar, o `TableState` aplica a nova posição na hora (movimento
-   otimista) e envia `token:move`.
-4. Se o servidor aceita, a resposta traz a `version` nova. Se recusa, o token
-   volta para a posição anterior, mas só se ninguém tiver mexido nele nesse
-   meio tempo, e o motivo aparece na tela.
-
-### Versões
-
-Cada token tem `version`. Uma atualização com versão menor que a conhecida é
-ignorada, o que protege contra eventos que chegam fora de ordem e contra a
-resposta do próprio ack chegando depois do broadcast.
-
-### Prévias dos outros
-
-Um `token:dragged` coloca o token na célula da prévia, translúcido. A prévia some
-quando chega a posição definitiva, quando a prévia coincide com a posição atual
-(arraste cancelado) ou quando quem arrastava sai da mesa.
-
----
-
-## Desenho e animação
-
-- `TokenMotion` guarda a posição desenhada de cada token e a aproxima do alvo
-  com decaimento exponencial de 70 ms. Movimentos remotos, prévias e o encaixe
-  ao soltar ficam suaves sem tween manual.
-- O laço de `requestAnimationFrame` só roda enquanto algo se move. Com a mesa
-  parada e a névoa desligada, nenhum quadro é desenhado.
-- Visual por tipo, sem cor: Agente em círculo cheio, NPC com contorno sólido,
-  Ameaça com contorno tracejado. Iniciais em Geist Mono e nome numa etiqueta
-  abaixo, a partir de 70% de zoom.
-- O alvo do clique é o círculo do token, não a célula, e o token desenhado por
-  cima ganha a disputa.
-
-### Névoa de guerra
-
-O mestre liga a névoa e escolhe o alcance da luz (2 a 20 quadrados) no painel
-Configurações. `fog:update` vai ao servidor e `fog:changed` chega a todos.
-
-| Regra | Como funciona |
+| Situação | O que acontece |
 | --- | --- |
-| Luz | cada token com dono e `emitsLight` acende um círculo suave no centro dele |
-| Jogador | vê a escuridão opaca por cima do mapa, dos desenhos e dos tokens dos outros; os próprios tokens ficam sempre visíveis |
-| Mestre | vê tudo, com a escuridão a 50% |
-| Tokens no escuro | somem do tabuleiro, da lista de tokens e da ficha rápida do jogador (`TableState.inDarkness`) |
-| Sem luz | "Iluminar na névoa" desligado no editor deixa o token no escuro, para emboscadas |
-| Memória | com "Memória da névoa" ligada, o caminho das luzes fica à meia luz (`fog:memory`); tokens dos outros fora da luz não são desenhados para o jogador, nem na meia luz |
-
-`LightFog` (`fog-renderer.ts`) desenha a névoa em 1/4 da resolução e amplia,
-porque tudo nela é suave. A neblina vem de duas texturas de ruído fractal com
-distorção, de tamanhos e velocidades diferentes, multiplicadas por uma máscara
-grande e lenta, para não repetir o desenho. As três texturas são geradas uma por
-quadro, na primeira vez que a névoa aparece. A memória vira uma máscara presa ao
-mapa, redesenhada só quando chegam pontos novos ou o alcance muda; a cada quadro
-ela só é copiada para a névoa.
-
-| Movimento | Detalhe |
-| --- | --- |
-| Ligar e desligar | a escuridão entra e sai em 500 ms |
-| Alcance | o raio da luz se aproxima do novo valor com decaimento de 140 ms |
-| Neblina | anda devagar, presa ao mapa, redesenhada a cerca de 30 quadros por segundo só enquanto a névoa está visível |
-| Ao entrar na mesa | a névoa já aparece pronta, para o mapa não piscar |
-| `prefers-reduced-motion` | sem transições e com a neblina parada |
-
-A névoa esconde o que o navegador desenha, não os dados: os tokens no escuro
-continuam chegando ao jogador. Para um segredo de verdade, o mestre usa um token
-oculto ou uma área oculta.
+| Handshake | o token vai no `auth`, lido de novo a cada reconexão |
+| `UNAUTHORIZED` ou `session:expired` | encerra a sessão e volta ao login |
+| Queda de rede | status `reconnecting`, nova tentativa entre 1 e 8 s; ao voltar, um snapshot substitui todo o estado |
+| Plano gratuito do Render | `GET /api/health` a cada 10 min mantém o servidor acordado |
+| Erro de comando | vira `TableActionError` e a mensagem do servidor aparece no aviso do tabuleiro |
 
 ---
 
-### Ficha rápida
+## Tokens
 
-Com o mouse parado sobre um token, o `TokenHoverCard` mostra nome, tipo, ícone,
-sexo, tamanho e dono, com a bolinha de presença. O mestre vê também os selos
-"oculto dos jogadores" e "nome oculto"; o jogador vê `???` quando o nome está
-escondido, porque é isso que o servidor manda. O card fica acima do token, ou
-abaixo quando não há espaço em cima, some ao arrastar ou mover a câmera e não
-aparece no toque.
+### Mover
 
-## Painel de tokens
+1. O jogador arrasta o próprio token; uma moldura tracejada mostra onde ele vai cair.
+2. A cada troca de célula sai `token:drag`, `volatile` e sem ack: se a rede
+   engasga, a prévia é descartada.
+3. Ao soltar, o token muda na hora e sai `token:move`.
+4. Aceito: chega a `version` nova. Recusado: o token volta (se ninguém mexeu
+   nele no meio tempo) e o motivo aparece.
 
-O formulário fica dentro de um `Collapsible` ("Novo token", aberto por padrão),
-o mesmo que recolhe os campos de "Rolar dados" no painel de Dados. O
-`TabletopStore` lembra o que está fechado enquanto a mesa estiver aberta, e
-clicar em editar um token abre o formulário de novo.
+| Regra | Como |
+| --- | --- |
+| Versão | atualização com `version` menor que a conhecida é ignorada |
+| Prévia dos outros | o token aparece translúcido na célula da prévia até chegar a posição final ou quem arrasta sair |
+| Animação | `TokenMotion` aproxima a posição desenhada do alvo com decaimento de 70 ms |
+| Visual | Agente em círculo cheio, NPC com contorno sólido, Ameaça tracejada; nome a partir de 70% de zoom |
+| Clique | acerta o círculo do token, não a célula |
 
-- **Mestre:** formulário tipado (`FormGroup<TokenForm>`) com nome, tipo, dono e
-  tamanho. Um token novo nasce na célula livre mais próxima do centro da tela,
-  considerando o tamanho dele. Editar reaproveita o mesmo formulário; remover
-  pede um segundo clique em até 3 segundos.
-- **Ícone:** o seletor `TokenIconPicker` (um `ControlValueAccessor`) troca as
-  iniciais por um dos ícones de `token-icons.ts`, com busca por nome. No
-  tabuleiro o ícone vira `Path2D`, criado uma vez por ícone.
-- **Sexo:** Feminino, Masculino ou Outro, opcional. Clicar de novo na opção
-  marcada desmarca.
-- **Nome oculto:** o switch "Esconder o nome" faz o servidor mandar `???` no
-  lugar do nome para os jogadores. O mestre continua vendo o nome, com o selo
-  `???` na lista.
-- **Oculto:** o switch "Esconder dos jogadores" e o olho de cada linha mudam
-  `hidden`. O mestre vê o token translúcido, com o selo "oculto"; os jogadores
-  nem recebem o token.
-- **Jogadores:** só a lista, com o selo "seu" nos próprios tokens.
-- **Todos:** clicar numa linha seleciona o token e centraliza a câmera nele. O
-  ponto ao lado do dono indica se ele está na mesa.
-
-## Iniciativa
-
-`InitiativePanel` mostra a ordem que vem em `TableState.combat()`, já ordenada
-pelo servidor. Clicar numa linha centraliza a câmera no token.
+### Painel de tokens
 
 | Quem | O que faz |
 | --- | --- |
-| Mestre | adiciona tokens da mesa, digita ou rola a iniciativa (d20 + Agilidade, para tokens com ficha), esconde ou revela cada um, começa, passa ou volta o turno e encerra com dois cliques |
-| Jogador | vê a rodada e a ordem, com a vez destacada e o selo "seu" |
+| Mestre | cria, edita e remove (segundo clique em 3 s); nome, tipo, dono, tamanho, ícone, sexo, nome oculto, oculto e luz. Token novo nasce na célula livre mais próxima do centro da tela |
+| Jogador | vê a lista, com o selo "seu" nos próprios tokens |
+| Todos | clicar numa linha seleciona o token e centraliza a câmera |
 
-No tabuleiro, o token da vez ganha halo, anel sólido e uma seta acima dele.
-Quando a vez muda, a câmera dos jogadores desliza até ele (menos durante um arraste; a do mestre fica parada) e três
-ondas saem do anel por 2,4 s, com a seta balançando; depois o destaque fica
-parado e o canvas para de redesenhar. O jogador só vê isso quando o
-participante da vez está visível para ele. As linhas do mestre têm um menu de mais opções (rolar, esconder ou
-revelar, tirar do combate), para caber na largura do celular.
-
-`TurnHud` fica no canto superior direito, abaixo da presença, enquanto há
-combate: a rodada e os próximos 5 turnos a partir da vez, com "vez", "seu" e
-"R" mais o número para quem já é da rodada seguinte. Caídos e mortos aparecem
-apagados, com "caído" ou "morto".
-Abre ou fecha pelo cabeçalho; fechado mostra só a rodada e o nome da vez. Abre
-sozinho a cada rodada nova.
-
-As faixas de tela cheia (início de combate em `CombatCues` e as de morte em
-`DeathCues`) passam pela `CinematicQueue`: uma de cada vez, e a próxima só
-entra 700 ms depois de a anterior sair. Esc pula a atual. O d20 do teste de
-morte cai quando a faixa "Teste de morte" entra, não quando o evento chega.
-
-`CombatCues` cuida do que só o jogador vê:
-
-| Peça | Comportamento |
-| --- | --- |
-| Início | quando a rodada sai de 0 por um `combat:changed`, `CombatIntroBand` mostra uma faixa no centro da tela, com duas espadas se cruzando e um flash rápido, mostra a rodada, a posição de cada personagem do jogador e quem começa. Só aparece para quem tem personagem na luta, não bloqueia cliques e some em 3,6 s (ou com Esc), com saída animada: as espadas se afastam, o título se abre e a faixa se fecha. Recarregar no meio da luta não repete |
-| Finalizar turno | botão no rodapé do `TurnHud`, visível mesmo com ele fechado, só para quem tem personagem na luta. Mostra "Aguarde sua vez" desabilitado até a vez dele e então "Finalizar turno", que envia `combat:pass` |
-| Sua vez | uma luz fraca pulsa nas bordas da tela enquanto a vez é de um token do jogador |
-
-Com movimento reduzido, não há flash nem pulso: a luz fica fixa.
-
-## Status
-
-`TableState.statuses()` guarda os buffs e debuffs por token, vindos do snapshot
-e de `status:changed`. Cada status tem nome, grupo, valor e ícone em
-`status-catalog.ts`; os ícones são caminhos SVG desenhados por `StatusIcon`,
-todos monocromáticos como o resto da interface.
-
-| Peça | Comportamento |
-| --- | --- |
-| `StatusMenu` | só do mestre. Abre com o botão direito num token do tabuleiro, ou pela opção Status no menu do token na aba Tokens e na Iniciativa, que também leva a câmera até ele. Vive dentro do `Board` e fica preso ao lado do token, acompanhando arraste e zoom. Tem três passos: Debuff ou Buff (com os status ativos logo abaixo), a lista do grupo e o formulário, com Voltar no cabeçalho. Fecha com Esc, no X ou com um clique fora; arrastar o tabuleiro com o botão do meio ou com a mão não fecha. No celular vira uma folha no rodapé |
-| `StatusForm` | turnos (vazio é sem limite), dano, cura ou valor quando o status usa, e os debuffs da imunidade. Aplicar, Salvar ou Remover voltam para a lista |
-| Card do token | o hover lista os status com a duração e o valor |
-| Iniciativa | cada linha mostra os ícones dos status com os turnos restantes |
-
-Enquanto o menu está aberto, os atalhos do teclado ficam desligados, para Delete
-não apagar o token selecionado.
-
-### Morte
-
-`TableState.deaths()` recebe cada `death:event` e `deathOf(tokenId)` diz se o
-token está caído (status `death` com turnos) ou morto (sem turnos).
-`DeathCues` cuida do que aparece:
-
-| Quem | O que vê |
-| --- | --- |
-| Dono do personagem | `DeathBand`, uma faixa como a de início de combate, com uma caveira com dentes e ossos cruzados atrás: os ossos giram até formar o X, a mandíbula abre e treme com os ossos, e na morte final uma rachadura corta o crânio. "Você morreu" ao cair, com as 3 chances (Agente e NPC; Ameaça vai direto para "Você morreu" de vez); no teste, "Teste de morte" no alto enquanto o d20 3D cai na tela dele e, depois, "Não foi dessa vez" com as tentativas marcadas, "Você está consciente" ou "Você morreu" de vez; "Você voltou" quando o mestre revive. Enquanto está caído, a tela fica em preto e branco com uma vinheta que pulsa como batimento, e um selo no alto mostra "Inconsciente · N chances" ou "Morto" |
-| Os outros | um aviso no alto ("Kael caiu", "Kael falhou no teste de morte", "Kael morreu") e o card da rolagem no canto inferior direito |
-| Mestre | Reviver ou Matar (com confirmação) no menu de status do token, e Reviver na ficha |
-
-O token caído fica apagado no tabuleiro e o jogador não consegue arrastá-lo. A
-ficha mostra "Morto" e fica desabilitada para o jogador, junto com os testes do
-cartão da ficha. Com movimento reduzido, o resultado aparece direto, sem o
-dado. As rolagens do início do turno chegam como
-qualquer rolagem do mestre, com os dados 3D para os jogadores.
+O card de hover (`TokenHoverCard`) mostra nome, tipo, sexo, tamanho, dono, HP,
+defesa e status. Com nome oculto, o jogador vê `???`, porque é o que o servidor
+manda.
 
 ---
 
-## Chat e dados
+## Névoa de guerra
 
-O cliente nunca sorteia nada. `TableState.rollDice` envia a expressão, como
-`3d20kh1+5`, e o servidor devolve a rolagem pronta, com cada dado. Mensagens e
-rolagens são o mesmo tipo (`ChatMessage`) e dividem um único histórico.
+O mestre liga a névoa, o alcance (2 a 20 quadrados) e a memória em
+Configurações.
 
-### Painel de dados
+| Regra | Como |
+| --- | --- |
+| Luz | todo token com dono e `emitsLight` acende um círculo suave |
+| Jogador | vê escuridão opaca sobre o resto; os próprios tokens ficam sempre visíveis |
+| Mestre | vê tudo, com a escuridão a 50% |
+| Token no escuro | some do tabuleiro, da lista e do card do jogador (`TableState.inDarkness`) |
+| Memória | o caminho das luzes fica à meia luz (`fog:memory`) |
+| Desenho | `LightFog` desenha em 1/4 da resolução, com neblina de ruído fractal a cerca de 30 quadros por segundo |
 
-O painel tem a quantidade (1 a 10), o bônus (-99 a +99) e os dados em ordem:
-d4, d6, d8, d10, d12, d20 e d100. Um clique envia `NdF` com o bônus no fim, como
-`2d6` ou `1d20+5`. O bônus aceita digitação (`+3`, `-2`) e fica marcado no canto
-de cada dado enquanto for diferente de zero. Rolagens com `kh`/`kl` continuam
-disponíveis pelo chat: `/r 2d20kh1+5 Luta`.
+A névoa esconde o desenho, não os dados: para um segredo real, o mestre usa
+token oculto ou área oculta.
 
-### Animação
+---
 
-Toda rolagem tem duas cenas 3D, e nenhuma decide o resultado: as duas só
-encenam o que o servidor já sorteou.
+## Combate
 
-| Cena | Quem vê | Onde |
+| Peça | O que faz |
+| --- | --- |
+| `InitiativePanel` | mestre adiciona tokens, digita ou rola a iniciativa (d20 + Agilidade), esconde, começa, passa, volta e encerra; jogador vê a ordem |
+| Token da vez | halo, anel e seta; a câmera dos jogadores desliza até ele e três ondas saem por 2,4 s |
+| `TurnHud` | canto superior direito: rodada e próximos 5 turnos ("vez", "seu", "R2", "caído", "morto"); reabre a cada rodada |
+| Finalizar turno | botão no rodapé do `TurnHud`, ativo só na vez do jogador; envia `combat:pass` |
+| `CombatIntroBand` | faixa de início com espadas e a posição do jogador, 3,6 s, só para quem luta |
+| Sua vez | luz fraca pulsando nas bordas da tela |
+| `CinematicQueue` | faixas de combate e morte uma de cada vez, 700 ms entre elas; Esc pula |
+
+### Status
+
+| Peça | O que faz |
+| --- | --- |
+| `StatusMenu` | só do mestre: botão direito no token, ou "Status" no menu da aba Tokens e da Iniciativa. Passos: Buff ou Debuff, o status, o formulário |
+| `StatusForm` | turnos (vazio é sem limite), dano ou cura em dados, e os debuffs que a imunidade bloqueia |
+| Card e Iniciativa | mostram os ícones e os turnos restantes |
+
+### Morte
+
+`TableState.deathOf(tokenId)` diz se o token está caído (status `death` com
+tentativas) ou morto (sem tentativas).
+
+| Quem | O que vê |
+| --- | --- |
+| Dono | `DeathBand` com caveira e ossos animados: "Você morreu" com 3 chances (Agente e NPC) ou de vez (Ameaça); no teste, o d20 3D cai e vem "Não foi dessa vez", "Você está consciente" ou "Você morreu"; "Você voltou" ao ser revivido. Caído, a tela fica em preto e branco com vinheta pulsando |
+| Outros | aviso no alto ("Kael caiu") e o card da rolagem |
+| Mestre | Reviver ou Matar no menu de status, e Reviver na ficha |
+
+Caído, o jogador não move o token nem edita a ficha.
+
+---
+
+## Dados
+
+O cliente nunca sorteia: envia a expressão (`3d20kh1+5`) e recebe cada dado.
+Mensagens e rolagens são o mesmo tipo (`ChatMessage`) e dividem o histórico.
+
+| Peça | Quem vê | Onde |
 | --- | --- | --- |
-| `DiceScene` | quem rolou | sobre o tabuleiro, dados caindo com gravidade e quicando |
-| `DiceSpinner` | toda a mesa, inclusive quem rolou | caixinha no canto inferior direito, dados girando no lugar |
+| Painel de dados | quem rola | quantidade 1 a 10, bônus -99 a +99, d4 a d100 |
+| `DiceScene` | quem rolou | dados caindo com gravidade sobre o tabuleiro |
+| `DiceSpinner` | todos | cartão no canto inferior direito, girando até a face sorteada |
 
-1. O ack de `dice:roll` chega com o resultado. `TableState` põe a mensagem na
-   fila da cena grande e no `RollFeed`. Para os outros, a mesma rolagem chega
-   por `chat:message` e entra só no `RollFeed`.
-2. Cada cartão do `RollFeed` monta o próprio `DiceSpinner`: o dado dá um pulo,
-   gira rápido, desacelera e converge por `slerp` para a orientação que deixa a
-   face sorteada para cima e o número de pé. Enquanto gira, o cartão diz "está
-   rolando"; ao parar, mostra o total.
-3. A cena grande cai no centro da área livre do tabuleiro, descontando o painel
-   aberto, e some 1,4 segundo depois de parar.
+| Regra | Como |
+| --- | --- |
+| Segredo | enquanto gira, o resultado não aparece no chat nem no histórico; revela ao parar, ou em 6 s |
+| d100 | um dado só de 100 faces, montado por espiral de Fibonacci e `ConvexHull` |
+| Peso | three.js em chunk próprio de cerca de 114 kB, baixado na primeira rolagem; geometria e textura compartilhadas por formato |
+| Sem 3D | movimento reduzido, sem WebGL ou mais de 30 dados: o cartão mostra os números |
+| Crítico | maior face em azul (`--color-success`), 1 em vermelho (`--color-critical`), só depois de o dado parar; dados descartados por `kh`/`kl` não contam |
 
-O d100 é um dado só, de 100 faces, como o Zocchihedron. As faces vêm de 100
-pontos espalhados por uma espiral de Fibonacci na esfera: cada ponto vira o
-plano de uma face, e os cantos saem do `ConvexHull` desses pontos. Os números
-seguem uma ordem embaralhada fixa, para os vizinhos não serem consecutivos, e
-os que mudam de valor de cabeça para baixo (6, 9, 18, 66...) ganham um traço
-embaixo. three.js
-fica num chunk próprio de ~114 kB, baixado só na primeira rolagem. Com
-`prefers-reduced-motion`, sem WebGL, com dados que a cena não sabe desenhar
-(como d7) ou com mais de 30 dados, o cartão mostra
-os números direto, sem 3D.
+---
 
-Para pesar pouco, o `DiceKit` monta cada formato de dado uma vez: uma geometria
-por formato e uma textura (atlas com todas as faces) por combinação de números e
-cores. Dez d20 viram dez objetos que dividem a mesma geometria e o mesmo
-material, em vez de 200 texturas. Antes de começar a animar, a cena envia as
-texturas e compila os shaders com `compileAsync`, sem travar a página.
+## Chat
 
-Enquanto os dados giram, o resultado não aparece em lugar nenhum: o `RollFeed`
-marca a rolagem como escondida, e o chat e o histórico de Dados mostram só o
-nome e a notação, com três pontinhos. O cartão avisa ao parar (`reveal`), e o
-número aparece em todos os lugares ao mesmo tempo. Se o cartão for fechado,
-empurrado por outros ou não conseguir animar, a rolagem é revelada na hora; se
-nada responder, ela aparece sozinha em 6 segundos.
+| Opção | `visibility` | Quem vê |
+| --- | --- | --- |
+| Toda a mesa | `public` | todos |
+| Só o mestre / Só eu (oculta) | `gm` | o autor e o mestre |
+| Sussurro | `whisper` | o autor e o destinatário |
 
-Cada cartão some em 7,5 segundos, cabem três na tela, e cada um libera o próprio
-contexto WebGL ao sair.
+O filtro real é do servidor; o cliente só mostra o rótulo.
 
-### Quem vê
-
-O seletor acima do campo vale para o chat e para os dados ao mesmo tempo, e fica
-guardado no `TabletopStore` enquanto a mesa está aberta:
-
-| Opção | `visibility` | Para o jogador | Para o mestre |
-| --- | --- | --- | --- |
-| Toda a mesa | `public` | todos veem | todos veem |
-| Só o mestre / Só eu (oculta) | `gm` | ele e o mestre | só o mestre |
-| Sussurro para alguém | `whisper` | ele e o destinatário | ele e o destinatário |
-
-O filtro de verdade mora no servidor. O cliente só mostra o rótulo: "Oculta",
-"Para o mestre" ou "Sussurro para você".
-
-### Histórico e não lidas
-
-- O snapshot traz as últimas 100 mensagens visíveis; o cliente guarda até 200.
-- A mensagem enviada chega duas vezes, pelo ack e pelo broadcast, e o
-  `TableState` descarta a repetida pelo `id`.
-- Com o Chat fechado, cada mensagem de outra pessoa soma no contador, que
-  aparece num selo sobre o ícone do Chat. Com o painel de Dados aberto, só as
-  rolagens contam como vistas. Abrir o Chat zera a conta.
-- O histórico rola sozinho para a mensagem nova. Se a pessoa subiu para ler algo
-  antigo, a tela fica parada e um botão "mensagens novas" leva de volta ao fim.
-- O campo de mensagem esvazia no instante do envio. Quem digita rápido não perde
-  a próxima mensagem, e uma mensagem recusada volta para o campo.
-
-### Balões
-
-`buildLogEntries` transforma a lista em linhas de conversa: mensagens seguidas
-da mesma pessoa, com a mesma privacidade e até 3 minutos de distância, viram um
-grupo com um só avatar e um só horário. Um separador marca cada dia ("Hoje",
-"Ontem" ou a data). As suas mensagens ficam à direita em balão invertido; as
-privadas usam contorno tracejado. O avatar mostra as iniciais, e o do mestre é
-preenchido.
+| Regra | Como |
+| --- | --- |
+| Histórico | snapshot com as últimas 100; o cliente guarda até 200 |
+| Repetidas | a mensagem enviada chega pelo ack e pelo broadcast; o `id` descarta a cópia |
+| Não lidas | selo no ícone do Chat; com Dados aberto, rolagens contam como vistas |
+| Rolagem | fica no fim, a menos que a pessoa tenha subido; aí aparece "mensagens novas" |
+| Balões | `buildLogEntries` agrupa mensagens seguidas da mesma pessoa em até 3 min, com separador por dia |
+| Limpar | só para si (lembra no `localStorage`) ou, pelo mestre, para todos (`chat:clear`) |
 
 ### Fala no tabuleiro
 
-O texto digitado para toda a mesa também aparece num balão em cima do token do
-autor. Rolagens, mensagens para o mestre e sussurros não viram fala.
+Texto enviado para toda a mesa aparece num balão em cima do token do autor.
 
 | Regra | Como |
 | --- | --- |
 | Qual token | o primeiro token do autor na ordem de criação (`speakerToken`) |
-| Duração | 60 ms por caractere, entre 4 e 10 s (`speechDuration`); uma fala nova do mesmo autor troca a anterior |
-| Tamanho | até 220 px de largura e 4 linhas |
-| Posição | segue a posição animada do token (`TokenMotion`) no mesmo frame do canvas, inclusive no arrasto local e no remoto |
-| Quem vê | quem recebeu a mensagem e enxerga o token: some na escuridão da névoa e sob o card de hover |
+| Duração | 60 ms por caractere, entre 4 e 10 s; uma fala nova troca a anterior |
+| Tamanho | até 220 px e 4 linhas |
+| Posição | segue a posição animada do token no mesmo frame do canvas |
+| Não aparece | rolagens, mensagens privadas, token na escuridão ou sob o card de hover |
 | Fim | o tempo acaba, o chat é limpo ou a mesa fecha |
-
-As falas vivem no `TableState` (`speeches`), só para mensagens que chegam ao
-vivo; o snapshot não cria balões de mensagens antigas.
-
-### Limpar
-
-| Ação | Quem | Efeito |
-| --- | --- | --- |
-| Limpar | todos | esconde o histórico até agora só na sua tela, e lembra disso ao recarregar |
-| Para todos | mestre, com segundo clique | `chat:clear` apaga o histórico no servidor e esvazia a tela de todos |
-
-Limpar só para si guarda, no `localStorage` do navegador, o horário da última
-mensagem escondida. Nada vai para o servidor.
-
-### Crítico e falha crítica
-
-`dieOutcome` olha cada dado mantido, do d4 ao d100:
-
-| Resultado | Cor | Selo |
-| --- | --- | --- |
-| 1 | vermelho (`--color-critical`) | Falha crítica |
-| o maior número do dado (4 no d4, 12 no d12, 100 no d100) | azul (`--color-success`) | Crítico |
-
-O dado muda de cor no momento em que para, nas duas cenas 3D. Antes disso ele
-gira branco como os outros, para não entregar o resultado. No histórico e no
-cartão, o dado e o selo ficam com a mesma cor; uma rolagem com os dois casos
-mostra os dois selos. Dados descartados por `kh`/`kl` não contam. Vermelho e azul
-são as únicas cores fora da escala de cinza do projeto.

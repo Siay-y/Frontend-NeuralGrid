@@ -1,102 +1,79 @@
 # Segurança
 
-Onde o token fica, quem pode recebê-lo e o que o navegador está autorizado a
-fazer. Para a apresentação do projeto, volte ao [README](../README.md).
+Onde o token fica, quem o recebe e o que o navegador pode fazer. Voltar ao
+[README](../README.md).
+
+**Em resumo:** token no `sessionStorage`, enviado só para a API, logout
+automático antes de vencer e uma CSP que não deixa script injetado rodar nem
+mandar dados para outro domínio.
 
 ---
 
 ## Onde o token fica
 
-A sessão vai para o `sessionStorage`, na chave `neuralgrid.session`, com o
-token, o horário de expiração e os dados públicos do usuário.
+`sessionStorage`, chave `neuralgrid.session`: some com a aba, sobrevive ao F5 e
+o navegador não o envia sozinho (sem CSRF).
 
-| Opção | Por que não |
+| Alternativa | Por que não |
 | --- | --- |
-| Cookie `HttpOnly` | Frontend no Firebase e API no Render são sites diferentes. O cookie precisaria de `SameSite=None`, que Safari e Firefox bloqueiam como cookie de terceiros, e traria CSRF para o problema |
-| `localStorage` | Mesma exposição a XSS, mas o token sobrevive ao fechamento do navegador e é compartilhado entre abas |
-| Só memória | Seguro, mas um F5 no meio da sessão derrubaria o jogador |
+| Cookie `HttpOnly` | front e API em sites diferentes exigem `SameSite=None`, que Safari e Firefox bloqueiam, e trazem CSRF |
+| `localStorage` | mesma exposição a XSS, mas vive após fechar o navegador e é dividido entre abas |
+| Só memória | um F5 derrubaria o jogador |
 
-O `sessionStorage` morre com a aba, não é enviado automaticamente pelo navegador
-(o que elimina CSRF) e sobrevive a um recarregamento. A exposição que sobra é
-XSS, contida pela CSP abaixo e pelo fato de o Angular escapar toda interpolação
-de template.
-
-Na leitura, `SessionPersistence` valida o formato completo da sessão e descarta
-o que estiver vencido, corrompido ou com um papel desconhecido.
-
----
+O risco que sobra é XSS, contido pela CSP e pelo escape automático do Angular.
+Na leitura, a sessão com formato inválido, vencida ou com papel desconhecido é
+descartada.
 
 ## Quem recebe o token
 
-O `authInterceptor` anexa `Authorization: Bearer <token>` apenas quando a URL é
-exatamente `environment.apiUrl` ou começa com `environment.apiUrl/`. A barra
-final importa: `https://api.exemplo.com.evil.example` não passa. Há um teste
-para esse caso.
-
-Quando a API responde `401` a uma requisição autenticada, a sessão local é
-apagada e o jogador volta ao login com o aviso de sessão expirada. Um `401` no
-próprio login não derruba nada, porque ainda não havia sessão.
-
----
-
-## Expiração
-
-A sessão local expira 30 segundos antes do `exp` do JWT. Um `setTimeout` faz o
-logout no horário certo, mesmo que o jogador não clique em nada. Não há refresh
-token nesta etapa: quando a sessão acaba, entra de novo.
+| Regra | Como |
+| --- | --- |
+| Destino | só URLs iguais a `apiUrl` ou que começam com `apiUrl/`; `api.exemplo.com.evil.example` não passa (há teste) |
+| `401` autenticado | apaga a sessão e volta ao login com o aviso de sessão expirada |
+| Expiração | logout 30 s antes do `exp` do JWT; sem refresh token |
+| Socket | o token vai no `auth` do handshake e é lido de novo a cada reconexão |
 
 ---
 
 ## Cabeçalhos do Firebase Hosting
 
-Definidos em [`firebase.json`](../firebase.json) para toda resposta:
+Em [`firebase.json`](../firebase.json), para toda resposta:
 
-| Cabeçalho | Valor | Efeito |
-| --- | --- | --- |
-| `Content-Security-Policy` | ver abaixo | limita origem de script, estilo, fonte e conexão |
-| `Strict-Transport-Security` | 2 anos, com subdomínios | só HTTPS |
-| `X-Frame-Options` | `DENY` | impede o site dentro de iframe |
-| `X-Content-Type-Options` | `nosniff` | impede adivinhar tipo de arquivo |
-| `Referrer-Policy` | `no-referrer` | nenhuma URL vaza para terceiros |
-| `Cross-Origin-Opener-Policy` | `same-origin` | isola a janela de popups |
-| `Permissions-Policy` | câmera, microfone, localização e pagamento desligados | |
-| `X-Robots-Tag` | `noindex, nofollow` | a mesa não aparece em buscadores |
+| Cabeçalho | Efeito |
+| --- | --- |
+| `Content-Security-Policy` | limita script, estilo, imagem, fonte e conexão |
+| `Strict-Transport-Security` | só HTTPS por 2 anos, com subdomínios |
+| `X-Frame-Options: DENY` | o site não abre em iframe |
+| `X-Content-Type-Options: nosniff` | o navegador não adivinha o tipo do arquivo |
+| `Referrer-Policy: no-referrer` | nenhuma URL vaza para terceiros |
+| `Cross-Origin-Opener-Policy: same-origin` | isola a janela de popups |
+| `Permissions-Policy` | câmera, microfone, localização e pagamento desligados |
+| `X-Robots-Tag: noindex, nofollow` | a mesa não aparece em buscadores |
 
-### Content Security Policy
+### CSP
 
 ```text
-default-src 'self';
-script-src 'self';
-style-src 'self' 'unsafe-inline';
-img-src 'self' data:;
-font-src 'self';
+default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
+img-src 'self' data:; font-src 'self';
 connect-src 'self' https://neuralgrid-api.onrender.com wss://neuralgrid-api.onrender.com;
-object-src 'none';
-base-uri 'self';
-form-action 'self';
-frame-ancestors 'none';
+object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';
 upgrade-insecure-requests
 ```
 
-- **`script-src 'self'`** sem `'unsafe-inline'`: nenhum script injetado roda. Por
-  isso o boot do tema é um arquivo e o `inlineCritical` do build está desligado,
-  já que ele gera um `onload` inline.
-- **`style-src 'unsafe-inline'`** é necessário porque o Angular injeta os estilos
-  dos componentes em tags `<style>`. Estilo não executa código, e o risco
-  residual é aceito.
-- **`connect-src`** lista só a API, em HTTPS e WSS (para a Etapa 2). Mesmo com
-  um XSS, o token não pode ser enviado para outro domínio por `fetch`.
-- **`font-src 'self'`**: as fontes são servidas pelo próprio site, sem Google
-  Fonts.
+| Diretiva | Por quê |
+| --- | --- |
+| `script-src 'self'` | nenhum script inline roda; por isso o boot do tema é um arquivo e o `inlineCritical` do build está desligado |
+| `style-src 'unsafe-inline'` | o Angular injeta os estilos dos componentes em `<style>`; estilo não executa código |
+| `img-src 'self' data:` | sem `blob:`: recurso novo com imagem local precisa ser testado com este cabeçalho, porque o `ng serve` não tem CSP |
+| `connect-src` | só a API em HTTPS e WSS; mesmo com XSS, o token não sai para outro domínio |
+| `font-src 'self'` | fontes servidas pelo próprio site |
 
-Ao mudar a URL da API, atualize o `connect-src` junto com
-`src/environments/environment.ts`.
+Ao mudar a URL da API, atualize o `connect-src` junto com `environment.ts`.
 
 ---
 
-## Superfície que sobra
+## O que nenhuma política resolve
 
-- Uma extensão de navegador com acesso à página consegue ler o
-  `sessionStorage`. Nenhuma política de site resolve isso.
-- A CSP depende do Firebase servir os cabeçalhos. Ao trocar de hospedagem, eles
-  precisam ser reproduzidos.
+- Uma extensão do navegador com acesso à página lê o `sessionStorage`.
+- A CSP depende do Firebase enviar os cabeçalhos; outra hospedagem precisa
+  reproduzi-los.

@@ -1,69 +1,51 @@
 # Arquitetura
 
-Pastas, estado, sessão, tabuleiro e as convenções que o código segue. Para a
-apresentação do projeto, volte ao [README](../README.md).
+Camadas, estado, sessão, tabuleiro e testes. Voltar ao [README](../README.md).
+
+**Em resumo:** três camadas (`core`, `shared`, `features`), estado só em
+signals, componentes standalone com `OnPush` e uma mesa cujo estado nasce e
+morre com a página `/tabletop`.
 
 ---
 
 ## Camadas
 
-| Pasta | Responsabilidade | Pode importar de |
+| Pasta | Responsabilidade | Importa de |
 | --- | --- | --- |
-| `core/` | Serviços singleton da aplicação: sessão, tema | `environments/` |
-| `shared/ui/` | Componentes visuais sem regra de negócio | `core/` |
-| `features/` | Páginas e componentes de uma funcionalidade | `core/`, `shared/` |
+| `core/` | serviços singleton: sessão, tema, aparência, notas de versão | `environments/` |
+| `shared/ui/` | componentes visuais sem regra de negócio | `core/` |
+| `features/` | páginas e componentes de uma funcionalidade | `core/`, `shared/` |
 
-Uma feature nunca importa outra. Quando duas precisarem do mesmo estado, ele sobe
-para `core/`.
+Uma feature nunca importa outra; estado comum sobe para `core/`. Os nomes são
+planos, sem `.component`: `Board` vive em `board.ts`, `board.html` e `board.scss`.
 
-Os arquivos seguem a convenção de nomes planos do Angular CLI moderno, sem o
-infixo `.component`: o componente `Board` vive em `board.ts`, `board.html` e
-`board.scss`.
+## Convenções
 
----
-
-## Componentes
-
-- Todos são standalone e declaram as próprias dependências em `imports`.
-- Todos usam `ChangeDetectionStrategy.OnPush`. Como a aplicação é zoneless, a
-  detecção de mudanças só roda quando um signal lido no template muda ou quando
-  um evento do template dispara.
-- Entradas usam `input()` e `input.required()`; referências a elementos usam
-  `viewChild.required()`.
-- Templates usam apenas `@if`, `@for` e `@switch`.
-- Animações de entrada e saída usam `animate.enter` e `animate.leave`, nativos
-  do Angular 22, com classes e keyframes no SCSS do próprio componente.
+| Regra | Como |
+| --- | --- |
+| Componentes | standalone, `OnPush`, `input()` e `viewChild.required()` |
+| Templates | só `@if`, `@for` e `@switch` |
+| Animações | `animate.enter` e `animate.leave`, sem `@angular/animations` |
+| Estado | `signal` privado, exposto como `asReadonly()` ou `computed()`; sem `BehaviorSubject` |
 
 ---
 
-## Estado com Signals
+## Estado com signals
 
-Não há `BehaviorSubject` compartilhado nem biblioteca de estado.
-
-| Fonte | Escopo | Signals expostos |
+| Fonte | Escopo | Principais signals |
 | --- | --- | --- |
 | `AuthService` | raiz | `user`, `isAuthenticated`, `signOutReason` |
 | `ThemeService` | raiz | `theme`, `isDark` |
 | `ReleaseService` | raiz | `hasUnseen` |
-| `TabletopStore` | provido pela página `/tabletop` | `activeTool`, `activePanel`, `sidebarExpanded`, `selectedTokenId`, `notice`, `chatAudience` |
-| `TableConnection` | provido pela página `/tabletop` | `status` |
-| `RollFeed` | provido pela página `/tabletop` | `previews`, `throws` |
-| `TableState` | provido pela página `/tabletop` | `tokens`, `previews`, `members`, `onlineIds`, `me`, `isMaster`, `messages`, `unread` |
-| `Board` | local | `camera`, `hoveredCell`, `panning`, `draggingToken`, `zoomPercent` |
-| `LoginPage` | local | `loading`, `submitted`, `error`, `slowServer`, `passwordVisible` |
+| `TabletopStore` | página `/tabletop` | ferramenta, painel, seleção, avisos e quem vê no chat |
+| `TableConnection` | página `/tabletop` | `status` da conexão |
+| `TableState` | página `/tabletop` | tokens, membros, presença, chat, fichas, mapas, névoa, combate, status, mortes e falas |
+| `RollFeed` | página `/tabletop` | cartões de rolagem e dados a jogar |
+| `Board` | local | `camera`, `hoveredCell`, `panning`, `draggingToken` |
 
-Os serviços guardam o `signal` gravável como privado e expõem só a versão
-`asReadonly()` ou `computed()`. Quem consome lê; só o dono escreve.
-
-`ReleaseService` compara a versão atual com a última que o navegador viu,
-guardada em `localStorage` (`neuralgrid.seen-version`). Abrir a aba Atualizações
-marca a versão como vista. Se o armazenamento estiver bloqueado, o aviso some
-na sessão e volta na próxima visita.
-
-`TabletopStore`, `TableConnection` e `TableState` são providos no componente da
-página, não na raiz. Nascem ao entrar na mesa e morrem ao sair: o socket fecha e
-nenhum estado velho sobrevive a um logout. O funcionamento do tempo real está em
-[tempo-real.md](tempo-real.md).
+Os serviços da mesa são providos pela página, não pela raiz: entrar abre o
+socket, sair fecha, e nada sobrevive a um logout. `ReleaseService` guarda a
+última versão vista em `localStorage` (`neuralgrid.seen-version`).
 
 ---
 
@@ -71,95 +53,53 @@ nenhum estado velho sobrevive a um logout. O funcionamento do tempo real está e
 
 ```text
 LoginPage ──login()──► AuthService ──POST /auth/login──► API
-                          │
                           ├─ SessionPersistence.write()   sessionStorage
                           ├─ session.set(...)             signal
-                          └─ scheduleExpiry()             setTimeout até expiresAt
+                          └─ scheduleExpiry()             logout no horário do token
 ```
 
-- **`SessionPersistence`** lê e grava `neuralgrid.session`. Na leitura, valida o
-  formato inteiro (token com três partes, papel conhecido, expiração no futuro)
-  e descarta qualquer coisa diferente.
-- **`AuthService`** restaura a sessão no construtor, então um F5 mantém o
-  jogador na mesa. A expiração é agendada com 30 segundos de margem sobre o
-  `expiresIn` do servidor, para o token nunca ser enviado já vencido.
-- **`authGuard`** e **`guestGuard`** são `CanActivateFn`. Devolvem `true` ou um
-  `UrlTree`, nunca navegam por efeito colateral.
-- **`authInterceptor`** é um `HttpInterceptorFn`. Anexa o token só à API e trata
-  `401` de uma requisição autenticada como sessão encerrada.
+| Peça | Papel |
+| --- | --- |
+| `SessionPersistence` | lê e grava `neuralgrid.session`; descarta formato inválido, papel desconhecido ou sessão vencida |
+| `AuthService` | restaura a sessão no F5 e agenda o logout 30 s antes do `exp` |
+| `authGuard` / `guestGuard` | `CanActivateFn` que devolvem `true` ou um `UrlTree` |
+| `authInterceptor` | anexa o token só à API; `401` de requisição autenticada encerra a sessão |
 
----
-
-## Formulário de login
-
-O formulário é um `FormGroup<LoginForm>` criado pelo `NonNullableFormBuilder`:
-
-```ts
-interface LoginForm {
-  username: FormControl<string>;
-  password: FormControl<string>;
-}
-```
-
-`getRawValue()` devolve `{ username: string; password: string }` sem `null` nem
-`undefined`, e o compilador recusa qualquer campo que não exista. As mensagens
-de campo aparecem depois do primeiro envio ou quando o campo perde o foco, e
-somem enquanto um erro do servidor estiver na tela, para não repetir o aviso.
-
-`describeLoginError` traduz a resposta HTTP para texto:
+O login usa `FormGroup<LoginForm>` do `NonNullableFormBuilder` e
+`describeLoginError` traduz a resposta:
 
 | Resposta | Mensagem |
 | --- | --- |
 | `0` | servidor inalcançável |
 | `400`, `401` | "Usuário ou senha inválidos." |
-| `429` | tempo de espera lido do `Retry-After` |
-| outras | mensagem genérica, sem detalhe interno |
+| `429` | tempo de espera do `Retry-After` |
+| outras | mensagem genérica |
+
+Se o servidor demora mais de 4 s, o login avisa que ele está acordando.
 
 ---
 
 ## Tabuleiro
 
-O `Board` desenha num `<canvas>` e mantém uma câmera própria
-(`board-camera.ts`), com funções puras e testadas:
-
-- `cellAt` converte um ponto da tela em coluna e linha, inclusive negativas.
-- `zoomAround` aplica o zoom mantendo fixo o ponto sob o cursor.
-- `interpolateCamera` interpola posição de forma linear e zoom de forma
-  logarítmica, para a velocidade percebida ser constante.
-
-O desenho acontece em pixels físicos (`devicePixelRatio`) com linhas alinhadas
-em meio pixel, o que mantém a grade nítida em telas de alta densidade. Um
-`ResizeObserver` redimensiona o canvas e um `effect` agenda o redesenho em
-`requestAnimationFrame` quando câmera, célula sob o cursor ou ferramenta mudam.
-
-As cores vêm das variáveis CSS (`--grid-line`, `--grid-line-strong`,
-`--grid-cell-hover`, `--grid-origin`). Na troca de tema, o `ThemeService`
-avisa o tabuleiro dentro do callback da View Transition, e o canvas é redesenhado
-antes da captura do novo estado: a grade cruza junto com o resto da tela.
+| Peça | Papel |
+| --- | --- |
+| `board-camera.ts` | funções puras: `cellAt`, `zoomAround` (zoom fixo no cursor) e `interpolateCamera` (zoom logarítmico) |
+| Canvas | desenha em pixels físicos, linhas em meio pixel, redimensiona com `ResizeObserver` |
+| Laço | `requestAnimationFrame` só enquanto algo muda ou se move |
+| Cores | lidas das variáveis CSS; na troca de tema o canvas redesenha dentro da View Transition |
 
 ---
 
 ## Testes
 
-Vitest com jsdom, via `ng test`. Os arquivos ficam ao lado do código
-(`*.spec.ts`) e cobrem:
+Vitest com jsdom, arquivos `*.spec.ts` ao lado do código.
 
-- `AuthService`: login, restauração, descarte de sessão vencida ou adulterada,
-  logout e expiração automática.
-- `authInterceptor`: token só para a API, inclusive contra um host que começa
-  com o mesmo texto, e `401` encerrando a sessão.
-- `authGuard` e `guestGuard`: redirecionamentos.
-- `LoginPage`: validação, estado de carregamento, erro e redirecionamento.
-- `describeLoginError` e a câmera do tabuleiro.
-- Notas de versão: ordem, formato e a versão igual à do `package.json`.
-- Regras de dados: notação com bônus, d100 de 100 faces, crítico e falha
-  crítica e o comando `/r` do chat.
-- Geometria dos dados: faces planas e para fora em cada formato, e cada
-  resultado virado para cima na posição final.
-- `RollFeed`: limite de cartões, repetição ignorada e tempo de cada cartão.
-- `buildLogEntries`: agrupamento dos balões, separador de dia e iniciais.
-- `TableState` no chat: limpar só para si (e lembrar ao recarregar), limpeza
-  pelo mestre e contagem de não lidas com o painel de Dados aberto.
-- `TableState` no chat: mensagem que chega pelo ack e pelo broadcast aparece uma
-  vez só, e o contador de não lidas ignora as próprias mensagens.
-- `ReleaseService`: aviso de versão nova e memória da última versão vista.
+| Área | O que cobre |
+| --- | --- |
+| Sessão | login, restauração, sessão adulterada ou vencida, guards, interceptor (inclusive host parecido) |
+| Login | validação, carregamento, erros e redirecionamento |
+| Tabuleiro | câmera, geometria de tokens e desenhos, névoa, movimento |
+| Dados | notação, `/r`, crítico e falha, faces de cada dado, `RollFeed` |
+| `TableState` | movimento otimista, versões, prévias, chat, falas, fichas, combate, status e morte |
+| Mesa | iniciativa, HUD de turnos, fila de faixas, mapas, ícones e status |
+| Versões | ordem das notas e versão igual à do `package.json` |
