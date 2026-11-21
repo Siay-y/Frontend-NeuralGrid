@@ -29,8 +29,7 @@
     <p
       class="speech chrome-dark"
       aria-hidden="true"
-      [style.left.px]="speech.left"
-      [style.top.px]="speech.top"
+      [attr.data-token]="speech.tokenId"
       animate.enter="speech-enter"
       animate.leave="speech-leave"
     >

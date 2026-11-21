@@ -1,5 +1,6 @@
 import {
   afterNextRender,
+  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -231,25 +232,14 @@ export class Board {
     if (speeches.length === 0) {
       return [];
     }
-    const { x, y, zoom } = this.camera();
-    const span = CELL_SIZE * zoom;
     const tokens = this.table.tokens();
-    const previews = this.table.previews();
     const covered = this.hoverCard()?.token.id;
     return speeches.flatMap(({ id, authorId, text }) => {
       const token = speakerToken(tokens, authorId);
       if (!token || token.id === covered || this.table.inDarkness(token)) {
         return [];
       }
-      const at = previews.get(token.id) ?? token;
-      return [
-        {
-          id,
-          text,
-          left: x + (at.col + token.size / 2) * span,
-          top: y + at.row * span - SPEECH_GAP_PX,
-        },
-      ];
+      return [{ id, text, tokenId: token.id }];
     });
   });
   protected readonly isMaster = this.table.isMaster;
@@ -340,6 +330,12 @@ export class Board {
       if (request) {
         untracked(() => this.focus(request));
       }
+    });
+
+    afterRenderEffect(() => {
+      this.speeches();
+      this.camera();
+      untracked(() => this.placeSpeeches());
     });
 
     afterNextRender(() => {
@@ -1052,6 +1048,25 @@ export class Board {
     return targets;
   }
 
+  private placeSpeeches(): void {
+    const bubbles = this.host.nativeElement.querySelectorAll<HTMLElement>('.speech[data-token]');
+    if (bubbles.length === 0) {
+      return;
+    }
+    const { x, y, zoom } = this.camera();
+    const span = CELL_SIZE * zoom;
+    for (const bubble of bubbles) {
+      const id = bubble.dataset['token'] ?? '';
+      const token = this.table.token(id);
+      if (!token) {
+        continue;
+      }
+      const at = this.motion.position(id) ?? { x: token.col, y: token.row };
+      bubble.style.left = `${x + (at.x + token.size / 2) * span}px`;
+      bubble.style.top = `${y + at.y * span - SPEECH_GAP_PX}px`;
+    }
+  }
+
   private draw(elapsedMs: number): boolean {
     const ctx = this.context;
     if (!ctx) {
@@ -1060,6 +1075,7 @@ export class Board {
 
     const targets = this.tokenTargets();
     const animating = this.motion.step(targets, elapsedMs);
+    this.placeSpeeches();
 
     const canvas = ctx.canvas;
     const styles = getComputedStyle(this.host.nativeElement);

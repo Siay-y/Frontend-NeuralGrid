@@ -20,6 +20,17 @@ export const CHANGE_KIND_LABEL: Readonly<Record<ChangeKind, string>> = {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '0.8.1',
+    date: '2026-11-21',
+    title: 'Fala em movimento',
+    changes: [
+      {
+        kind: 'fixed',
+        text: 'O balão de fala acompanha o personagem enquanto ele é arrastado ou anda, em vez de ficar para trás.',
+      },
+    ],
+  },
+  {
     version: '0.8.0',
     date: '2026-11-13',
     title: 'Status',

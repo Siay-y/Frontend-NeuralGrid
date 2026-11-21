@@ -341,6 +341,7 @@ autor. Rolagens, mensagens para o mestre e sussurros não viram fala.
 | Qual token | o primeiro token do autor na ordem de criação (`speakerToken`) |
 | Duração | 60 ms por caractere, entre 4 e 10 s (`speechDuration`); uma fala nova do mesmo autor troca a anterior |
 | Tamanho | até 220 px de largura e 4 linhas |
+| Posição | segue a posição animada do token (`TokenMotion`) no mesmo frame do canvas, inclusive no arrasto local e no remoto |
 | Quem vê | quem recebeu a mensagem e enxerga o token: some na escuridão da névoa e sob o card de hover |
 | Fim | o tempo acaba, o chat é limpo ou a mesa fecha |
 
