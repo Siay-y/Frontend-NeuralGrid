@@ -13,6 +13,7 @@ import {
   LucideEye,
   LucideEyeOff,
   LucidePlus,
+  LucideSparkles,
   LucideX,
 } from '@lucide/angular';
 import { ActionMenu } from '../panel/action-menu';
@@ -24,6 +25,7 @@ import {
   type TableToken,
 } from '../realtime/table.protocol';
 import { TabletopStore } from '../tabletop.store';
+import { StatusBadges } from '../status/status-badges';
 import { TokenGlyph } from '../tokens/token-glyph';
 
 interface CombatRow extends TableCombatant {
@@ -57,7 +59,9 @@ export function parseInitiative(raw: string): number | null | undefined {
     LucideEye,
     LucideEyeOff,
     LucidePlus,
+    LucideSparkles,
     LucideX,
+    StatusBadges,
   ],
   templateUrl: './initiative-panel.html',
   styleUrl: './initiative-panel.scss',

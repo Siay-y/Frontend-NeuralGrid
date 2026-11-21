@@ -3,6 +3,9 @@ import { LucideX } from '@lucide/angular';
 import { Board } from './board/board';
 import { DiceTray } from './dice/dice-tray';
 import { CombatCues } from './initiative/combat-cues';
+import { DeathCues } from './death/death-cues';
+import { CinematicQueue } from './cinematic-queue';
+import { TurnHud } from './initiative/turn-hud';
 import { RollFeed } from './dice/roll-feed';
 import { RollPreviews } from './dice/roll-previews';
 import { TablePanelView } from './panel/panel';
@@ -36,6 +39,8 @@ function isEditableTarget(target: EventTarget | null): boolean {
   imports: [
     Board,
     CombatCues,
+    DeathCues,
+    TurnHud,
     DiceTray,
     MapToolbar,
     RollPreviews,
@@ -48,7 +53,16 @@ function isEditableTarget(target: EventTarget | null): boolean {
   templateUrl: './tabletop.html',
   styleUrl: './tabletop.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [TabletopStore, TableConnection, RollFeed, TableState, MapApi, MapScene, MapUploader],
+  providers: [
+    TabletopStore,
+    TableConnection,
+    RollFeed,
+    TableState,
+    MapApi,
+    MapScene,
+    MapUploader,
+    CinematicQueue,
+  ],
   host: {
     '(document:keydown)': 'onKeydown($event)',
     '(document:dragover)': 'keepFileOnPage($event)',
@@ -75,7 +89,7 @@ export class TabletopPage {
   }
 
   protected onKeydown(event: KeyboardEvent): void {
-    if (event.defaultPrevented || isEditableTarget(event.target)) {
+    if (event.defaultPrevented || isEditableTarget(event.target) || this.store.statusMenu()) {
       return;
     }
 

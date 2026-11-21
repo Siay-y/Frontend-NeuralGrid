@@ -1,0 +1,71 @@
+@use '../panel/forms';
+
+:host {
+  display: block;
+  padding: 10px 6px 4px;
+}
+
+.form {
+  display: grid;
+  gap: 10px;
+}
+
+.form__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.field__input {
+  height: 32px;
+}
+
+.field__input--mono {
+  font-family: var(--font-mono);
+}
+
+.immunity {
+  display: grid;
+  gap: 6px;
+}
+
+.immunity__options {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.immunity__option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    color: var(--color-text);
+  }
+
+  &.is-on {
+    border-color: var(--color-inverse);
+    background: var(--color-inverse);
+    color: var(--color-inverse-text);
+  }
+}
+
+.form__error {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}

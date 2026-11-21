@@ -42,6 +42,7 @@ import {
 import { sheetRoller } from './sheet-roller';
 import { SheetSkillsEditor } from './sheet-skills';
 import { SheetStatusEditor } from './sheet-status';
+import { StatusIcon } from '../status/status-icon';
 
 const SAVE_DELAY_MS = 600;
 const CONFIRM_WINDOW_MS = 3_000;
@@ -61,6 +62,7 @@ const SEXES: readonly TokenSex[] = ['female', 'male', 'other'];
     SheetEquipmentEditor,
     SheetSkillsEditor,
     SheetStatusEditor,
+    StatusIcon,
   ],
   templateUrl: './sheet-editor.html',
   styleUrl: './sheet-editor.scss',
@@ -81,6 +83,9 @@ export class SheetEditor {
   protected readonly saving = signal(false);
   protected readonly placing = signal(false);
   protected readonly confirmingDelete = signal(false);
+  protected readonly reviving = signal(false);
+  protected readonly death = computed(() => this.table.sheetDeath(this.sheet().id));
+  protected readonly locked = computed(() => !!this.death() && !this.table.isMaster());
 
   private readonly dirty = new Set<SheetSection>();
   private readonly inFlight = new Set<SheetSection>();
@@ -161,6 +166,12 @@ export class SheetEditor {
   protected assignOwner(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     void this.table.updateSheet(this.sheet().id, { ownerId: value === '' ? null : value });
+  }
+
+  protected async revive(): Promise<void> {
+    this.reviving.set(true);
+    await this.table.reviveSheet(this.sheet().id);
+    this.reviving.set(false);
   }
 
   protected locate(token: TableToken): void {

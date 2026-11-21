@@ -29,6 +29,10 @@ export interface FocusRequest extends GridCell {
   seq: number;
 }
 
+export interface StatusMenuRequest {
+  tokenId: string;
+}
+
 const NOTICE_DURATION_MS = 4_000;
 const DRAWING_STYLE_KEY = 'neuralgrid.drawing-style';
 const DRAWING_SHAPES: readonly DrawingShape[] = ['free', 'arrow', 'rect', 'ellipse'];
@@ -83,6 +87,7 @@ export class TabletopStore {
   private readonly draft = signal<MapDraft | null>(null);
   private readonly adjusting = signal(false);
   private readonly area = signal<string | null>(null);
+  private readonly statusTarget = signal<StatusMenuRequest | null>(null);
   private noticeTimer: ReturnType<typeof setTimeout> | undefined;
 
   readonly activeTool = this.tool.asReadonly();
@@ -98,6 +103,7 @@ export class TabletopStore {
   readonly mapDraft = this.draft.asReadonly();
   readonly mapAdjusting = this.adjusting.asReadonly();
   readonly mapAreaId = this.area.asReadonly();
+  readonly statusMenu = this.statusTarget.asReadonly();
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.noticeTimer));
@@ -168,6 +174,14 @@ export class TabletopStore {
 
   toggleSidebar(): void {
     this.expanded.update((expanded) => !expanded);
+  }
+
+  openStatusMenu(tokenId: string): void {
+    this.statusTarget.set({ tokenId });
+  }
+
+  closeStatusMenu(): void {
+    this.statusTarget.set(null);
   }
 
   selectToken(id: string | null): void {

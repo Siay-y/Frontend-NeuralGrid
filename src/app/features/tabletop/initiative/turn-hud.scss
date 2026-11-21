@@ -1,0 +1,203 @@
+@use 'glass' as *;
+
+:host {
+  display: block;
+}
+
+.hud {
+  width: 196px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  @include floating-glass;
+  box-shadow: var(--shadow-float);
+  overflow: hidden;
+}
+
+.hud__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    color: var(--color-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
+
+.hud__round {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hud__now {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.hud__chevron {
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: transform var(--duration) var(--ease-out);
+
+  [aria-expanded='true'] > & {
+    transform: rotate(180deg);
+  }
+}
+
+.hud__list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0 4px 4px;
+  list-style: none;
+}
+
+.hud__item {
+  --glyph-size: 22px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+
+  &.is-current {
+    border-color: var(--color-text);
+    background: var(--color-surface-active);
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  &.is-fallen {
+    opacity: 0.5;
+  }
+}
+
+.hud__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.hud__meta {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+
+  .is-current & {
+    color: var(--color-text);
+  }
+}
+
+.hud__foot {
+  padding: 4px;
+  border-top: 1px solid var(--color-border);
+}
+
+.hud__pass {
+  width: 100%;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) - 2px);
+  background: none;
+  color: var(--color-text-subtle);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: not-allowed;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+
+  &.is-ready {
+    border-color: var(--color-inverse);
+    background: var(--color-inverse);
+    color: var(--color-inverse-text);
+    cursor: pointer;
+  }
+
+  &.is-ready:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+.hud-enter {
+  animation: hud-in var(--duration-slow) var(--ease-out) both;
+}
+
+.hud-leave {
+  animation: hud-in var(--duration) var(--ease-out) reverse both;
+}
+
+.list-enter {
+  animation: list-in var(--duration) var(--ease-out) both;
+}
+
+.list-leave {
+  animation: list-in var(--duration-fast) var(--ease-out) reverse both;
+}
+
+@keyframes hud-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes list-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-enter,
+  .hud-leave,
+  .list-enter,
+  .list-leave {
+    animation: none;
+  }
+}

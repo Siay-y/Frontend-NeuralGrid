@@ -309,3 +309,12 @@
     transform: translateY(6px);
   }
 }
+
+.identity__dead {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}

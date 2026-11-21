@@ -202,6 +202,15 @@
                             <svg lucideSquarePen [size]="15" />
                             Editar token
                           </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            class="action-menu__item"
+                            (click)="more.close(); locate(token); store.openStatusMenu(token.id)"
+                          >
+                            <svg lucideSparkles [size]="15" />
+                            Status
+                          </button>
                           <div class="action-menu__divider" role="separator"></div>
                           <button
                             type="button"

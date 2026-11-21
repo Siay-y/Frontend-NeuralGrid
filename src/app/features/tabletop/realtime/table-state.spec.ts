@@ -11,6 +11,7 @@ import {
   TableServerEvent,
   type TableSnapshot,
   type TableDrawing,
+  type TableStatus,
   type TableToken,
 } from './table.protocol';
 
@@ -568,5 +569,90 @@ describe('TableState', () => {
 
     connection.emit(TableServerEvent.CombatChanged, { combat: { ...fight, turnId: null } });
     expect(state.myTurn()).toBe(false);
+  });
+
+  it('keeps the statuses of each token in sync with the table', async () => {
+    const poison: TableStatus = { kind: 'poison', turns: 3, amount: '1d6', immuneTo: [] };
+    connection.emit(TableServerEvent.Snapshot, {
+      ...snapshot('master', 'mestre'),
+      statuses: [{ tokenId: 'dante', statuses: [poison] }],
+    });
+    expect(state.statusesOf('dante')).toEqual([poison]);
+    expect(state.statusesOf('ghost')).toEqual([]);
+
+    const haste: TableStatus = { kind: 'haste', turns: null, amount: null, immuneTo: [] };
+    connection.request.mockResolvedValueOnce({ tokenId: 'dante', statuses: [poison, haste] });
+    expect(await state.applyStatus('dante', haste)).toBe(true);
+    expect(connection.request).toHaveBeenCalledWith('status:apply', { tokenId: 'dante', ...haste });
+    expect(state.statusesOf('dante')).toEqual([poison, haste]);
+
+    connection.emit(TableServerEvent.StatusChanged, {
+      tokenId: 'dante',
+      statuses: [{ ...poison, turns: 2 }, haste],
+    });
+    expect(state.statusesOf('dante')[0].turns).toBe(2);
+
+    connection.request.mockRejectedValueOnce(
+      new TableActionError('INVALID_STATUS', 'Esse personagem está imune a Veneno'),
+    );
+    expect(await state.removeStatus('dante', 'blind')).toBe(false);
+    expect(store.notice()?.message).toBe('Esse personagem está imune a Veneno');
+
+    connection.emit(TableServerEvent.StatusChanged, { tokenId: 'dante', statuses: [] });
+    expect(state.statuses().has('dante')).toBe(false);
+
+    connection.emit(TableServerEvent.StatusChanged, { tokenId: 'dante', statuses: [haste] });
+    connection.emit(TableServerEvent.TokenDeleted, { id: 'dante' });
+    expect(state.statusesOf('dante')).toEqual([]);
+  });
+
+  it('keeps a fallen character from acting and leaves the death save to its band', () => {
+    const feed = TestBed.inject(RollFeed);
+    const save: ChatMessage = {
+      ...message('m-save', 'mestre'),
+      kind: 'roll',
+      text: null,
+      roll: {
+        notation: '1d20',
+        label: 'Teste de morte · Dante',
+        total: 9,
+        terms: [],
+      } as unknown as ChatMessage['roll'],
+    };
+    connection.emit(TableServerEvent.TokenUpdated, { ...dante, sheetId: 'kian', version: 2 });
+    connection.emit(TableServerEvent.StatusChanged, {
+      tokenId: 'dante',
+      statuses: [{ kind: 'death', turns: 2, amount: null, immuneTo: [] }],
+    });
+
+    expect(state.canMove(state.token('dante')!)).toBe(false);
+    expect(state.sheetDeath('kian')?.turns).toBe(2);
+    expect(state.myFall()?.turns).toBe(2);
+
+    connection.emit(TableServerEvent.DeathEvent, {
+      kind: 'save',
+      tokenId: 'dante',
+      label: 'Dante',
+      ownerId: 'ana',
+      hidden: false,
+      nameHidden: false,
+      attemptsLeft: 1,
+      failures: 2,
+      roll: 9,
+      success: false,
+      message: save,
+    });
+    connection.emit(TableServerEvent.MessageCreated, save);
+
+    expect(state.deaths()?.event.roll).toBe(9);
+    expect(feed.throws()).toEqual([]);
+    expect(feed.previews()).toEqual([]);
+  });
+
+  it('lets the master bring a sheet back', async () => {
+    connection.request.mockResolvedValueOnce({ id: 'kian' });
+
+    expect(await state.reviveSheet('kian')).toBe(true);
+    expect(connection.request).toHaveBeenCalledWith('death:revive', { id: 'kian' });
   });
 });

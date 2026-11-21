@@ -39,7 +39,16 @@ import {
   IDLE_COMBAT,
   type TableCombat,
   type TableScene,
+  type StatusKind,
+  type TableDeathEvent,
+  type TableStatus,
+  type TokenStatuses,
 } from './table.protocol';
+
+export interface DeathNews {
+  seq: number;
+  event: TableDeathEvent;
+}
 
 export const CHAT_MEMORY_LIMIT = 200;
 
@@ -119,6 +128,9 @@ export class TableState {
   private readonly fogState = signal<TableFog>(DEFAULT_FOG);
   private readonly combatState = signal<TableCombat>(IDLE_COMBAT);
   private readonly combatStartCount = signal(0);
+  private readonly statusesByToken = signal<ReadonlyMap<string, readonly TableStatus[]>>(new Map());
+  private readonly deathNews = signal<DeathNews | null>(null);
+  private readonly quietRolls = new Set<string>();
   private readonly memoryState = signal<{ mapId: string | null; spots: readonly LightSource[] }>({
     mapId: null,
     spots: [],
@@ -130,6 +142,19 @@ export class TableState {
   readonly fog = this.fogState.asReadonly();
   readonly combat = this.combatState.asReadonly();
   readonly combatStarts = this.combatStartCount.asReadonly();
+  readonly statuses = this.statusesByToken.asReadonly();
+  readonly deaths = this.deathNews.asReadonly();
+  readonly myFall = computed(() => {
+    const me = this.self();
+    if (!me || me.role === 'master') {
+      return null;
+    }
+    const falls = this.tokens()
+      .filter((token) => token.ownerId === me.id)
+      .map((token) => this.deathOf(token.id))
+      .filter((status): status is TableStatus => status !== undefined);
+    return falls.find((status) => status.turns === null) ?? falls[0] ?? null;
+  });
   readonly myTurn = computed(() => {
     const { round, turnId } = this.combatState();
     const me = this.self();
@@ -207,6 +232,8 @@ export class TableState {
       [TableServerEvent.FogMemory]: (event: FogMemoryEvent) => this.applyMemory(event),
       [TableServerEvent.CombatChanged]: ({ combat }: { combat: TableCombat }) =>
         this.applyCombat(combat),
+      [TableServerEvent.StatusChanged]: (change: TokenStatuses) => this.applyStatuses(change),
+      [TableServerEvent.DeathEvent]: (event: TableDeathEvent) => this.applyDeath(event),
       [TableServerEvent.SceneChanged]: ({ scene }: { scene: TableScene | null }) =>
         this.applyScene(scene),
     });
@@ -216,13 +243,45 @@ export class TableState {
     return this.tokensById().get(id);
   }
 
+  statusesOf(tokenId: string): readonly TableStatus[] {
+    return this.statusesByToken().get(tokenId) ?? [];
+  }
+
+  deathOf(tokenId: string): TableStatus | undefined {
+    return this.statusesOf(tokenId).find(({ kind }) => kind === 'death');
+  }
+
+  sheetDeath(sheetId: string): TableStatus | undefined {
+    const deaths = this.tokens()
+      .filter((token) => token.sheetId === sheetId)
+      .map((token) => this.deathOf(token.id))
+      .filter((status): status is TableStatus => status !== undefined);
+    return deaths.find((status) => status.turns === null) ?? deaths[0];
+  }
+
+  async reviveSheet(id: string): Promise<boolean> {
+    const done = await this.attempt(async () => {
+      await this.connection.request(TableClientEvent.ReviveSheet, { id });
+      return true;
+    });
+    return done ?? false;
+  }
+
+  applyStatus(tokenId: string, status: TableStatus): Promise<boolean> {
+    return this.statusRequest(TableClientEvent.ApplyStatus, { tokenId, ...status });
+  }
+
+  removeStatus(tokenId: string, kind: StatusKind): Promise<boolean> {
+    return this.statusRequest(TableClientEvent.RemoveStatus, { tokenId, kind });
+  }
+
   member(id: string | null): TableMember | undefined {
     return id ? this.memberList().find((member) => member.id === id) : undefined;
   }
 
   canMove(token: TableToken): boolean {
     const me = this.self();
-    return !!me && (me.role === 'master' || token.ownerId === me.id);
+    return !!me && (me.role === 'master' || (token.ownerId === me.id && !this.deathOf(token.id)));
   }
 
   sheetStats(id: string | null): SheetStats | undefined {
@@ -389,6 +448,31 @@ export class TableState {
     if (began && !this.isMaster()) {
       this.combatStartCount.update((count) => count + 1);
     }
+  }
+
+  private async statusRequest(event: string, payload: object): Promise<boolean> {
+    const change = await this.attempt(() => this.connection.request<TokenStatuses>(event, payload));
+    if (change) {
+      this.applyStatuses(change);
+    }
+    return change !== null;
+  }
+
+  // The fallen player watches their own death save fall on the table, so the
+  // small card that every other player gets is skipped for them.
+  private applyDeath(event: TableDeathEvent): void {
+    const me = this.self();
+    const mine = !!me && me.role !== 'master' && event.ownerId === me.id;
+    if (mine && event.kind === 'save' && event.message) {
+      this.quietRolls.add(event.message.id);
+    }
+    this.deathNews.update((news) => ({ seq: (news?.seq ?? 0) + 1, event }));
+  }
+
+  private applyStatuses({ tokenId, statuses }: TokenStatuses): void {
+    this.statusesByToken.update((all) =>
+      statuses.length > 0 ? withEntry(all, tokenId, statuses) : withoutEntry(all, tokenId),
+    );
   }
 
   private applyMemory({ mapId, points, reset }: FogMemoryEvent): void {
@@ -619,6 +703,9 @@ export class TableState {
     this.applyScene(snapshot.scene ?? null);
     this.fogState.set(snapshot.fog ?? DEFAULT_FOG);
     this.combatState.set(snapshot.combat ?? IDLE_COMBAT);
+    this.statusesByToken.set(
+      new Map((snapshot.statuses ?? []).map(({ tokenId, statuses }) => [tokenId, statuses])),
+    );
     this.applyMemory({
       mapId: snapshot.fogMemory?.mapId ?? null,
       points: snapshot.fogMemory?.points ?? [],
@@ -632,7 +719,7 @@ export class TableState {
     if (!isNew || message.authorId === this.self()?.id) {
       return;
     }
-    if (message.kind === 'roll') {
+    if (message.kind === 'roll' && !this.quietRolls.delete(message.id)) {
       this.feed.show(message);
     }
     const panel = this.store.activePanel();
@@ -670,6 +757,7 @@ export class TableState {
   private remove(id: string): void {
     this.tokensById.update((tokens) => withoutEntry(tokens, id));
     this.previewsById.update((previews) => withoutEntry(previews, id));
+    this.statusesByToken.update((all) => withoutEntry(all, id));
     this.store.clearSelection(id);
   }
 

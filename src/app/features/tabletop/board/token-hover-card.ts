@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { TableState } from '../realtime/table-state';
 import { TOKEN_KIND_LABEL, TOKEN_SEX_LABEL, type TableToken } from '../realtime/table.protocol';
 import { defense, gaugeRatio } from '../sheets/sheet-model';
+import { STATUS_INFO, statusDetail } from '../status/status-catalog';
+import { StatusIcon } from '../status/status-icon';
 import { TokenGlyph } from '../tokens/token-glyph';
 import { tokenIcon } from '../tokens/token-icons';
 
@@ -9,7 +11,7 @@ const UNKNOWN = '???';
 
 @Component({
   selector: 'app-token-hover-card',
-  imports: [TokenGlyph],
+  imports: [StatusIcon, TokenGlyph],
   templateUrl: './token-hover-card.html',
   styleUrl: './token-hover-card.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,6 +36,13 @@ export class TokenHoverCard {
     () => this.vitals() === null && this.token().sheetId !== null,
   );
   protected readonly masked = computed(() => this.table.isMasked(this.token()));
+  protected readonly effects = computed(() =>
+    this.table.statusesOf(this.token().id).map((status) => ({
+      kind: status.kind,
+      label: STATUS_INFO[status.kind].label,
+      detail: statusDetail(status),
+    })),
+  );
   protected readonly kind = computed(() => {
     const token = this.token();
     if (this.masked()) {

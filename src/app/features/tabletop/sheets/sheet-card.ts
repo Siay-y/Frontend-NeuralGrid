@@ -122,6 +122,10 @@ export class SheetCard {
     return [codename.trim() ? name : '', className].filter((part) => part.trim()).join(' · ');
   }
 
+  protected fallen(sheet: CharacterSheet): boolean {
+    return !!this.table.sheetDeath(sheet.id);
+  }
+
   protected defense(sheet: CharacterSheet): number {
     return defense(sheet.data);
   }

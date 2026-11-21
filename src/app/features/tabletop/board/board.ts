@@ -55,6 +55,7 @@ import { prefersReducedMotion } from '../dice/dice-env';
 import { emitsLight } from '../maps/fog-light';
 import { LightFog } from './fog-renderer';
 import { clampToGrid, hitTest, type PlacedToken, snapToCell } from './token-geometry';
+import { StatusMenu } from '../status/status-menu';
 import { TokenHoverCard } from './token-hover-card';
 import { type Point, TokenMotion } from './token-motion';
 import {
@@ -126,6 +127,7 @@ const MIN_MINOR_LINE_SPACING = 10;
 const HOVER_CARD_GAP_PX = 10;
 const HOVER_CARD_HALF_WIDTH_PX = 118;
 const HOVER_CARD_ROOM_PX = 190;
+const HOVER_CARD_EFFECT_PX = 20;
 const ERASER_RADIUS_PX = 10;
 const STROKE_STEP_PX = 2;
 const STROKE_TOLERANCE_PX = 0.6;
@@ -164,7 +166,7 @@ function fadeGridEdges(ctx: CanvasRenderingContext2D): void {
 
 @Component({
   selector: 'app-board',
-  imports: [LucideLocateFixed, LucideMinus, LucidePlus, TokenHoverCard],
+  imports: [LucideLocateFixed, LucideMinus, LucidePlus, StatusMenu, TokenHoverCard],
   templateUrl: './board.html',
   styleUrl: './board.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -200,6 +202,7 @@ export class Board {
     if (
       !token ||
       this.table.inDarkness(token) ||
+      this.store.statusMenu() ||
       this.panning() ||
       this.draggingToken() ||
       this.gesturing() ||
@@ -210,7 +213,8 @@ export class Board {
     const { x, y, zoom } = this.camera();
     const span = CELL_SIZE * zoom;
     const top = y + token.row * span;
-    const below = top < HOVER_CARD_ROOM_PX;
+    const room = HOVER_CARD_ROOM_PX + this.table.statusesOf(token.id).length * HOVER_CARD_EFFECT_PX;
+    const below = top < room;
     const centerX = x + (token.col + token.size / 2) * span;
     const maxX = Math.max(HOVER_CARD_HALF_WIDTH_PX, this.viewport.width - HOVER_CARD_HALF_WIDTH_PX);
     return {
@@ -218,6 +222,22 @@ export class Board {
       below,
       left: Math.min(Math.max(centerX, HOVER_CARD_HALF_WIDTH_PX), maxX),
       top: below ? top + token.size * span + HOVER_CARD_GAP_PX : top - HOVER_CARD_GAP_PX,
+    };
+  });
+  protected readonly isMaster = this.table.isMaster;
+  protected readonly statusAnchor = computed(() => {
+    const request = this.store.statusMenu();
+    const token = request ? this.table.token(request.tokenId) : undefined;
+    if (!token) {
+      return null;
+    }
+    const { x, y, zoom } = this.camera();
+    const span = CELL_SIZE * zoom;
+    const rect = this.host.nativeElement.getBoundingClientRect();
+    return {
+      left: rect.left + x + token.col * span,
+      right: rect.left + x + (token.col + token.size) * span,
+      top: rect.top + y + token.row * span,
     };
   });
   protected readonly zoomPercent = computed(() => Math.round(this.camera().zoom * 100));
@@ -264,6 +284,7 @@ export class Board {
       this.table.fog();
       this.table.explored();
       this.table.combat();
+      this.table.statuses();
       this.mapScene.layers();
       this.store.mapAdjusting();
       this.store.mapAreaId();
@@ -466,6 +487,19 @@ export class Board {
     const sheet = this.table.sheet(hitTest(this.placed, world.x, world.y)?.token.sheetId ?? null);
     if (sheet) {
       this.store.openSheet(sheet.id);
+    }
+  }
+
+  protected onContextMenu(event: MouseEvent): void {
+    event.preventDefault();
+    if (!this.table.isMaster() || !HOVER_TOOLS.has(this.store.activeTool())) {
+      return;
+    }
+    const world = this.toWorld(event);
+    const hit = hitTest(this.placed, world.x, world.y);
+    if (hit) {
+      this.hoveredTokenId.set(null);
+      this.store.openStatusMenu(hit.token.id);
     }
   }
 
@@ -1059,6 +1093,7 @@ export class Board {
         remote: previews.has(token.id),
         lifted: token.id === this.tokenDrag?.id,
         masked: this.table.isMasked(token),
+        fallen: !!this.table.deathOf(token.id),
       });
     }
     const draggedId = this.tokenDrag?.id;

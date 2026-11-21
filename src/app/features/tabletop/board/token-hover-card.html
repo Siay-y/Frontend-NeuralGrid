@@ -64,6 +64,18 @@
     </div>
   }
 
+  @if (effects().length > 0) {
+    <ul class="effects" aria-label="Status">
+      @for (effect of effects(); track effect.kind) {
+        <li class="effect">
+          <app-status-icon class="effect__icon" [kind]="effect.kind" [size]="13" />
+          <span class="effect__name">{{ effect.label }}</span>
+          <span class="effect__detail">{{ effect.detail }}</span>
+        </li>
+      }
+    </ul>
+  }
+
   @if (mine() || (isMaster() && (token().hidden || token().nameHidden || sheet()?.statsHidden))) {
     <div class="tags">
       @if (mine()) {

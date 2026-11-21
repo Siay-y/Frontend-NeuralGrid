@@ -1,0 +1,41 @@
+@if (veil(); as veil) {
+  <div
+    class="veil"
+    [class.is-dying]="veil.dying"
+    aria-hidden="true"
+    animate.enter="veil-enter"
+    animate.leave="veil-leave"
+  ></div>
+  <p class="tag chrome-dark" role="status" animate.enter="tag-enter" animate.leave="tag-leave">
+    <app-status-icon kind="death" [size]="13" />
+    {{ veil.label }}
+  </p>
+}
+
+<div class="notices chrome-dark" aria-live="polite">
+  @for (notice of notices(); track notice.id) {
+    <div class="notice" role="status" animate.enter="notice-enter" animate.leave="notice-leave">
+      <app-status-icon class="notice__icon" kind="death" [size]="14" />
+      <span class="notice__text">
+        <strong>{{ notice.title }}</strong>
+        <span class="notice__detail">{{ notice.detail }}</span>
+      </span>
+      <button
+        type="button"
+        class="icon-button notice__close"
+        aria-label="Fechar aviso"
+        (click)="dismiss(notice.id)"
+      >
+        <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  }
+</div>
+
+@if (scene(); as current) {
+  @for (item of [current]; track item.seq) {
+    <app-death-band [scene]="item" animate.leave="death-leave" />
+  }
+}

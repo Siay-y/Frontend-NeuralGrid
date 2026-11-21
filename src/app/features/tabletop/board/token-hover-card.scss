@@ -156,6 +156,41 @@
   color: var(--color-text-subtle);
 }
 
+.effects {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.effect {
+  display: grid;
+  grid-template-columns: 13px auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+}
+
+.effect__icon {
+  color: var(--color-text-muted);
+}
+
+.effect__name {
+  white-space: nowrap;
+}
+
+.effect__detail {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-muted);
+  text-align: right;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .status-dot {
   width: 6px;
   height: 6px;

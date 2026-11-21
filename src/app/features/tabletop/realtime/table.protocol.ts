@@ -36,6 +36,9 @@ export const TableClientEvent = {
   StepTurn: 'combat:step',
   PassTurn: 'combat:pass',
   EndCombat: 'combat:end',
+  ApplyStatus: 'status:apply',
+  RemoveStatus: 'status:remove',
+  ReviveSheet: 'death:revive',
 } as const;
 
 export const TableServerEvent = {
@@ -62,6 +65,8 @@ export const TableServerEvent = {
   FogChanged: 'fog:changed',
   FogMemory: 'fog:memory',
   CombatChanged: 'combat:changed',
+  StatusChanged: 'status:changed',
+  DeathEvent: 'death:event',
   SessionExpired: 'session:expired',
   ConnectionLimit: 'session:limit',
 } as const;
@@ -122,6 +127,64 @@ export interface TableSnapshot {
   fog?: TableFog;
   fogMemory?: FogMemorySnapshot | null;
   combat?: TableCombat;
+  statuses?: TokenStatuses[];
+}
+
+export const DEBUFF_KINDS = [
+  'bleeding',
+  'poison',
+  'slow',
+  'mind-control',
+  'blind',
+  'burning',
+  'confused',
+  'death',
+] as const;
+
+export const BUFF_KINDS = [
+  'giant',
+  'invisible',
+  'immune',
+  'haste',
+  'damage-reduction',
+  'iron-skin',
+  'regeneration',
+] as const;
+
+export type DebuffKind = (typeof DEBUFF_KINDS)[number];
+export type StatusKind = DebuffKind | (typeof BUFF_KINDS)[number];
+
+export interface TableStatus {
+  kind: StatusKind;
+  turns: number | null;
+  amount: string | null;
+  immuneTo: DebuffKind[];
+}
+
+export interface TokenStatuses {
+  tokenId: string;
+  statuses: TableStatus[];
+}
+
+export const STATUS_LIMITS = { turns: 99, amount: 64 } as const;
+
+export const DEATH_SAVES = 3;
+export const DEATH_SAVE_TARGET = 15;
+
+export type DeathEventKind = 'fell' | 'save' | 'killed' | 'revived';
+
+export interface TableDeathEvent {
+  kind: DeathEventKind;
+  tokenId: string;
+  label: string;
+  ownerId: string | null;
+  hidden: boolean;
+  nameHidden: boolean;
+  attemptsLeft: number;
+  failures: number;
+  roll: number | null;
+  success: boolean | null;
+  message: ChatMessage | null;
 }
 
 export interface TableCombatant {

@@ -1,0 +1,68 @@
+<form class="form" (submit)="apply($event)">
+  <div class="form__fields">
+    <label class="field">
+      <span class="field__label">Turnos</span>
+      <input
+        class="field__input"
+        type="number"
+        inputmode="numeric"
+        min="1"
+        [max]="maxTurns"
+        placeholder="Sem limite"
+        [value]="turns()"
+        (input)="turns.set($any($event.target).value)"
+      />
+    </label>
+    @if (info().amount) {
+      <label class="field">
+        <span class="field__label">{{ amountLabel() }}</span>
+        <input
+          class="field__input field__input--mono"
+          type="text"
+          autocomplete="off"
+          spellcheck="false"
+          [maxLength]="maxAmount"
+          [placeholder]="amountPlaceholder()"
+          [value]="amount()"
+          (input)="amount.set($any($event.target).value)"
+        />
+      </label>
+    }
+  </div>
+
+  @if (kind() === 'immune') {
+    <div class="immunity" role="group" aria-label="Imune a">
+      <span class="field__label">Imune a</span>
+      <div class="immunity__options">
+        @for (option of immunities; track option.kind) {
+          <button
+            type="button"
+            class="immunity__option"
+            [class.is-on]="immuneTo().has(option.kind)"
+            [attr.aria-pressed]="immuneTo().has(option.kind)"
+            [attr.aria-label]="option.label"
+            [title]="option.label"
+            (click)="toggleImmunity(option.kind)"
+          >
+            <app-status-icon [kind]="option.kind" [size]="14" />
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  @if (error(); as message) {
+    <p class="form__error" role="alert">{{ message }}</p>
+  }
+
+  <div class="form__actions">
+    @if (current()) {
+      <button type="button" class="button button--ghost" [disabled]="busy()" (click)="remove()">
+        Remover
+      </button>
+    }
+    <button type="submit" class="button button--primary" [disabled]="busy()">
+      {{ current() ? 'Salvar' : 'Aplicar' }}
+    </button>
+  </div>
+</form>
