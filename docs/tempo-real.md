@@ -331,6 +331,22 @@ grupo com um só avatar e um só horário. Um separador marca cada dia ("Hoje",
 privadas usam contorno tracejado. O avatar mostra as iniciais, e o do mestre é
 preenchido.
 
+### Fala no tabuleiro
+
+O texto digitado para toda a mesa também aparece num balão em cima do token do
+autor. Rolagens, mensagens para o mestre e sussurros não viram fala.
+
+| Regra | Como |
+| --- | --- |
+| Qual token | o primeiro token do autor na ordem de criação (`speakerToken`) |
+| Duração | 60 ms por caractere, entre 4 e 10 s (`speechDuration`); uma fala nova do mesmo autor troca a anterior |
+| Tamanho | até 220 px de largura e 4 linhas |
+| Quem vê | quem recebeu a mensagem e enxerga o token: some na escuridão da névoa e sob o card de hover |
+| Fim | o tempo acaba, o chat é limpo ou a mesa fecha |
+
+As falas vivem no `TableState` (`speeches`), só para mensagens que chegam ao
+vivo; o snapshot não cria balões de mensagens antigas.
+
 ### Limpar
 
 | Ação | Quem | Efeito |

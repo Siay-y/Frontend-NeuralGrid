@@ -1,5 +1,6 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import type { SessionUser } from '../../../core/auth/auth.models';
+import { speechDuration, speechOf, type TableSpeech } from '../chat/speech';
 import { RollFeed } from '../dice/roll-feed';
 import { TabletopStore } from '../tabletop.store';
 import type { CharacterSheet, SheetAssignment, SheetData, SheetStats } from '../sheets/sheet-model';
@@ -131,6 +132,8 @@ export class TableState {
   private readonly statusesByToken = signal<ReadonlyMap<string, readonly TableStatus[]>>(new Map());
   private readonly deathNews = signal<DeathNews | null>(null);
   private readonly quietRolls = new Set<string>();
+  private readonly speechByAuthor = signal<ReadonlyMap<string, TableSpeech>>(new Map());
+  private readonly speechTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly memoryState = signal<{ mapId: string | null; spots: readonly LightSource[] }>({
     mapId: null,
     spots: [],
@@ -176,6 +179,7 @@ export class TableState {
     return clearedAt ? list.filter((message) => message.createdAt > clearedAt) : list;
   });
   readonly unread = this.unreadCount.asReadonly();
+  readonly speeches = computed(() => [...this.speechByAuthor().values()]);
   readonly chatCooldown = new Cooldown(CHAT_COOLDOWN);
   readonly diceCooldown = new Cooldown(DICE_COOLDOWN);
   readonly drawings = computed(() => [...this.drawingsById().values()]);
@@ -199,6 +203,7 @@ export class TableState {
     inject(DestroyRef).onDestroy(() => {
       this.chatCooldown.dispose();
       this.diceCooldown.dispose();
+      this.silence();
     });
   }
 
@@ -605,7 +610,9 @@ export class TableState {
         text,
         ...audience,
       });
-      this.append(message);
+      if (this.append(message)) {
+        this.say(message);
+      }
       return true;
     }, this.chatCooldown);
     return sent ?? false;
@@ -645,6 +652,7 @@ export class TableState {
     this.clearedAt.set(last.createdAt);
     writeClearedAt(me.id, last.createdAt);
     this.unreadCount.set(0);
+    this.silence();
   }
 
   async clearChatForEveryone(): Promise<boolean> {
@@ -652,6 +660,7 @@ export class TableState {
       await this.connection.request(TableClientEvent.ClearChat, {});
       this.messageList.set([]);
       this.unreadCount.set(0);
+      this.silence();
       return true;
     });
     return cleared ?? false;
@@ -716,6 +725,9 @@ export class TableState {
 
   private receive(message: ChatMessage): void {
     const isNew = this.append(message);
+    if (isNew) {
+      this.say(message);
+    }
     if (!isNew || message.authorId === this.self()?.id) {
       return;
     }
@@ -729,9 +741,35 @@ export class TableState {
     }
   }
 
+  private say(message: ChatMessage): void {
+    const speech = speechOf(message);
+    if (!speech) {
+      return;
+    }
+    const { authorId } = speech;
+    clearTimeout(this.speechTimers.get(authorId));
+    this.speechByAuthor.update((all) => withEntry(all, authorId, speech));
+    this.speechTimers.set(
+      authorId,
+      setTimeout(() => {
+        this.speechTimers.delete(authorId);
+        this.speechByAuthor.update((all) => withoutEntry(all, authorId));
+      }, speechDuration(speech.text)),
+    );
+  }
+
+  private silence(): void {
+    for (const timer of this.speechTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.speechTimers.clear();
+    this.speechByAuthor.set(new Map());
+  }
+
   private applyChatCleared(by: string): void {
     this.messageList.set([]);
     this.unreadCount.set(0);
+    this.silence();
     if (by !== this.self()?.id) {
       this.store.notify('O mestre limpou o chat da mesa.');
     }

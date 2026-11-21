@@ -25,6 +25,19 @@
     (contextmenu)="onContextMenu($event)"
   ></canvas>
 
+  @for (speech of speeches(); track speech.id) {
+    <p
+      class="speech chrome-dark"
+      aria-hidden="true"
+      [style.left.px]="speech.left"
+      [style.top.px]="speech.top"
+      animate.enter="speech-enter"
+      animate.leave="speech-leave"
+    >
+      <span class="speech__text">{{ speech.text }}</span>
+    </p>
+  }
+
   @if (hoverCard(); as card) {
     <app-token-hover-card
       class="chrome-dark"

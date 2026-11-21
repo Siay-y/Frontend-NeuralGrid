@@ -56,6 +56,10 @@ export const RELEASES: readonly Release[] = [
         kind: 'improved',
         text: 'As faixas de início de combate e de morte aparecem uma de cada vez: a próxima só entra quando a anterior sai.',
       },
+      {
+        kind: 'new',
+        text: 'O que você escreve no chat para toda a mesa aparece num balão em cima do seu personagem por alguns segundos. Com mais de um, vale o primeiro que entrou na mesa.',
+      },
     ],
   },
   {

@@ -55,6 +55,7 @@ import { prefersReducedMotion } from '../dice/dice-env';
 import { emitsLight } from '../maps/fog-light';
 import { LightFog } from './fog-renderer';
 import { clampToGrid, hitTest, type PlacedToken, snapToCell } from './token-geometry';
+import { speakerToken } from '../chat/speech';
 import { StatusMenu } from '../status/status-menu';
 import { TokenHoverCard } from './token-hover-card';
 import { type Point, TokenMotion } from './token-motion';
@@ -128,6 +129,7 @@ const HOVER_CARD_GAP_PX = 10;
 const HOVER_CARD_HALF_WIDTH_PX = 118;
 const HOVER_CARD_ROOM_PX = 190;
 const HOVER_CARD_EFFECT_PX = 20;
+const SPEECH_GAP_PX = 8;
 const ERASER_RADIUS_PX = 10;
 const STROKE_STEP_PX = 2;
 const STROKE_TOLERANCE_PX = 0.6;
@@ -223,6 +225,32 @@ export class Board {
       left: Math.min(Math.max(centerX, HOVER_CARD_HALF_WIDTH_PX), maxX),
       top: below ? top + token.size * span + HOVER_CARD_GAP_PX : top - HOVER_CARD_GAP_PX,
     };
+  });
+  protected readonly speeches = computed(() => {
+    const speeches = this.table.speeches();
+    if (speeches.length === 0) {
+      return [];
+    }
+    const { x, y, zoom } = this.camera();
+    const span = CELL_SIZE * zoom;
+    const tokens = this.table.tokens();
+    const previews = this.table.previews();
+    const covered = this.hoverCard()?.token.id;
+    return speeches.flatMap(({ id, authorId, text }) => {
+      const token = speakerToken(tokens, authorId);
+      if (!token || token.id === covered || this.table.inDarkness(token)) {
+        return [];
+      }
+      const at = previews.get(token.id) ?? token;
+      return [
+        {
+          id,
+          text,
+          left: x + (at.col + token.size / 2) * span,
+          top: y + at.row * span - SPEECH_GAP_PX,
+        },
+      ];
+    });
   });
   protected readonly isMaster = this.table.isMaster;
   protected readonly statusAnchor = computed(() => {
